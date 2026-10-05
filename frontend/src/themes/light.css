@@ -1,0 +1,10 @@
+:root {
+	--background: #f7f7f3;
+    --border: #e5e7e0;
+	--primary-text: #29322c;
+    --primary-surface: #fff;
+    --primary-active-surface: #edf1e6;
+    --primary-active-text: #334931;
+    --secondary-text: #f6f7f1;
+    --secondary-surface: #495d44;
+}

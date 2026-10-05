@@ -1,24 +1,31 @@
-<div class="workspace-frame">
+<div class="workspace-frame" (click)="closeAccountMenu()">
   <aside class="sidebar">
-    <a class="wordmark" routerLink="/"><span class="brand-mark">f</span><span>fieldnote</span><span class="wordmark-tag">WORKSPACE</span></a>
-    <div class="workspace-select"><div class="workspace-symbol">F</div><div><strong>Fieldnote Studio</strong><small>PERSONAL WORKSPACE</small></div><span class="select-chevron">⌄</span></div>
+    <a class="wordmark" routerLink="/"><span class="brand-mark">f</span><span>fieldnote</span></a>
 
     <nav class="primary-nav" aria-label="Main navigation">
-      <p class="nav-caption">WORKSPACE</p>
-      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><svg lucideLayoutDashboard [size]="17"></svg><span>Dashboard</span><kbd>⌘ 1</kbd></a>
-      <div class="section-heading"><span class="nav-caption">MY PROJECTS</span><button class="icon-button side-add" type="button" aria-label="Create project" title="Create project" (click)="openCreate()"><svg lucidePlus [size]="16"></svg></button></div>
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" [size]="17" /><span>Dashboard</span></a>
+      <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" [size]="16" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
-          <a [routerLink]="['/projects', project.id]" routerLinkActive="is-active"><span class="project-mark" [attr.data-color]="$index % 5"><svg lucideFolderKanban [size]="15"></svg></span><span class="project-link-name">{{ project.name }}</span><small>{{ project.taskCount }}</small></a>
+          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><span class="project-mark" [attr.data-color]="$index % 5"><app-icon name="view_kanban" [size]="15" /></span><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
         } @empty {
-          <p class="empty-projects">Your projects will appear here.</p>
         }
       </div>
     </nav>
 
-    <div class="sidebar-bottom">
-      <div class="sync-status"><span class="sync-dot"></span><span>Everything is up to date</span></div>
-      <div class="profile-row"><div class="avatar">{{ account()?.displayName?.charAt(0) ?? 'J' }}</div><div class="profile-copy"><strong>{{ account()?.displayName ?? 'Loading profile' }}</strong><small>{{ account()?.email ?? ' ' }}</small></div><button class="icon-button logout-button" type="button" (click)="logout()" aria-label="Sign out" title="Sign out"><svg lucideLogOut [size]="17"></svg></button></div>
+    <div class="sidebar-bottom" (click)="$event.stopPropagation()">
+      <div class="account-menu-wrap">
+        @if (accountMenuOpen()) {
+          <div class="account-menu" role="menu">
+            <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" [size]="16" />Settings</a>
+            <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" [size]="16" />Sign out</button>
+          </div>
+        }
+        <button class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
+          <span class="avatar">{{ account()?.displayName?.charAt(0) ?? 'J' }}</span>
+          <span class="profile-copy"><strong>{{ account()?.displayName ?? 'Account' }}</strong><small>{{ account()?.email ?? '' }}</small></span>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -28,13 +35,12 @@
 @if (creating()) {
   <div class="modal-backdrop" (click)="creating.set(false)">
     <section class="project-dialog" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
-      <button class="dialog-close" type="button" (click)="creating.set(false)" aria-label="Close">×</button>
-      <p class="eyebrow">A NEW SPACE</p><h2 id="create-title">Create a project</h2><p class="dialog-copy">Give this work a name. You can add details and tasks next.</p>
+      <header><h2 id="create-title">Create a project</h2><button class="transparent" type="button" (click)="creating.set(false)" aria-label="Close"><app-icon name="close" [size]="20" /></button></header>
       <form [formGroup]="form" (ngSubmit)="createProject()">
         <label for="project-name">Project name</label><input id="project-name" formControlName="name" placeholder="e.g. Website relaunch" autofocus />
-        <label for="project-description">Short description <span>OPTIONAL</span></label><textarea id="project-description" formControlName="description" rows="3" placeholder="What are you working toward?"></textarea>
+        <label for="project-description">Description</label><textarea id="project-description" formControlName="description" rows="3" placeholder="Optional"></textarea>
         @if (createError()) { <p class="create-error" role="alert">{{ createError() }}</p> }
-        <footer><button class="quiet-button" type="button" (click)="creating.set(false)">Cancel</button><button class="primary-button" type="submit" [disabled]="form.invalid">Create project <span>↗</span></button></footer>
+        <footer><button class="transparent" type="button" (click)="creating.set(false)">Cancel</button><button class="primary" type="submit" [disabled]="form.invalid">Create project <span>↗</span></button></footer>
       </form>
     </section>
   </div>

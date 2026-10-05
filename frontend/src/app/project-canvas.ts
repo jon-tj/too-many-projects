@@ -1,10 +1,7 @@
-import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, input, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, input, numberAttribute, signal, viewChild } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  LucideArrowRight, LucideCircle, LucideHand, LucideMinus, LucideMousePointer2,
-  LucidePlus, LucideRotateCcw, LucideSquare, LucideStickyNote, LucideTrash2,
-} from '@lucide/angular';
+import { Icon } from './icon';
 import { CanvasDocument, CanvasItem, CanvasNote, CanvasShape, EMPTY_CANVAS } from './models';
 import { WorkspaceApi } from './workspace-api';
 
@@ -15,12 +12,12 @@ type Gesture =
 
 @Component({
   selector: 'app-project-canvas',
-  imports: [FormsModule, NgStyle, LucideArrowRight, LucideCircle, LucideHand, LucideMinus, LucideMousePointer2, LucidePlus, LucideRotateCcw, LucideSquare, LucideStickyNote, LucideTrash2],
+  imports: [FormsModule, NgStyle, Icon],
   templateUrl: './project-canvas.html',
   styleUrl: './project-canvas.css',
 })
 export class ProjectCanvas implements OnInit, OnDestroy {
-  readonly projectId = input.required<number>();
+  readonly projectId = input.required({ transform: numberAttribute });
   protected readonly state = signal<CanvasDocument>(structuredClone(EMPTY_CANVAS));
   protected readonly tool = signal<CanvasTool>('select');
   protected readonly selectedId = signal<string | null>(null);
@@ -53,7 +50,12 @@ export class ProjectCanvas implements OnInit, OnDestroy {
         const canvas = response.canvas;
         this.state.set({
           view: { x: canvas.view?.x ?? 80, y: canvas.view?.y ?? 70, zoom: canvas.view?.zoom ?? 1 },
-          items: Array.isArray(canvas.items) ? canvas.items : [],
+          items: Array.isArray(canvas.items) ? canvas.items.map((item) => ({
+            ...item,
+            color: item.type === 'note'
+              ? 'var(--primary-active-surface)'
+              : 'var(--secondary-surface)',
+          })) : [],
         });
         this.loading.set(false);
       },
@@ -194,7 +196,7 @@ export class ProjectCanvas implements OnInit, OnDestroy {
   private createItem(tool: CanvasTool, x: number, y: number): CanvasItem {
     const id = crypto.randomUUID();
     if (tool === 'note') {
-      return { id, type: 'note', x, y, text: 'A thought worth keeping…', color: ['#f1e9a9', '#e7d7c5', '#d9e8dd'][Math.floor(Math.random() * 3)] };
+      return { id, type: 'note', x, y, text: 'A thought worth keeping…', color: 'var(--primary-active-surface)' };
     }
     return {
       id,
@@ -202,7 +204,7 @@ export class ProjectCanvas implements OnInit, OnDestroy {
       shape: tool as CanvasShape['shape'],
       x,
       y,
-      color: tool === 'circle' ? '#d4e4dc' : tool === 'arrow' ? '#e7d8c6' : '#dfe8c8',
+      color: 'var(--secondary-surface)',
     };
   }
 

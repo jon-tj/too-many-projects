@@ -28,6 +28,13 @@ export interface Account {
   email: string;
 }
 
+export interface ProjectMember {
+  userId: string;
+  userName: string;
+  displayName: string;
+  role: string;
+}
+
 export interface CanvasView { x: number; y: number; zoom: number; }
 export interface CanvasNote { id: string; type: 'note'; x: number; y: number; text: string; color: string; }
 export interface CanvasShape {

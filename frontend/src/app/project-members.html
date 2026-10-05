@@ -1,0 +1,15 @@
+@if (members.isLoading()) {
+  <p>Loading members...</p>
+} @else if (members.error()) {
+  <p role="alert">Could not load project members.</p>
+} @else {
+  @for (member of members.value(); track member.userId) {
+    <article>
+      <div>
+        <strong>{{ member.displayName || member.userName }}</strong>
+        <small>{{ member.userName }}</small>
+      </div>
+      <span class="badge">{{ member.role }}</span>
+    </article>
+  }
+}

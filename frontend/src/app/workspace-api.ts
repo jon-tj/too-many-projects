@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Account, CanvasDocument, Project, ProjectTask } from './models';
+import { Account, CanvasDocument, Project, ProjectMember, ProjectTask } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceApi {
@@ -21,6 +21,10 @@ export class WorkspaceApi {
 
   project(id: number): Observable<Project> {
     return this.http.get<Project>(`/api/projects/${id}`);
+  }
+
+  projectMembers(id: number): Observable<ProjectMember[]> {
+    return this.http.get<ProjectMember[]>(`/api/projects/${id}/members`);
   }
 
   dashboardTasks(): Observable<ProjectTask[]> {

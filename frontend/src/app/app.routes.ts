@@ -4,6 +4,10 @@ import { LoginPage } from './login-page';
 import { WorkspaceShell } from './workspace-shell';
 import { DashboardPage } from './dashboard-page';
 import { ProjectPage } from './project-page';
+import { ProjectBoard } from './project-board';
+import { ProjectCanvas } from './project-canvas';
+import { ProjectMembers } from './project-members';
+import { SettingsPage } from './settings-page';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginPage },
@@ -11,7 +15,16 @@ export const routes: Routes = [
 		path: '', component: WorkspaceShell, canActivate: [authGuard],
 		children: [
 			{ path: '', component: DashboardPage },
-			{ path: 'projects/:id', component: ProjectPage },
+			{
+				path: 'projects/:projectId', component: ProjectPage,
+				children: [
+					{ path: '', pathMatch: 'full', redirectTo: 'board' },
+					{ path: 'board', component: ProjectBoard },
+					{ path: 'canvas', component: ProjectCanvas },
+					{ path: 'members', component: ProjectMembers },
+				],
+			},
+			{ path: 'settings', component: SettingsPage },
 		],
 	},
 	{ path: '**', redirectTo: '' },

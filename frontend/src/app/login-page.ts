@@ -1,12 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   templateUrl: './login-page.html',
   styleUrl: './login-page.css',
 })
@@ -15,7 +15,7 @@ export class LoginPage {
   protected readonly error = signal('');
   private readonly formBuilder = inject(FormBuilder);
   protected readonly form = this.formBuilder.nonNullable.group({
-    username: ['jon', Validators.required],
+    username: ['', Validators.required],
     password: ['', Validators.required],
   });
 

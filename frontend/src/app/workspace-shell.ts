@@ -3,14 +3,14 @@ import { NavigationEnd } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { LucideFolderKanban, LucideLayoutDashboard, LucideLogOut, LucidePlus } from '@lucide/angular';
+import { Icon } from './icon';
 import { AuthService } from './auth.service';
 import { Account, Project } from './models';
 import { WorkspaceApi } from './workspace-api';
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, LucideFolderKanban, LucideLayoutDashboard, LucideLogOut, LucidePlus],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })
@@ -18,6 +18,7 @@ export class WorkspaceShell implements OnInit {
   protected readonly projects = signal<Project[]>([]);
   protected readonly account = signal<Account | null>(null);
   protected readonly creating = signal(false);
+  protected readonly accountMenuOpen = signal(false);
   protected readonly createError = signal('');
   private readonly formBuilder = inject(FormBuilder);
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -61,4 +62,8 @@ export class WorkspaceShell implements OnInit {
   }
 
   protected logout(): void { this.auth.logout(); }
+
+  protected toggleAccountMenu(): void { this.accountMenuOpen.update((open) => !open); }
+
+  protected closeAccountMenu(): void { this.accountMenuOpen.set(false); }
 }

@@ -1,0 +1,228 @@
+.task-composer {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.75fr) minmax(170px, 1fr) minmax(150px, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 0 0 17px;
+  padding: 13px;
+  background: var(--primary-active-surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  animation: enter 0.2s ease;
+}
+.task-composer input {
+  width: 100%;
+  height: 35px;
+  padding: 0 10px;
+  color: var(--primary-active-text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  outline: 0;
+  font:
+    10px 'DM Sans',
+    sans-serif;
+}
+.task-composer input:focus {
+  border-color: var(--secondary-surface);
+}
+.task-error {
+  margin: 10px 0;
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.kanban-column {
+  min-height: 500px;
+  padding: 0 10px 12px;
+  background: var(--primary-active-surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.kanban-column > header {
+  display: flex;
+  height: 53px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.column-marker {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+.todo-marker {
+  background: var(--secondary-surface);
+}
+.doing-marker {
+  background: var(--secondary-surface);
+}
+.done-marker {
+  background: var(--secondary-surface);
+}
+.kanban-column h3 {
+  margin: 0;
+  color: var(--secondary-surface);
+  font-size: 11px;
+  font-weight: 700;
+}
+.kanban-column > header small {
+  margin-left: auto;
+  color: var(--border);
+  font:
+    8px 'IBM Plex Mono',
+    monospace;
+}
+.task-card {
+  margin-top: 10px;
+  padding: 13px 13px 9px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  animation: enter 0.24s ease both;
+}
+.task-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.task-id {
+  color: var(--border);
+  font:
+    8px 'IBM Plex Mono',
+    monospace;
+}
+.unassigned-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--border);
+  border-radius: 50%;
+}
+.done-check {
+  display: flex;
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+.task-card h4 {
+  margin: 11px 0 0;
+  color: var(--primary-active-text);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+.task-card p {
+  margin: 7px 0 0;
+  color: var(--secondary-surface);
+  font-size: 10px;
+  line-height: 1.55;
+}
+.task-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding-top: 9px;
+  border-top: 1px solid var(--primary-active-surface);
+}
+.assignee {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: var(--secondary-surface);
+  background: var(--primary-active-surface);
+  border-radius: 50%;
+  font-size: 12px;
+}
+.task-card select {
+  max-width: 88px;
+  padding: 4px 5px;
+  color: var(--secondary-surface);
+  background: var(--primary-active-surface);
+  border: 0;
+  border-radius: 3px;
+  outline: 0;
+  cursor: pointer;
+  font:
+    8px 'IBM Plex Mono',
+    monospace;
+  text-transform: uppercase;
+}
+.doing-column .task-card select {
+  color: var(--secondary-surface);
+  background: var(--primary-active-surface);
+}
+.done-column .task-card select {
+  color: var(--secondary-surface);
+  background: var(--primary-active-surface);
+}
+.done-card h4 {
+  color: var(--secondary-surface);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+.column-empty {
+  display: grid;
+  min-height: 86px;
+  place-items: center;
+  margin-top: 10px;
+  color: var(--border);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+}
+.board-loading {
+  display: flex;
+  min-height: 280px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+.board-loading span {
+  width: 7px;
+  height: 7px;
+  background: var(--border);
+  border-radius: 50%;
+  animation: pulse 0.8s infinite alternate;
+}
+@keyframes pulse {
+  to {
+    transform: scale(0.75);
+  }
+}
+@keyframes enter {
+  from {
+    transform: translateY(5px);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (max-width: 1000px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, minmax(230px, 1fr));
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  .kanban-column {
+    min-height: 420px;
+  }
+  .task-composer {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 620px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, 270px);
+    gap: 10px;
+  }
+  .task-composer {
+    grid-template-columns: 1fr;
+  }
+}

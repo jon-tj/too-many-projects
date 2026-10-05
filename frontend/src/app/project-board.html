@@ -1,0 +1,69 @@
+<button class="primary" type="button" (click)="addingTask.set(!addingTask())">
+  <app-icon name="add" [size]="16" />
+  <span>New task</span>
+</button>
+
+@if (addingTask()) {
+  <form class="task-composer" [formGroup]="form" (ngSubmit)="createTask()">
+    <input formControlName="title" placeholder="Task title" aria-label="Task title" autofocus />
+    <input
+      formControlName="description"
+      placeholder="A little context (optional)"
+      aria-label="Task description"
+    />
+    <button class="primary" type="submit" [disabled]="form.invalid">Add task</button>
+  </form>
+}
+@if (taskError()) {
+  <p class="task-error" role="alert">{{ taskError() }}</p>
+}
+@if (tasks.error()) {
+  <p class="task-error" role="alert">Could not load project tasks.</p>
+}
+
+@if (tasks.isLoading()) {
+  <div class="board-loading">Preparing your board<span></span></div>
+} @else {
+  <div class="kanban-board">
+    @for (column of columns(); track column.status) {
+      <section class="kanban-column {{ column.status }}-column">
+        <header>
+          <span class="column-marker {{ column.status }}-marker"></span>
+          <h3>{{ column.title }}</h3>
+          <span class="badge">{{ column.tasks.length }}</span>
+          <small>{{ column.label }}</small>
+        </header>
+        @for (task of column.tasks; track task.id) {
+          <article class="task-card" [class.done-card]="task.status === 'done'">
+            <div class="task-card-top">
+              <span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span>
+              @if (task.status === 'done') {
+                <span class="done-check"><app-icon name="check" [size]="14" /></span>
+              } @else {
+                <span class="unassigned-dot" title="Unassigned"></span>
+              }
+            </div>
+            <h4>{{ task.title }}</h4>
+            @if (task.description) {
+              <p>{{ task.description }}</p>
+            }
+            <footer>
+              <span class="assignee">—</span>
+              <select
+                [value]="task.status"
+                (change)="changeStatus(task, $any($event.target).value)"
+                aria-label="Task status"
+              >
+                <option value="todo">To do</option>
+                <option value="doing">Doing</option>
+                <option value="done">Done</option>
+              </select>
+            </footer>
+          </article>
+        } @empty {
+          <div class="column-empty">{{ column.empty }}</div>
+        }
+      </section>
+    }
+  </div>
+}

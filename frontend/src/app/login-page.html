@@ -1,40 +1,28 @@
-<main class="login-screen">
-  <section class="brand-panel" aria-label="About Fieldnote">
-    <a class="wordmark" routerLink="/login"><span class="mark">f</span> fieldnote</a>
-    <div class="brand-copy">
-      <p class="kicker">PROJECTS, IN GOOD ORDER</p>
-      <h1>Make room<br />for the work.</h1>
-      <p class="brand-description">A clear place to shape plans, move tasks forward, and keep the whole picture in view.</p>
-    </div>
-    <div class="canvas-art" aria-hidden="true">
-      <div class="art-path path-one"></div><div class="art-path path-two"></div>
-      <div class="art-note note-a"><span></span><i></i><i></i></div>
-      <div class="art-note note-b"><span></span><i></i><i></i><i></i></div>
-      <div class="art-node node-a"></div><div class="art-node node-b"></div><div class="art-node node-c"></div>
-      <div class="art-caption">A WORKSPACE FOR WHAT'S NEXT</div>
-    </div>
-    <footer class="brand-footer"><span>INDEPENDENTLY BUILT FOR FOCUSED TEAMS</span><span>EST. 2026</span></footer>
-  </section>
+<aside class="brand-panel" aria-label="About Fieldnote">
+  <h1>Make room<br />for the work.</h1>
+</aside>
 
-  <section class="login-panel">
-    <div class="login-topline"><span>WELCOME BACK</span><span class="secure-label"><b></b> PRIVATE WORKSPACE</span></div>
-    <div class="login-form-wrap">
-      <p class="kicker">YOUR DESK IS READY</p>
-      <h2>Sign in to continue</h2>
-      <p class="login-subtitle">Pick up where your team left off.</p>
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <label for="username">Username</label>
-        <input id="username" formControlName="username" autocomplete="username" placeholder="Your username" />
-        <div class="password-label"><label for="password">Password</label><span>SECURE SIGN IN</span></div>
-        <input id="password" type="password" formControlName="password" autocomplete="current-password" placeholder="Enter your password" />
-        @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
-        <button class="sign-in-button" type="submit" [disabled]="form.invalid || busy()">
-          <span>{{ busy() ? 'Signing in' : 'Sign in' }}</span><span aria-hidden="true">↗</span>
-        </button>
-      </form>
-      <div class="login-divider"><span></span><small>ACCOUNT ACCESS</small><span></span></div>
-      <p class="login-footnote">Access is managed by your workspace administrator.</p>
-    </div>
-    <footer class="login-legal"><span>© 2026 FIELDNOTE</span><span>BUILT FOR THE LONG GAME</span></footer>
-  </section>
+<main class="login-panel">
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <h2>Sign in to continue</h2>
+    <label>
+      Username
+      <input formControlName="username" autocomplete="username" placeholder="Your username" />
+    </label>
+    <label>
+      Password
+      <input
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+        placeholder="Enter your password"
+      />
+    </label>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+    }
+    <button class="primary" type="submit" [disabled]="form.invalid || busy()">
+      {{ busy() ? 'Signing in' : 'Sign in' }}
+    </button>
+  </form>
 </main>
