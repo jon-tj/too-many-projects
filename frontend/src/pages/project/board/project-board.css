@@ -1,29 +1,12 @@
-.task-composer {
-  display: grid;
-  grid-template-columns: minmax(130px, 0.75fr) minmax(170px, 1fr) minmax(150px, 1fr) auto;
-  align-items: end;
-  gap: 12px;
-  margin: 0 0 17px;
-  padding: 13px;
-  background: var(--primary-active-surface);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  animation: enter 0.2s ease;
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
-.task-composer input {
-  width: 100%;
-  height: 35px;
-  padding: 0 10px;
-  color: var(--primary-active-text);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  outline: 0;
-  font:
-    10px 'DM Sans',
-    sans-serif;
-}
-.task-composer input:focus {
-  border-color: var(--secondary-surface);
+:host > footer {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
 }
 .task-error {
   margin: 10px 0;
@@ -33,11 +16,10 @@
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 1;
   gap: 16px;
-  align-items: start;
 }
 .kanban-column {
-  min-height: 500px;
   padding: 0 10px 12px;
   background: var(--primary-active-surface);
   border: 1px solid var(--border);
@@ -111,7 +93,6 @@
 .done-card h4 {
   color: var(--secondary-surface);
   text-decoration: line-through;
-  text-decoration-color: var(--border);
 }
 .column-empty {
   display: grid;
@@ -158,19 +139,10 @@
     overflow-x: auto;
     padding-bottom: 10px;
   }
-  .kanban-column {
-    min-height: 420px;
-  }
-  .task-composer {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 @media (max-width: 620px) {
   .kanban-board {
     grid-template-columns: repeat(3, 270px);
     gap: 10px;
-  }
-  .task-composer {
-    grid-template-columns: 1fr;
   }
 }

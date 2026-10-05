@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
+import { Modal } from '../../../components/modal/modal';
 import { ProjectTask, TaskStatus } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
@@ -14,7 +15,7 @@ const COLUMNS = [
 
 @Component({
   selector: 'app-project-board',
-  imports: [ReactiveFormsModule, RouterLink, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Icon, Modal],
   templateUrl: './project-board.html',
   styleUrl: './project-board.css',
 })

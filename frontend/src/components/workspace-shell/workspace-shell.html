@@ -32,16 +32,22 @@
   <main class="workspace-main"><router-outlet /></main>
 </div>
 
-@if (creating()) {
-  <div class="modal-backdrop" (click)="creating.set(false)">
-    <section class="project-dialog" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
-      <header><h2 id="create-title">Create a project</h2><button class="transparent" type="button" (click)="creating.set(false)" aria-label="Close"><app-icon name="close" /></button></header>
-      <form [formGroup]="form" (ngSubmit)="createProject()">
-        <label for="project-name">Project name</label><input id="project-name" formControlName="name" placeholder="e.g. Website relaunch" autofocus />
-        <label for="project-description">Description</label><textarea id="project-description" formControlName="description" rows="3" placeholder="Optional"></textarea>
-        @if (createError()) { <p class="create-error" role="alert">{{ createError() }}</p> }
-        <footer><button class="transparent" type="button" (click)="creating.set(false)">Cancel</button><button class="primary" type="submit" [disabled]="form.invalid">Create project <span>↗</span></button></footer>
-      </form>
-    </section>
-  </div>
-}
+<app-modal heading="Create a project" [(open)]="creating">
+  <form [formGroup]="form" (ngSubmit)="createProject()">
+    <label>
+      Project name
+      <input formControlName="name" placeholder="e.g. Website relaunch" autofocus />
+    </label>
+    <label>
+      Description
+      <textarea formControlName="description" rows="3" placeholder="Optional"></textarea>
+    </label>
+    @if (createError()) {
+      <p role="alert">{{ createError() }}</p>
+    }
+    <footer>
+      <button class="transparent" type="button" (click)="creating.set(false)">Cancel</button>
+      <button class="primary" type="submit" [disabled]="form.invalid">Create project</button>
+    </footer>
+  </form>
+</app-modal>

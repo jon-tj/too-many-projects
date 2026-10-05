@@ -18,6 +18,17 @@ main {
 }
 
 /* Forms */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+form footer {
+    display: flex;
+    gap: 8px;
+}
+
 label {
     display: flex;
     flex-direction: column;

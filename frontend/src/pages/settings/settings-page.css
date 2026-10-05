@@ -9,8 +9,5 @@ header h1 { margin: 15px 0 0; color: var(--primary-text); font: 600 26px 'DM San
 dl { margin: 0; }
 dl div { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 11px 0; border-top: 1px solid var(--border); font-size: 12px; }
 dt { color: var(--secondary-surface); } dd { margin: 0; color: var(--primary-active-text); }
-form { width: min(100%, 420px); }
-label { display: block; margin: 16px 0 7px; color: var(--secondary-surface); font-size: 11px; font-weight: 600; }
-input { width: 100%; height: 39px; padding: 0 10px; color: var(--primary-text); background: var(--primary-surface); border: 1px solid var(--border); border-radius: 4px; outline: none; }
-input:focus { border-color: var(--secondary-surface); }
+form { max-width: 420px; }
 .success,.error { font-size: 11px; }.success { color: var(--secondary-surface); }.error { color: var(--secondary-surface); }

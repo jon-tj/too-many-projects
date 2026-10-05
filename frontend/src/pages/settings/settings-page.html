@@ -19,28 +19,24 @@
 <section class="settings-section">
   <h2>Change password</h2>
   <form [formGroup]="form" (ngSubmit)="changePassword()">
-    <label for="current-password">Current password</label>
-    <input
-      id="current-password"
-      type="password"
-      formControlName="currentPassword"
-      autocomplete="current-password"
-    />
-    <label for="new-password">New password</label>
-    <input
-      id="new-password"
-      type="password"
-      formControlName="newPassword"
-      autocomplete="new-password"
-    />
+    <label>
+      Current password
+      <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+    </label>
+    <label>
+      New password
+      <input type="password" formControlName="newPassword" autocomplete="new-password" />
+    </label>
     @if (message()) {
       <p class="success" role="status">{{ message() }}</p>
     }
     @if (error()) {
       <p class="error" role="alert">{{ error() }}</p>
     }
-    <button class="primary" type="submit" [disabled]="form.invalid || busy()">
-      {{ busy() ? 'Updating...' : 'Update password' }}
-    </button>
+    <footer>
+      <button class="primary" type="submit" [disabled]="form.invalid || busy()">
+        {{ busy() ? 'Updating...' : 'Update password' }}
+      </button>
+    </footer>
   </form>
 </section>
