@@ -3,7 +3,6 @@
 } @else if (task.error()) {
   <p role="alert">This task could not be found.</p>
 } @else if (task.value(); as current) {
-  <h2>FN-{{ current.id.toString().padStart(3, '0') }}</h2>
   <form [formGroup]="form" (ngSubmit)="save()">
     <label>
       Title

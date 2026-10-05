@@ -70,7 +70,6 @@
     monospace;
 }
 .task-card {
-  border-left: 3px solid var(--status) !important;
   display: block;
   color: inherit;
   text-decoration: none;
@@ -79,19 +78,9 @@
   padding: 13px 13px 9px;
   background: var(--primary-surface);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--status);
   border-radius: 4px;
   animation: enter 0.24s ease both;
-}
-.task-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.task-id {
-  color: var(--border);
-  font:
-    8px 'IBM Plex Mono',
-    monospace;
 }
 .done-check {
   display: flex;
@@ -99,7 +88,7 @@
   font-size: 12px;
 }
 .task-card h4 {
-  margin: 11px 0 0;
+  margin: 0;
   color: var(--primary-active-text);
   font-size: 12px;
   line-height: 1.45;

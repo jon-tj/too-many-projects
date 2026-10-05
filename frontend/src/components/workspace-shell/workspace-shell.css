@@ -18,9 +18,7 @@
 .profile-copy { overflow: hidden; }
 .profile-copy strong,.profile-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-copy strong { color: var(--primary-active-text); font-size: 11px; }.profile-copy small { margin-top: 3px; color: var(--secondary-surface); font-size: 9px; }
-.account-menu { position: absolute; z-index: 10; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; padding: 4px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 5px;  }
-.account-menu a { display: flex; width: 100%; min-height: 35px; align-items: center; gap: 9px; padding: 0 9px; color: var(--secondary-surface); background: var(--primary-surface); border: 0; border-radius: 3px; cursor: pointer; font: inherit; font-size: 11px; text-align: left; text-decoration: none; }
-.account-menu a:hover { background: var(--secondary-text); }
+.account-menu { position: absolute; z-index: 10; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; gap: 2px; padding: 4px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 5px; }
 .workspace-main { min-width: 0; min-height: 100dvh; }
 .modal-backdrop { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 18px; background: var(--primary-text); }
 .project-dialog { position: relative; width: min(100%, 430px); padding: 27px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 6px;  }

@@ -60,7 +60,7 @@ button:disabled {
     opacity: 0.55;
 }
 
-/* Icon-only buttons are square */
+/* Icon-only buttons are square. :only-child ignores text, so wrap button labels in a <span>. */
 button:has(> app-icon:only-child) {
     justify-content: center;
     width: 30px;

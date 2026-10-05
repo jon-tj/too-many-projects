@@ -46,18 +46,15 @@
             draggable="true"
             (dragstart)="dragStart($event, task)"
           >
-            <div class="task-card-top">
-              <span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span>
-              @if (task.status === 'done') {
-                <span class="done-check"><app-icon name="check" /></span>
-              }
-            </div>
             <h4>{{ task.title }}</h4>
             @if (task.description) {
               <p>{{ task.description }}</p>
             }
             <footer>
               <span class="badge">{{ assigneeName(task) }}</span>
+              @if (task.status === 'done') {
+                <span class="done-check"><app-icon name="check" /></span>
+              }
             </footer>
           </a>
         } @empty {

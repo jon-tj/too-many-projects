@@ -17,8 +17,8 @@
       <div class="account-menu-wrap">
         @if (accountMenuOpen()) {
           <div class="account-menu" role="menu">
-            <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" />Settings</a>
-            <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" />Sign out</button>
+            <button class="transparent" type="button" routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" /><span>Settings</span></button>
+            <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" /><span>Sign out</span></button>
           </div>
         }
         <button class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
