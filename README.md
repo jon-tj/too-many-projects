@@ -1,4 +1,6 @@
-# Banking App
+# Project Management App
+
+This app is hosted on [Render](https://dashboard.render.com) using [Supabase](https://www.supabase.com) for postgres.
 
 ## Run locally
 
