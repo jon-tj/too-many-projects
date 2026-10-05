@@ -14,7 +14,7 @@ public sealed class ProjectCountController(
     {
         try
         {
-            await db.Database.EnsureCreatedAsync(cancellationToken);
+            await db.Database.MigrateAsync(cancellationToken);
             var projectCount = await db.Projects.LongCountAsync(cancellationToken);
             return Ok(new ProjectCountResponse(true, projectCount));
         }

@@ -6,6 +6,9 @@ var supabaseConnectionString = builder.Configuration.GetConnectionString("Supaba
 var localDatabasePath = Path.Combine(builder.Environment.ContentRootPath, "app.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
+    options.ConfigureWarnings(warnings => warnings.Ignore(
+        Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
     if (!string.IsNullOrWhiteSpace(supabaseConnectionString))
     {
         options.UseNpgsql(supabaseConnectionString);

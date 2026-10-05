@@ -16,7 +16,7 @@ npm start
 
 The API runs at `http://localhost:5081` and Angular runs at `http://localhost:4200`. By default, the API uses a local SQLite database at `backend/app.db`; it creates the file and `Projects` table automatically when the project-count card first checks the database.
 
-To use Supabase PostgreSQL instead, set the connection string in the backend terminal before running it:
+To use Supabase PostgreSQL instead, set the connection string in the backend terminal before running it. You may need to use session pooler for this to work if you are struggling with connecting.
 
 ```powershell
 $env:ConnectionStrings__Supabase = "Host=<pooler-host>;Port=5432;Database=postgres;Username=<pooler-user>;Password=<database-password>;SSL Mode=Require"
