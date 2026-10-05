@@ -39,19 +39,3 @@ form {
   gap: 16px;
 }
 
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-input {
-  height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font: inherit;
-  font-weight: 400;
-}

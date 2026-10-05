@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { ProjectTask, TaskStatus } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
@@ -13,7 +14,7 @@ const COLUMNS = [
 
 @Component({
   selector: 'app-project-board',
-  imports: [ReactiveFormsModule, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Icon],
   templateUrl: './project-board.html',
   styleUrl: './project-board.css',
 })
@@ -25,6 +26,13 @@ export class ProjectBoard {
     stream: ({ params }) => this.api.projectTasks(params),
     defaultValue: [],
   });
+  private readonly members = rxResource({
+    params: () => this.projectId(),
+    stream: ({ params }) => this.api.projectMembers(params),
+    defaultValue: [],
+  });
+  private readonly account = rxResource({ stream: () => this.api.currentAccount() });
+  private dragged: ProjectTask | null = null;
   protected readonly columns = computed(() =>
     COLUMNS.map((column) => ({
       ...column,
@@ -52,7 +60,24 @@ export class ProjectBoard {
     });
   }
 
-  protected changeStatus(task: ProjectTask, status: TaskStatus): void {
+  protected assigneeName(task: ProjectTask): string {
+    if (!task.assigneeUserId) return 'Unassigned';
+    if (task.assigneeUserId === this.account.value()?.id) return 'You';
+    const member = this.members.value().find((entry) => entry.userId === task.assigneeUserId);
+    return member ? member.displayName || member.userName : 'Assigned';
+  }
+
+  protected dragStart(event: DragEvent, task: ProjectTask): void {
+    this.dragged = task;
+    event.dataTransfer?.setData('text/plain', String(task.id));
+  }
+
+  protected drop(status: TaskStatus): void {
+    if (this.dragged) this.changeStatus(this.dragged, status);
+    this.dragged = null;
+  }
+
+  private changeStatus(task: ProjectTask, status: TaskStatus): void {
     if (task.status === status) return;
     const setStatus = (value: TaskStatus) =>
       this.tasks.update((tasks) =>

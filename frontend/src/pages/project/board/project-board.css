@@ -78,6 +78,10 @@
     monospace;
 }
 .task-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  cursor: grab;
   margin-top: 10px;
   padding: 13px 13px 9px;
   background: var(--primary-surface);
@@ -127,38 +131,6 @@
   margin-top: 15px;
   padding-top: 9px;
   border-top: 1px solid var(--primary-active-surface);
-}
-.assignee {
-  display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  color: var(--secondary-surface);
-  background: var(--primary-active-surface);
-  border-radius: 50%;
-  font-size: 12px;
-}
-.task-card select {
-  max-width: 88px;
-  padding: 4px 5px;
-  color: var(--secondary-surface);
-  background: var(--primary-active-surface);
-  border: 0;
-  border-radius: 3px;
-  outline: 0;
-  cursor: pointer;
-  font:
-    8px 'IBM Plex Mono',
-    monospace;
-  text-transform: uppercase;
-}
-.doing-column .task-card select {
-  color: var(--secondary-surface);
-  background: var(--primary-active-surface);
-}
-.done-column .task-card select {
-  color: var(--secondary-surface);
-  background: var(--primary-active-surface);
 }
 .done-card h4 {
   color: var(--secondary-surface);

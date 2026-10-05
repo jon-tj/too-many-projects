@@ -26,7 +26,11 @@
 } @else {
   <div class="kanban-board">
     @for (column of columns(); track column.status) {
-      <section class="kanban-column {{ column.status }}-column">
+      <section
+        class="kanban-column {{ column.status }}-column"
+        (dragover)="$event.preventDefault()"
+        (drop)="drop(column.status)"
+      >
         <header>
           <span class="column-marker {{ column.status }}-marker"></span>
           <h3>{{ column.title }}</h3>
@@ -34,7 +38,13 @@
           <small>{{ column.label }}</small>
         </header>
         @for (task of column.tasks; track task.id) {
-          <article class="task-card" [class.done-card]="task.status === 'done'">
+          <a
+            class="task-card"
+            [class.done-card]="task.status === 'done'"
+            [routerLink]="['../tasks', task.id]"
+            draggable="true"
+            (dragstart)="dragStart($event, task)"
+          >
             <div class="task-card-top">
               <span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span>
               @if (task.status === 'done') {
@@ -48,18 +58,9 @@
               <p>{{ task.description }}</p>
             }
             <footer>
-              <span class="assignee">—</span>
-              <select
-                [value]="task.status"
-                (change)="changeStatus(task, $any($event.target).value)"
-                aria-label="Task status"
-              >
-                <option value="todo">To do</option>
-                <option value="doing">Doing</option>
-                <option value="done">Done</option>
-              </select>
+              <span class="badge">{{ assigneeName(task) }}</span>
             </footer>
-          </article>
+          </a>
         } @empty {
           <div class="column-empty">{{ column.empty }}</div>
         }

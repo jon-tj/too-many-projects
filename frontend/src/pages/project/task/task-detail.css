@@ -1,0 +1,11 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 560px;
+}
+
+footer {
+  display: flex;
+  gap: 8px;
+}

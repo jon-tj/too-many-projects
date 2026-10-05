@@ -1,0 +1,49 @@
+@if (task.isLoading()) {
+  <p>Loading task...</p>
+} @else if (task.error()) {
+  <p role="alert">This task could not be found.</p>
+} @else if (task.value(); as current) {
+  <h2>FN-{{ current.id.toString().padStart(3, '0') }}</h2>
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <label>
+      Title
+      <input formControlName="title" />
+    </label>
+    <label>
+      Description
+      <textarea formControlName="description" rows="6"></textarea>
+    </label>
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="todo">To do</option>
+        <option value="doing">Doing</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+    <label>
+      Assignee
+      <select formControlName="assigneeUserId">
+        <option [ngValue]="null">Unassigned</option>
+        @for (member of members.value(); track member.userId) {
+          <option [ngValue]="member.userId">{{ member.displayName || member.userName }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Due date
+      <input type="date" formControlName="dueAt" />
+    </label>
+    @if (message()) {
+      <p role="status">{{ message() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
+        Save changes
+      </button>
+      <button class="transparent" type="button" [disabled]="assignedToMe() || busy()" (click)="assignToMe()">
+        Assign to me
+      </button>
+    </footer>
+  </form>
+}

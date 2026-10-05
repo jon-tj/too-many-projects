@@ -17,6 +17,27 @@ main {
     padding: 32px;
 }
 
+/* Forms */
+label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+input,
+textarea,
+select {
+    padding: 10px 12px;
+    color: inherit;
+    background-color: var(--primary-surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    font-weight: 400;
+}
+
 /* Buttons */
 button {
     display: inline-flex;

@@ -8,6 +8,7 @@ import { ProjectBoard } from '../pages/project/board/project-board';
 import { ProjectCanvas } from '../pages/project/canvas/project-canvas';
 import { ProjectMembers } from '../pages/project/members/project-members';
 import { ProjectSettings } from '../pages/project/settings/project-settings';
+import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
 
 export const routes: Routes = [
@@ -24,6 +25,7 @@ export const routes: Routes = [
 					{ path: 'canvas', component: ProjectCanvas },
 					{ path: 'members', component: ProjectMembers },
 					{ path: 'settings', component: ProjectSettings },
+					{ path: 'tasks/:taskId', component: TaskDetail },
 				],
 			},
 			{ path: 'settings', component: SettingsPage },

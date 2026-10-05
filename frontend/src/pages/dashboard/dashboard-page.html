@@ -4,7 +4,7 @@
     <p>Loading tasks...</p>
   } @else {
     @for (task of tasks(); track task.id) {
-      <a [routerLink]="['/projects', task.projectId, 'board']">
+      <a [routerLink]="['/projects', task.projectId, 'tasks', task.id]">
         <div>
           <strong>{{ task.title }}</strong>
           <small>{{ task.projectName }} · {{ task.assigneeUserId ? 'Assigned to you' : 'Unassigned' }}</small>

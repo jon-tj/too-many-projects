@@ -47,6 +47,15 @@ export class WorkspaceApi {
     return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, { title, description });
   }
 
+  task(id: number): Observable<ProjectTask> {
+    return this.http.get<ProjectTask>(`/api/tasks/${id}`);
+  }
+
+  updateTask(task: ProjectTask): Observable<void> {
+    const { title, description, status, assigneeUserId, dueAt } = task;
+    return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt });
+  }
+
   setTaskStatus(taskId: number, status: string): Observable<void> {
     return this.http.patch<void>(`/api/tasks/${taskId}/status`, { status });
   }
