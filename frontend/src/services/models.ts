@@ -35,16 +35,26 @@ export interface ProjectMember {
   role: string;
 }
 
+export const CANVAS_COLORS = ['white', 'yellow', 'rose', 'blue', 'green', 'lavender'] as const;
+export type CanvasColor = (typeof CANVAS_COLORS)[number];
+export type ShapeKind = 'box' | 'circle' | 'triangle' | 'line' | 'arrow';
+export type ListMarker = 'circle' | 'number' | 'cross';
+
 export interface CanvasView { x: number; y: number; zoom: number; }
-export interface CanvasNote { id: string; type: 'note'; x: number; y: number; text: string; color: string; }
-export interface CanvasShape {
-  id: string;
-  type: 'shape';
-  shape: 'rectangle' | 'circle' | 'diamond' | 'arrow';
-  x: number;
-  y: number;
-  color: string;
+interface CanvasItemBase { id: string; x: number; y: number; w: number; }
+export interface CanvasNote extends CanvasItemBase { type: 'note'; text: string; color: CanvasColor; }
+export interface CanvasList extends CanvasItemBase {
+  type: 'list';
+  rows: { text: string; marker: ListMarker }[];
+  color: CanvasColor;
 }
-export type CanvasItem = CanvasNote | CanvasShape;
+export interface CanvasShape extends CanvasItemBase {
+  type: 'shape';
+  shape: ShapeKind;
+  h: number;
+  angle: number;
+  color: CanvasColor;
+}
+export interface CanvasStamp extends CanvasItemBase { type: 'stamp'; emoji: string; h: number; }
+export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp;
 export interface CanvasDocument { view: CanvasView; items: CanvasItem[]; }
-export const EMPTY_CANVAS: CanvasDocument = { view: { x: 80, y: 70, zoom: 1 }, items: [] };

@@ -1,49 +1,168 @@
-<section class="canvas-workspace">
-  <header class="canvas-toolbar">
-    <div class="canvas-title"><p class="eyebrow">PROJECT CANVAS</p><h2>Lay out the thinking<span>.</span></h2></div>
-    <div class="tool-group" role="toolbar" aria-label="Canvas tools">
-      <button class="transparent" type="button" [class.active]="tool() === 'select'" (click)="chooseTool('select')" title="Select and move objects"><app-icon name="arrow_selector_tool" /><span>Select</span></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'pan'" (click)="chooseTool('pan')" title="Pan canvas"><app-icon name="pan_tool" /><span>Pan</span></button>
-      <span class="tool-divider"></span>
-      <button class="transparent" type="button" [class.active]="tool() === 'note'" (click)="chooseTool('note')" title="Place a note"><app-icon name="sticky_note_2" /><span>Note</span></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'rectangle'" (click)="chooseTool('rectangle')" title="Place a rectangle"><app-icon name="square" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'circle'" (click)="chooseTool('circle')" title="Place a circle"><app-icon name="circle" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'diamond'" (click)="chooseTool('diamond')" title="Place a diamond"><app-icon name="diamond" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'arrow'" (click)="chooseTool('arrow')" title="Place an arrow"><app-icon name="arrow_forward" /></button>
-    </div>
-    <div class="canvas-save-state"><span [class.saving]="saving()"></span>{{ saving() ? 'SAVING' : 'SAVED' }}</div>
-  </header>
-  <p class="canvas-hint">Choose a note or shape, then click the canvas to place it. Drag empty space to pan; hold Ctrl or ⌘ while scrolling to zoom.</p>
+@if (error()) {
+  <p role="alert">{{ error() }}</p>
+}
 
-  <div #viewport class="canvas-viewport" [ngStyle]="gridStyle()" [class.is-panning]="gestureIsPanning" [class.is-placement]="tool() !== 'select' && tool() !== 'pan'"
-    (pointerdown)="onCanvasPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerUp($event)" (wheel)="onWheel($event)">
-    @if (loading()) {
-      <div class="canvas-loading">Opening the canvas<span></span></div>
-    } @else {
-      <div class="canvas-world" [style.transform]="worldTransform()">
-        @for (item of state().items; track trackItem($index, item)) {
-          @if (item.type === 'note') {
-            <article class="canvas-note" [class.is-selected]="selectedId() === item.id" [style.left.px]="item.x" [style.top.px]="item.y" [style.--note-color]="item.color" (click)="selectedId.set(item.id)">
-              <header class="note-grip" (pointerdown)="onItemPointerDown($event, item)"><span>TOO MANY PROJECTS</span><button class="transparent" type="button" (click)="$event.stopPropagation(); selectedId.set(item.id); deleteSelected()" aria-label="Delete note" title="Delete note"><app-icon name="delete" /></button></header>
-              <textarea [ngModel]="item.text" (pointerdown)="$event.stopPropagation()" (ngModelChange)="updateNote(item.id, $event)" [ngModelOptions]="{ standalone: true }" aria-label="Note text"></textarea>
-              <footer><span class="note-pin"></span>NOTE</footer>
-            </article>
-          } @else {
-            <div class="canvas-shape" [class.is-selected]="selectedId() === item.id" [attr.data-shape]="item.shape" [style.left.px]="item.x" [style.top.px]="item.y" [style.--shape-color]="item.color" (pointerdown)="onItemPointerDown($event, item)" (click)="selectedId.set(item.id)" role="button" tabindex="0" [attr.aria-label]="item.shape + ' shape'">
-              @if (item.shape === 'arrow') { <span class="arrow-head"></span> }
+<div
+  #viewport
+  class="viewport"
+  [class.drawing]="tool()"
+  [style.background-position]="view().x + 'px ' + view().y + 'px'"
+  [style.background-size]="24 * view().zoom + 'px ' + 24 * view().zoom + 'px'"
+  (pointerdown)="onPointerDown($event)"
+  (pointermove)="onPointerMove($event)"
+  (pointerup)="onPointerUp()"
+  (pointercancel)="onPointerUp()"
+  (dblclick)="onDoubleClick($event)"
+  (wheel)="onWheel($event)"
+>
+  <div
+    class="world"
+    [style.transform]="'translate(' + view().x + 'px, ' + view().y + 'px) scale(' + view().zoom + ')'"
+  >
+    @for (item of items(); track item.id) {
+      <div
+        class="item {{ item.type }}"
+        [attr.data-id]="item.id"
+        [attr.data-color]="colorOf(item)"
+        [style.left.px]="item.x"
+        [style.top.px]="item.y"
+        [style.width.px]="item.w"
+        [style.height.px]="item.type === 'shape' || item.type === 'stamp' ? item.h : null"
+      >
+        @if (item.type === 'note') {
+          <div class="handle" (pointerdown)="drag($event, item)"><app-icon name="drag_indicator" /></div>
+          <textarea placeholder="Write something…" [value]="item.text" (input)="setText(item, $event)"></textarea>
+        } @else if (item.type === 'list') {
+          <div class="handle" (pointerdown)="drag($event, item)">
+            <app-icon name="drag_indicator" /><strong>List</strong>
+          </div>
+          @for (row of item.rows; track $index) {
+            <div class="row" [class.crossed]="row.marker === 'cross'">
+              <button class="transparent" type="button" title="Change marker" (click)="cycleMarker(row)">
+                {{ marker(item, $index) }}
+              </button>
+              <textarea
+                rows="1"
+                placeholder="List item"
+                [value]="row.text"
+                (input)="setText(row, $event)"
+                (keydown)="onRowKeydown($event, item, $index)"
+              ></textarea>
             </div>
           }
+          <button class="transparent" type="button" title="Add row" (click)="addRow(item, item.rows.length)">
+            <app-icon name="add" />
+          </button>
+        } @else if (item.type === 'stamp') {
+          <div class="face" [style.font-size.px]="item.w * 0.82" (pointerdown)="drag($event, item)">
+            {{ item.emoji }}
+          </div>
+        } @else {
+          <div
+            class="face {{ item.shape }}"
+            [style.--angle]="item.angle + 'deg'"
+            (pointerdown)="drag($event, item)"
+          ></div>
         }
+
+        <div class="controls" (pointerdown)="$event.stopPropagation()">
+          @if (item.type === 'shape') {
+            <button class="transparent" type="button" title="Send to back" (click)="sendToBack(item)">
+              <app-icon name="vertical_align_bottom" />
+            </button>
+          }
+          @if (item.type !== 'stamp') {
+            @for (color of colors; track color) {
+              <button
+                class="transparent"
+                type="button"
+                [title]="color"
+                [attr.aria-pressed]="item.color === color"
+                (click)="setColor(item, color)"
+              >
+                <span class="swatch" [attr.data-color]="color"></span>
+              </button>
+            }
+          }
+          <button class="transparent" type="button" title="Delete" (click)="remove(item)">
+            <app-icon name="close" />
+          </button>
+        </div>
+        <div class="resize" (pointerdown)="resize($event, item)"></div>
       </div>
     }
-    @if (error()) { <div class="canvas-error" role="alert">{{ error() }}</div> }
-    <div class="canvas-zoom-controls" (pointerdown)="$event.stopPropagation()">
-      <button class="transparent" type="button" (click)="zoomBy(1.15)" aria-label="Zoom in" title="Zoom in"><app-icon name="add" /></button>
-      <span>{{ zoomLabel() }}</span>
-      <button class="transparent" type="button" (click)="zoomBy(.87)" aria-label="Zoom out" title="Zoom out"><app-icon name="remove" /></button>
-      <i></i><button class="transparent" type="button" (click)="resetView()" aria-label="Reset view" title="Reset view"><app-icon name="restart_alt" /></button>
-      @if (selectedId()) { <i></i><button class="transparent" type="button" (click)="deleteSelected()" aria-label="Delete selected object" title="Delete selected object"><app-icon name="delete" /></button> }
-    </div>
-    <div class="canvas-coordinate">WORLD / {{ state().items.length.toString().padStart(2, '0') }} OBJECTS</div>
   </div>
-</section>
+
+  <p class="hint">{{ hint() }}</p>
+
+  <div class="tools" (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+    <button class="transparent" type="button" title="Add note" (click)="addNote()">
+      <app-icon name="sticky_note_2" />
+    </button>
+    <button class="transparent" type="button" title="Add list" (click)="addList()">
+      <app-icon name="checklist" />
+    </button>
+    <div class="menu-wrap">
+      <button
+        class="transparent"
+        type="button"
+        title="Emoji"
+        [class.active]="menu() === 'stamp'"
+        (click)="toggleMenu('stamp')"
+      >
+        <app-icon name="add_reaction" />
+      </button>
+      @if (menu() === 'stamp') {
+        <div class="menu">
+          @for (stamp of stamps; track stamp.emoji) {
+            <button
+              class="transparent"
+              type="button"
+              [title]="stamp.label"
+              [class.active]="tool()?.label === stamp.label"
+              (click)="pickStamp(stamp)"
+            >
+              <span class="emoji">{{ stamp.emoji }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <div class="menu-wrap">
+      <button
+        class="transparent"
+        type="button"
+        title="Shapes and lines"
+        [class.active]="menu() === 'shape'"
+        (click)="toggleMenu('shape')"
+      >
+        <app-icon name="shapes" />
+      </button>
+      @if (menu() === 'shape') {
+        <div class="menu">
+          @for (shape of shapes; track shape.shape) {
+            <button
+              class="transparent"
+              type="button"
+              [title]="shape.label"
+              [class.active]="tool()?.label === shape.label"
+              (click)="pickShape(shape)"
+            >
+              <app-icon [name]="shape.icon" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <button class="transparent" type="button" title="Zoom out" (click)="zoom(1 / 1.2)">
+      <app-icon name="remove" />
+    </button>
+    <span>{{ (view().zoom * 100).toFixed(0) }}%</span>
+    <button class="transparent" type="button" title="Zoom in" (click)="zoom(1.2)">
+      <app-icon name="add" />
+    </button>
+    <button class="transparent" type="button" title="Reset view" (click)="resetView()">
+      <app-icon name="center_focus_strong" />
+    </button>
+  </div>
+</div>
