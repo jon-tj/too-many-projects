@@ -27,12 +27,13 @@
   <div class="kanban-board">
     @for (column of columns(); track column.status) {
       <section
-        class="kanban-column {{ column.status }}-column"
+        class="kanban-column"
+        [attr.data-status]="column.status"
         (dragover)="$event.preventDefault()"
         (drop)="drop(column.status)"
       >
         <header>
-          <span class="column-marker {{ column.status }}-marker"></span>
+          <span class="column-marker"></span>
           <h3>{{ column.title }}</h3>
           <span class="badge">{{ column.tasks.length }}</span>
           <small>{{ column.label }}</small>
@@ -49,8 +50,6 @@
               <span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span>
               @if (task.status === 'done') {
                 <span class="done-check"><app-icon name="check" /></span>
-              } @else {
-                <span class="unassigned-dot" title="Unassigned"></span>
               }
             </div>
             <h4>{{ task.title }}</h4>

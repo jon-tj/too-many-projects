@@ -90,6 +90,11 @@ button.transparent[aria-expanded='true'] {
     background-color: var(--primary-active-surface);
 }
 
+/* Task status colors: set data-status on an element to get --status */
+[data-status='todo'] { --status: var(--todo); }
+[data-status='doing'] { --status: var(--doing); }
+[data-status='done'] { --status: var(--done); }
+
 /* Badges */
 .badge {
     display: inline-grid;
@@ -102,4 +107,9 @@ button.transparent[aria-expanded='true'] {
     border-radius: 4px;
     font: 500 9px/1 'IBM Plex Mono', monospace;
     vertical-align: middle;
+}
+
+.badge[data-status] {
+    color: var(--primary-surface);
+    background-color: var(--status);
 }

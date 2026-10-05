@@ -53,16 +53,8 @@
 .column-marker {
   width: 7px;
   height: 7px;
+  background: var(--status);
   border-radius: 2px;
-}
-.todo-marker {
-  background: var(--secondary-surface);
-}
-.doing-marker {
-  background: var(--secondary-surface);
-}
-.done-marker {
-  background: var(--secondary-surface);
 }
 .kanban-column h3 {
   margin: 0;
@@ -78,6 +70,7 @@
     monospace;
 }
 .task-card {
+  border-left: 3px solid var(--status) !important;
   display: block;
   color: inherit;
   text-decoration: none;
@@ -100,15 +93,9 @@
     8px 'IBM Plex Mono',
     monospace;
 }
-.unassigned-dot {
-  width: 7px;
-  height: 7px;
-  background: var(--border);
-  border-radius: 50%;
-}
 .done-check {
   display: flex;
-  color: var(--secondary-surface);
+  color: var(--status);
   font-size: 12px;
 }
 .task-card h4 {

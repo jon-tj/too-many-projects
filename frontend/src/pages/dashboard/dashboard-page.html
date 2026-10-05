@@ -9,7 +9,7 @@
           <strong>{{ task.title }}</strong>
           <small>{{ task.projectName }} · {{ task.assigneeUserId ? 'Assigned to you' : 'Unassigned' }}</small>
         </div>
-        <span class="badge">{{ task.status }}</span>
+        <span class="badge" [attr.data-status]="task.status">{{ task.status }}</span>
       </a>
     } @empty {
       <p>No tasks assigned to you or waiting to be assigned.</p>
