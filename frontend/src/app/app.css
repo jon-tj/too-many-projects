@@ -1,0 +1,15 @@
+:host {
+	display: block;
+	min-height: 100dvh;
+}
+
+.dashboard {
+	display: grid;
+	min-height: 100dvh;
+	place-items: center;
+	padding: 24px;
+	background-color: #eef0e9;
+	background-image: linear-gradient(#dfe4da 1px, transparent 1px), linear-gradient(90deg, #dfe4da 1px, transparent 1px);
+	background-position: center;
+	background-size: 36px 36px;
+}

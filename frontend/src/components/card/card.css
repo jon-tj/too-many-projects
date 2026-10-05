@@ -1,0 +1,151 @@
+.debug-card {
+	--ink: #202820;
+	--muted: #6b756a;
+	width: min(100%, 440px);
+	padding: 26px 28px 18px;
+	color: var(--ink);
+	background: #fffefa;
+	border: 1px solid #d9ded3;
+	border-radius: 6px;
+	box-shadow: 0 18px 45px rgb(36 48 33 / 8%);
+}
+
+.card-header,
+.card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.eyebrow,
+.card-footer {
+	color: var(--muted);
+	font-family: 'Cascadia Code', 'Courier New', monospace;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+}
+
+.status-dot {
+	width: 8px;
+	height: 8px;
+	flex: 0 0 8px;
+	background: #27885b;
+	border-radius: 50%;
+	box-shadow: 0 0 0 3px #e2f1e7;
+}
+
+.status-dot.is-error {
+	background: #bd3b31;
+	box-shadow: 0 0 0 3px #f8e6e3;
+}
+
+.refresh-button {
+	display: grid;
+	width: 36px;
+	height: 36px;
+	place-items: center;
+	color: var(--ink);
+	background: transparent;
+	border: 1px solid #d9ded3;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.refresh-button:hover:not(:disabled) {
+	background: #eff2e9;
+}
+
+.refresh-button:disabled {
+	cursor: wait;
+}
+
+.refresh-button svg {
+	width: 17px;
+	height: 17px;
+	fill: none;
+	stroke: currentColor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: 1.7;
+}
+
+.card-content {
+	min-height: 160px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 21px 0 25px;
+}
+
+h1 {
+	margin: 0 0 12px;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 22px;
+	font-weight: 400;
+}
+
+.count {
+	margin: 0;
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 64px;
+	line-height: 1;
+}
+
+.count span {
+	font-family: 'Cascadia Code', 'Courier New', monospace;
+	font-size: 15px;
+	color: var(--muted);
+}
+
+.loading-copy {
+	font-family: 'Cascadia Code', 'Courier New', monospace;
+	font-size: 15px;
+	color: var(--muted);
+}
+
+.error-message {
+	max-width: 350px;
+	margin: 0;
+	color: #a12e26;
+	font-size: 15px;
+	line-height: 1.5;
+}
+
+.card-footer {
+	gap: 12px;
+	padding-top: 14px;
+	border-top: 1px solid #e6e9e1;
+	font-size: 10px;
+}
+
+.card-footer span:last-child {
+	color: #27885b;
+}
+
+.debug-card:has(.error-message) .card-footer span:last-child {
+	color: #a12e26;
+}
+
+.spinning {
+	animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+
+@media (max-width: 480px) {
+	.debug-card {
+		padding: 22px 20px 16px;
+	}
+
+	.card-content {
+		min-height: 145px;
+	}
+}
