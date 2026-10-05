@@ -2,8 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ProjectPage } from './project-page';
-import { WorkspaceApi } from './workspace-api';
+import { ProjectPage } from '../project-page';
+import { WorkspaceApi } from '../../../services/workspace-api';
 
 @Component({
   selector: 'app-project-settings',

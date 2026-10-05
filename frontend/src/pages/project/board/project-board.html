@@ -1,5 +1,5 @@
 <button class="primary" type="button" (click)="addingTask.set(!addingTask())">
-  <app-icon name="add" [size]="16" />
+  <app-icon name="add" />
   <span>New task</span>
 </button>
 
@@ -38,7 +38,7 @@
             <div class="task-card-top">
               <span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span>
               @if (task.status === 'done') {
-                <span class="done-check"><app-icon name="check" [size]="14" /></span>
+                <span class="done-check"><app-icon name="check" /></span>
               } @else {
                 <span class="unassigned-dot" title="Unassigned"></span>
               }

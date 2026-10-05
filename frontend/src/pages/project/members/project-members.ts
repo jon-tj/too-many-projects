@@ -1,6 +1,6 @@
 import { Component, inject, input, numberAttribute } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { WorkspaceApi } from './workspace-api';
+import { WorkspaceApi } from '../../../services/workspace-api';
 
 @Component({
   selector: 'app-project-members',

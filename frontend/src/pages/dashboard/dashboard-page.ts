@@ -1,7 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Project, ProjectTask } from './models';
-import { WorkspaceApi } from './workspace-api';
+import { Project, ProjectTask } from '../../services/models';
+import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-dashboard-page',

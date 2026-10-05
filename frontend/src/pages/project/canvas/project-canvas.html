@@ -2,14 +2,14 @@
   <header class="canvas-toolbar">
     <div class="canvas-title"><p class="eyebrow">PROJECT CANVAS</p><h2>Lay out the thinking<span>.</span></h2></div>
     <div class="tool-group" role="toolbar" aria-label="Canvas tools">
-      <button class="transparent" type="button" [class.active]="tool() === 'select'" (click)="chooseTool('select')" title="Select and move objects"><app-icon name="arrow_selector_tool" [size]="16" /><span>Select</span></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'pan'" (click)="chooseTool('pan')" title="Pan canvas"><app-icon name="pan_tool" [size]="16" /><span>Pan</span></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'select'" (click)="chooseTool('select')" title="Select and move objects"><app-icon name="arrow_selector_tool" /><span>Select</span></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'pan'" (click)="chooseTool('pan')" title="Pan canvas"><app-icon name="pan_tool" /><span>Pan</span></button>
       <span class="tool-divider"></span>
-      <button class="transparent" type="button" [class.active]="tool() === 'note'" (click)="chooseTool('note')" title="Place a note"><app-icon name="sticky_note_2" [size]="16" /><span>Note</span></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'rectangle'" (click)="chooseTool('rectangle')" title="Place a rectangle"><app-icon name="square" [size]="16" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'circle'" (click)="chooseTool('circle')" title="Place a circle"><app-icon name="circle" [size]="16" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'diamond'" (click)="chooseTool('diamond')" title="Place a diamond"><app-icon name="diamond" [size]="16" /></button>
-      <button class="transparent" type="button" [class.active]="tool() === 'arrow'" (click)="chooseTool('arrow')" title="Place an arrow"><app-icon name="arrow_forward" [size]="16" /></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'note'" (click)="chooseTool('note')" title="Place a note"><app-icon name="sticky_note_2" /><span>Note</span></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'rectangle'" (click)="chooseTool('rectangle')" title="Place a rectangle"><app-icon name="square" /></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'circle'" (click)="chooseTool('circle')" title="Place a circle"><app-icon name="circle" /></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'diamond'" (click)="chooseTool('diamond')" title="Place a diamond"><app-icon name="diamond" /></button>
+      <button class="transparent" type="button" [class.active]="tool() === 'arrow'" (click)="chooseTool('arrow')" title="Place an arrow"><app-icon name="arrow_forward" /></button>
     </div>
     <div class="canvas-save-state"><span [class.saving]="saving()"></span>{{ saving() ? 'SAVING' : 'SAVED' }}</div>
   </header>
@@ -24,7 +24,7 @@
         @for (item of state().items; track trackItem($index, item)) {
           @if (item.type === 'note') {
             <article class="canvas-note" [class.is-selected]="selectedId() === item.id" [style.left.px]="item.x" [style.top.px]="item.y" [style.--note-color]="item.color" (click)="selectedId.set(item.id)">
-              <header class="note-grip" (pointerdown)="onItemPointerDown($event, item)"><span>FIELDNOTE</span><button class="transparent" type="button" (click)="$event.stopPropagation(); selectedId.set(item.id); deleteSelected()" aria-label="Delete note" title="Delete note"><app-icon name="delete" [size]="13" /></button></header>
+              <header class="note-grip" (pointerdown)="onItemPointerDown($event, item)"><span>TOO MANY PROJECTS</span><button class="transparent" type="button" (click)="$event.stopPropagation(); selectedId.set(item.id); deleteSelected()" aria-label="Delete note" title="Delete note"><app-icon name="delete" /></button></header>
               <textarea [ngModel]="item.text" (pointerdown)="$event.stopPropagation()" (ngModelChange)="updateNote(item.id, $event)" [ngModelOptions]="{ standalone: true }" aria-label="Note text"></textarea>
               <footer><span class="note-pin"></span>NOTE</footer>
             </article>
@@ -38,11 +38,11 @@
     }
     @if (error()) { <div class="canvas-error" role="alert">{{ error() }}</div> }
     <div class="canvas-zoom-controls" (pointerdown)="$event.stopPropagation()">
-      <button class="transparent" type="button" (click)="zoomBy(1.15)" aria-label="Zoom in" title="Zoom in"><app-icon name="add" [size]="16" /></button>
+      <button class="transparent" type="button" (click)="zoomBy(1.15)" aria-label="Zoom in" title="Zoom in"><app-icon name="add" /></button>
       <span>{{ zoomLabel() }}</span>
-      <button class="transparent" type="button" (click)="zoomBy(.87)" aria-label="Zoom out" title="Zoom out"><app-icon name="remove" [size]="16" /></button>
-      <i></i><button class="transparent" type="button" (click)="resetView()" aria-label="Reset view" title="Reset view"><app-icon name="restart_alt" [size]="15" /></button>
-      @if (selectedId()) { <i></i><button class="transparent" type="button" (click)="deleteSelected()" aria-label="Delete selected object" title="Delete selected object"><app-icon name="delete" [size]="15" /></button> }
+      <button class="transparent" type="button" (click)="zoomBy(.87)" aria-label="Zoom out" title="Zoom out"><app-icon name="remove" /></button>
+      <i></i><button class="transparent" type="button" (click)="resetView()" aria-label="Reset view" title="Reset view"><app-icon name="restart_alt" /></button>
+      @if (selectedId()) { <i></i><button class="transparent" type="button" (click)="deleteSelected()" aria-label="Delete selected object" title="Delete selected object"><app-icon name="delete" /></button> }
     </div>
     <div class="canvas-coordinate">WORLD / {{ state().items.length.toString().padStart(2, '0') }} OBJECTS</div>
   </div>

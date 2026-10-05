@@ -1,9 +1,9 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, computed, input, numberAttribute, signal, viewChild } from '@angular/core';
 import { NgStyle } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Icon } from './icon';
-import { CanvasDocument, CanvasItem, CanvasNote, CanvasShape, EMPTY_CANVAS } from './models';
-import { WorkspaceApi } from './workspace-api';
+import { Icon } from '../../../components/icon/icon';
+import { CanvasDocument, CanvasItem, CanvasNote, CanvasShape, EMPTY_CANVAS } from '../../../services/models';
+import { WorkspaceApi } from '../../../services/workspace-api';
 
 type CanvasTool = 'select' | 'pan' | 'note' | 'rectangle' | 'circle' | 'diamond' | 'arrow';
 type Gesture =

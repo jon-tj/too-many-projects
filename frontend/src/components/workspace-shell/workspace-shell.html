@@ -1,13 +1,13 @@
 <div class="workspace-frame" (click)="closeAccountMenu()">
   <aside class="sidebar">
-    <a class="wordmark" routerLink="/"><span class="brand-mark">f</span><span>fieldnote</span></a>
+    <a class="wordmark" routerLink="/"><span class="brand-mark">T</span><span>TMP</span></a>
 
     <nav class="primary-nav" aria-label="Main navigation">
-      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" [size]="17" /><span>Dashboard</span></a>
-      <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" [size]="16" /></button></div>
+      <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" /><span>Dashboard</span></a>
+      <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
-          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><span class="project-mark" [attr.data-color]="$index % 5"><app-icon name="view_kanban" [size]="15" /></span><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
+          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><span class="project-mark" [attr.data-color]="$index % 5"><app-icon name="view_kanban"/></span><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
         } @empty {
         }
       </div>
@@ -17,8 +17,8 @@
       <div class="account-menu-wrap">
         @if (accountMenuOpen()) {
           <div class="account-menu" role="menu">
-            <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" [size]="16" />Settings</a>
-            <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" [size]="16" />Sign out</button>
+            <a routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" />Settings</a>
+            <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" />Sign out</button>
           </div>
         }
         <button class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
@@ -35,7 +35,7 @@
 @if (creating()) {
   <div class="modal-backdrop" (click)="creating.set(false)">
     <section class="project-dialog" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
-      <header><h2 id="create-title">Create a project</h2><button class="transparent" type="button" (click)="creating.set(false)" aria-label="Close"><app-icon name="close" [size]="20" /></button></header>
+      <header><h2 id="create-title">Create a project</h2><button class="transparent" type="button" (click)="creating.set(false)" aria-label="Close"><app-icon name="close" /></button></header>
       <form [formGroup]="form" (ngSubmit)="createProject()">
         <label for="project-name">Project name</label><input id="project-name" formControlName="name" placeholder="e.g. Website relaunch" autofocus />
         <label for="project-description">Description</label><textarea id="project-description" formControlName="description" rows="3" placeholder="Optional"></textarea>

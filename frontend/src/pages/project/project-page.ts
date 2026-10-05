@@ -1,8 +1,8 @@
 import { Component, inject, input, numberAttribute } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Icon } from './icon';
-import { WorkspaceApi } from './workspace-api';
+import { Icon } from '../../components/icon/icon';
+import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-project-page',

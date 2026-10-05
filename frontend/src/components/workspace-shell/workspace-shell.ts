@@ -3,10 +3,10 @@ import { NavigationEnd } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { Icon } from './icon';
-import { AuthService } from './auth.service';
-import { Account, Project } from './models';
-import { WorkspaceApi } from './workspace-api';
+import { Icon } from '../icon/icon';
+import { AuthService } from '../../services/auth.service';
+import { Account, Project } from '../../services/models';
+import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-workspace-shell',

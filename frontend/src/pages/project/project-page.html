@@ -8,21 +8,21 @@
 
 <nav aria-label="Project views">
   <button class="transparent" type="button" routerLink="board" routerLinkActive="active">
-    <app-icon name="grid_view" [size]="16" />
+    <app-icon name="grid_view" />
     <span>Board</span>
     <span class="badge">{{ project.value()?.taskCount ?? 0 }}</span>
   </button>
   <button class="transparent" type="button" routerLink="canvas" routerLinkActive="active">
-    <app-icon name="account_tree" [size]="16" />
+    <app-icon name="account_tree" />
     <span>Canvas</span>
   </button>
   <button class="transparent" type="button" routerLink="members" routerLinkActive="active">
-    <app-icon name="person" [size]="16" />
+    <app-icon name="person" />
     <span>Members</span>
     <span class="badge">{{ project.value()?.memberCount ?? 0 }}</span>
   </button>
   <button class="transparent" type="button" routerLink="settings" routerLinkActive="active">
-    <app-icon name="settings" [size]="16" />
+    <app-icon name="settings" />
     <span>Settings</span>
   </button>
 </nav>

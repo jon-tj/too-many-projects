@@ -1,9 +1,9 @@
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Icon } from './icon';
-import { ProjectTask, TaskStatus } from './models';
-import { WorkspaceApi } from './workspace-api';
+import { Icon } from '../../../components/icon/icon';
+import { ProjectTask, TaskStatus } from '../../../services/models';
+import { WorkspaceApi } from '../../../services/workspace-api';
 
 const COLUMNS = [
   { status: 'todo', title: 'To do', label: 'UP NEXT', empty: 'Nothing queued yet' },

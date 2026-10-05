@@ -1,14 +1,14 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth.guard';
-import { LoginPage } from './login-page';
-import { WorkspaceShell } from './workspace-shell';
-import { DashboardPage } from './dashboard-page';
-import { ProjectPage } from './project-page';
-import { ProjectBoard } from './project-board';
-import { ProjectCanvas } from './project-canvas';
-import { ProjectMembers } from './project-members';
-import { ProjectSettings } from './project-settings';
-import { SettingsPage } from './settings-page';
+import { authGuard } from '../services/auth.guard';
+import { LoginPage } from '../pages/login/login-page';
+import { WorkspaceShell } from '../components/workspace-shell/workspace-shell';
+import { DashboardPage } from '../pages/dashboard/dashboard-page';
+import { ProjectPage } from '../pages/project/project-page';
+import { ProjectBoard } from '../pages/project/board/project-board';
+import { ProjectCanvas } from '../pages/project/canvas/project-canvas';
+import { ProjectMembers } from '../pages/project/members/project-members';
+import { ProjectSettings } from '../pages/project/settings/project-settings';
+import { SettingsPage } from '../pages/settings/settings-page';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginPage },
