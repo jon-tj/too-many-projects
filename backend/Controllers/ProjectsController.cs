@@ -64,7 +64,7 @@ public sealed class ProjectsController(AppDbContext db) : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<ProjectResponse>> Create(
-        CreateProjectRequest request, CancellationToken cancellationToken)
+        ProjectRequest request, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var project = new Project
@@ -80,6 +80,31 @@ public sealed class ProjectsController(AppDbContext db) : ControllerBase
 
         var response = new ProjectResponse(project.Id, project.Name, project.Description, project.CreatedAt, 0, 1);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<IActionResult> Update(
+        long id, ProjectRequest request, CancellationToken cancellationToken)
+    {
+        var project = await GetMemberProject(id, cancellationToken);
+        if (project is null) return NotFound();
+
+        project.Name = request.Name.Trim();
+        project.Description = request.Description?.Trim() ?? string.Empty;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        var project = await GetMemberProject(id, cancellationToken);
+        if (project is null) return NotFound();
+        if (project.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier)) return Forbid();
+
+        db.Projects.Remove(project);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 
     [HttpGet("{id:long}/canvas")]
@@ -117,8 +142,8 @@ public sealed record ProjectResponse(long Id, string Name, string Description, D
 /// <summary>A member of a project visible to project participants.</summary>
 public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role);
 
-/// <summary>Data required to create a project.</summary>
-public sealed record CreateProjectRequest
+/// <summary>Data required to create or update a project.</summary>
+public sealed record ProjectRequest
 {
     [Required, StringLength(120, MinimumLength = 1)]
     public required string Name { get; init; }

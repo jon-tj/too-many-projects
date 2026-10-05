@@ -23,6 +23,14 @@ export class WorkspaceApi {
     return this.http.get<Project>(`/api/projects/${id}`);
   }
 
+  updateProject(id: number, name: string, description: string): Observable<void> {
+    return this.http.put<void>(`/api/projects/${id}`, { name, description });
+  }
+
+  deleteProject(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/projects/${id}`);
+  }
+
   projectMembers(id: number): Observable<ProjectMember[]> {
     return this.http.get<ProjectMember[]>(`/api/projects/${id}/members`);
   }

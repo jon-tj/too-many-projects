@@ -1,0 +1,26 @@
+<form [formGroup]="form" (ngSubmit)="save()">
+  <label>
+    Title
+    <input formControlName="name" />
+  </label>
+  <label>
+    Description
+    <textarea formControlName="description" rows="4"></textarea>
+  </label>
+  @if (message()) {
+    <p role="status">{{ message() }}</p>
+  }
+  <footer>
+    <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
+      Save changes
+    </button>
+  </footer>
+</form>
+
+<section>
+  <h2>Delete project</h2>
+  <p>Deletes the project with all of its tasks and canvas. This cannot be undone.</p>
+  <button class="primary" type="button" [disabled]="busy()" (click)="deleteProject()">
+    Delete project
+  </button>
+</section>

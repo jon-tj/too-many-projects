@@ -7,6 +7,7 @@ import { ProjectPage } from './project-page';
 import { ProjectBoard } from './project-board';
 import { ProjectCanvas } from './project-canvas';
 import { ProjectMembers } from './project-members';
+import { ProjectSettings } from './project-settings';
 import { SettingsPage } from './settings-page';
 
 export const routes: Routes = [
@@ -22,6 +23,7 @@ export const routes: Routes = [
 					{ path: 'board', component: ProjectBoard },
 					{ path: 'canvas', component: ProjectCanvas },
 					{ path: 'members', component: ProjectMembers },
+					{ path: 'settings', component: ProjectSettings },
 				],
 			},
 			{ path: 'settings', component: SettingsPage },

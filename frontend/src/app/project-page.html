@@ -21,6 +21,10 @@
     <span>Members</span>
     <span class="badge">{{ project.value()?.memberCount ?? 0 }}</span>
   </button>
+  <button class="transparent" type="button" routerLink="settings" routerLinkActive="active">
+    <app-icon name="settings" [size]="16" />
+    <span>Settings</span>
+  </button>
 </nav>
 
 <router-outlet />

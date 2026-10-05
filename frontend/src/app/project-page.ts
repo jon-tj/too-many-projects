@@ -13,7 +13,7 @@ import { WorkspaceApi } from './workspace-api';
 export class ProjectPage {
   readonly projectId = input.required({ transform: numberAttribute });
   private readonly api = inject(WorkspaceApi);
-  protected readonly project = rxResource({
+  readonly project = rxResource({
     params: () => this.projectId(),
     stream: ({ params }) => this.api.project(params),
   });
