@@ -1,0 +1,58 @@
+<section class="dashboard-page">
+  <header class="page-header">
+    <div><p class="eyebrow">{{ today | uppercase }}</p><h1>Good work starts here<span>.</span></h1><p class="page-subtitle">Your projects, priorities, and next steps in one place.</p></div>
+    <div class="header-note"><span class="note-glyph">✳</span><div><strong>Make steady progress</strong><small>One clear next step is enough.</small></div></div>
+  </header>
+
+  <div class="stat-strip">
+    <article class="stat-block"><span class="stat-label">PROJECTS</span><strong>{{ projects().length.toString().padStart(2, '0') }}</strong><small>spaces you’re part of</small></article>
+    <article class="stat-block"><span class="stat-label">OPEN TASKS</span><strong>{{ openCount().toString().padStart(2, '0') }}</strong><small>assigned to you or unassigned</small></article>
+    <article class="stat-block"><span class="stat-label">COMPLETED</span><strong>{{ doneCount().toString().padStart(2, '0') }}</strong><small>in your active projects</small></article>
+    <div class="stat-aside"><span class="aside-stamp">FN / 01</span><p>Small steps.<br /><em>Visible progress.</em></p><div class="aside-rule"></div></div>
+  </div>
+
+  <div class="dashboard-columns">
+    <section class="work-section">
+      <header class="section-header"><div><p class="eyebrow">YOUR QUEUE</p><h2>My work <span>· {{ tasks().length }}</span></h2></div><span class="filter-label"><i></i> MY + UNASSIGNED</span></header>
+      @if (loading()) {
+        <div class="loading-row">Loading your work<span></span></div>
+      } @else if (tasks().length === 0) {
+        <div class="empty-state"><div class="empty-symbol"><svg lucideCircleCheck [size]="21"></svg></div><div><strong>A little breathing room.</strong><p>No open tasks are waiting on you right now.</p></div></div>
+      } @else {
+        <div class="task-list">
+          @for (task of tasks(); track task.id) {
+            <a class="task-row" [routerLink]="['/projects', task.projectId]" [queryParams]="{ view: 'board' }">
+              <span class="task-state" [attr.data-status]="task.status">@if (task.status === 'done') { <svg lucideCircleCheck [size]="17"></svg> } @else { <svg lucideCircleDashed [size]="17"></svg> }</span>
+              <span class="task-content"><strong>{{ task.title }}</strong><small>{{ task.projectName }}<span>·</span>{{ task.assigneeUserId ? 'Assigned to you' : 'Unassigned' }}</small></span>
+              <span class="status-tag" [attr.data-status]="task.status">{{ task.status }}</span>
+              <svg class="row-arrow" lucideArrowUpRight [size]="16"></svg>
+            </a>
+          }
+        </div>
+      }
+      <div class="work-footer"><span>SHOWING TASKS ACROSS YOUR PROJECTS</span><span class="footer-dot"></span></div>
+    </section>
+
+    <section class="projects-section">
+      <header class="section-header"><div><p class="eyebrow">YOUR SPACES</p><h2>Projects <span>· {{ projects().length }}</span></h2></div><span class="project-count">{{ projects().length }} TOTAL</span></header>
+      @if (projects().length === 0) {
+        <div class="project-empty"><span>01</span><div><strong>Your first project is a blank canvas.</strong><p>Use the plus beside My Projects in the sidebar to create one.</p></div></div>
+      } @else {
+        <div class="project-list">
+          @for (project of projects(); track project.id; let index = $index) {
+            <a class="project-row" [routerLink]="['/projects', project.id]">
+              <span class="project-index">{{ (index + 1).toString().padStart(2, '0') }}</span>
+              <span class="project-accent" [attr.data-color]="index % 5"></span>
+              <span class="project-copy"><strong>{{ project.name }}</strong><small>{{ project.description || 'Project workspace' }}</small></span>
+              <span class="project-metrics"><b>{{ project.taskCount.toString().padStart(2, '0') }}</b><small>TASKS</small></span>
+              <span class="project-go">↗</span>
+            </a>
+          }
+        </div>
+      }
+      <div class="project-footer"><span>EVERY PROJECT HAS ITS OWN CANVAS</span><span class="footer-lines">━━━</span></div>
+    </section>
+  </div>
+
+  <footer class="dashboard-footer"><span>FIELDNOTE WORKSPACE</span><span>KEEP THE WORK MOVING <b>↗</b></span></footer>
+</section>

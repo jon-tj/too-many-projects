@@ -1,0 +1,48 @@
+<section class="project-page">
+  <header class="project-header">
+    <div class="project-crumb"><a routerLink="/">WORKSPACE</a><span>/</span><span>{{ project()?.name ?? 'PROJECT' }}</span></div>
+    <div class="title-row"><div class="project-symbol">{{ project()?.name?.charAt(0) ?? 'P' }}</div><div class="title-copy"><h1>{{ project()?.name ?? 'Loading project' }}</h1><p>{{ project()?.description || 'A shared space for plans, tasks, and ideas.' }}</p></div><div class="member-stack" aria-label="Project members"><span>J</span><small>{{ project()?.memberCount ?? 0 }} MEMBER{{ project()?.memberCount === 1 ? '' : 'S' }}</small></div></div>
+    <nav class="view-tabs" aria-label="Project views">
+      <button type="button" [class.active]="activeView() === 'board'" (click)="activeView.set('board')"><svg lucideLayoutGrid [size]="16"></svg>Board<span>{{ tasks().length }}</span></button>
+      <button type="button" [class.active]="activeView() === 'canvas'" (click)="activeView.set('canvas')"><svg lucideWorkflow [size]="16"></svg>Canvas</button>
+    </nav>
+  </header>
+
+  @if (activeView() === 'board') {
+    <section class="board-view">
+      <header class="board-toolbar"><div><p class="eyebrow">TASK FLOW</p><h2>Move the work forward<span>.</span></h2></div><div class="board-actions"><span class="unassigned-chip"><i></i>UNASSIGNED TASKS</span><button class="add-task-button" type="button" (click)="addingTask.set(!addingTask())"><svg lucidePlus [size]="16"></svg>New task</button></div></header>
+
+      @if (addingTask()) {
+        <form class="task-composer" [formGroup]="form" (ngSubmit)="createTask()">
+          <div class="composer-copy"><p class="eyebrow">ADD TO {{ project()?.name | uppercase }}</p><strong>Capture a next step</strong></div>
+          <input formControlName="title" placeholder="Task title" aria-label="Task title" autofocus />
+          <input formControlName="description" placeholder="A little context (optional)" aria-label="Task description" />
+          <button type="submit" [disabled]="form.invalid">Add task <span>↗</span></button>
+        </form>
+      }
+      @if (taskError()) { <p class="task-error" role="alert">{{ taskError() }}</p> }
+
+      @if (loading()) {
+        <div class="board-loading">Preparing your board<span></span></div>
+      } @else {
+        <div class="kanban-board">
+          <section class="kanban-column todo-column"><header><span class="column-marker todo-marker"></span><h3>To do</h3><span class="column-count">{{ todoTasks().length }}</span><small>UP NEXT</small></header>
+            @for (task of todoTasks(); track task.id) { <article class="task-card"><div class="task-card-top"><span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span><span class="unassigned-dot" title="Unassigned"></span></div><h4>{{ task.title }}</h4>@if (task.description) { <p>{{ task.description }}</p> }<footer><span class="assignee">—</span><select [value]="task.status" (change)="changeStatus(task, $any($event.target).value)" aria-label="Task status"><option value="todo">To do</option><option value="doing">Doing</option><option value="done">Done</option></select></footer></article> }
+            @if (todoTasks().length === 0) { <div class="column-empty">Nothing queued yet</div> }
+          </section>
+          <section class="kanban-column doing-column"><header><span class="column-marker doing-marker"></span><h3>Doing</h3><span class="column-count">{{ doingTasks().length }}</span><small>IN MOTION</small></header>
+            @for (task of doingTasks(); track task.id) { <article class="task-card"><div class="task-card-top"><span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span><span class="unassigned-dot" title="Unassigned"></span></div><h4>{{ task.title }}</h4>@if (task.description) { <p>{{ task.description }}</p> }<footer><span class="assignee">—</span><select [value]="task.status" (change)="changeStatus(task, $any($event.target).value)" aria-label="Task status"><option value="todo">To do</option><option value="doing">Doing</option><option value="done">Done</option></select></footer></article> }
+            @if (doingTasks().length === 0) { <div class="column-empty">A clear runway</div> }
+          </section>
+          <section class="kanban-column done-column"><header><span class="column-marker done-marker"></span><h3>Done</h3><span class="column-count">{{ doneTasks().length }}</span><small>LANDED</small></header>
+            @for (task of doneTasks(); track task.id) { <article class="task-card done-card"><div class="task-card-top"><span class="task-id">FN-{{ task.id.toString().padStart(3, '0') }}</span><span class="done-check">✓</span></div><h4>{{ task.title }}</h4>@if (task.description) { <p>{{ task.description }}</p> }<footer><span class="assignee">—</span><select [value]="task.status" (change)="changeStatus(task, $any($event.target).value)" aria-label="Task status"><option value="todo">To do</option><option value="doing">Doing</option><option value="done">Done</option></select></footer></article> }
+            @if (doneTasks().length === 0) { <div class="column-empty">Wins show up here</div> }
+          </section>
+        </div>
+      }
+      <footer class="board-footer"><span>ONE BOARD · THREE STATES · KEEP IT MOVING</span><span>MEMBERSHIP-BASED ACCESS <i></i></span></footer>
+    </section>
+  } @else {
+    @if (project()) { <app-project-canvas [projectId]="project()!.id" /> }
+  }
+</section>

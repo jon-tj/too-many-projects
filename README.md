@@ -14,7 +14,9 @@ npm install
 npm start
 ```
 
-The API runs at `http://localhost:5081` and Angular runs at `http://localhost:4200`. By default, the API uses a local SQLite database at `backend/app.db`; it creates the file and `Projects` table automatically when the project-count card first checks the database.
+The API runs at `http://localhost:5081` and Angular runs at `http://localhost:4200`. By default, the API uses a local SQLite database at `backend/app.db`; EF Core migrations create and update the schema on startup.
+
+On first startup, Identity seeds a development account with username `jon`, email `piehunter123@gmail.com`, and password `Passw0rd!`. Identity hashes and salts the password. Change or remove these seed credentials before deploying to a shared or production environment.
 
 To use Supabase PostgreSQL instead, set the connection string in the backend terminal before running it. You may need to use session pooler for this to work if you are struggling with connecting.
 
@@ -23,7 +25,7 @@ $env:ConnectionStrings__Supabase = "Host=<pooler-host>;Port=5432;Database=postgr
 dotnet run --project backend/backend.csproj
 ```
 
-Use the **Session pooler** connection string from Supabase Project Settings > Database. Keep the password private and do not commit it. When this variable is set, Supabase replaces the local SQLite database.
+Use the **Session pooler** connection string from Supabase Project Settings > Database. Keep the password private and do not commit it. When this variable is set, Supabase replaces the local SQLite database. The application applies the checked-in EF Core migrations on startup.
 
 ## Deploy to Render
 

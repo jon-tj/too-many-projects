@@ -1,0 +1,44 @@
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from './auth.service';
+
+@Component({
+  selector: 'app-login-page',
+  imports: [ReactiveFormsModule, RouterLink],
+  templateUrl: './login-page.html',
+  styleUrl: './login-page.css',
+})
+export class LoginPage {
+  protected readonly busy = signal(false);
+  protected readonly error = signal('');
+  private readonly formBuilder = inject(FormBuilder);
+  protected readonly form = this.formBuilder.nonNullable.group({
+    username: ['jon', Validators.required],
+    password: ['', Validators.required],
+  });
+
+  constructor(
+    private readonly auth: AuthService,
+    private readonly router: Router,
+  ) {
+    if (this.auth.isAuthenticated()) void this.router.navigateByUrl('/');
+  }
+
+  protected submit(): void {
+    if (this.form.invalid || this.busy()) return;
+    this.busy.set(true);
+    this.error.set('');
+    const { username, password } = this.form.getRawValue();
+    this.auth.login(username.trim(), password).subscribe({
+      next: () => void this.router.navigateByUrl('/'),
+      error: (error: HttpErrorResponse) => {
+        this.error.set(error.status === 401
+          ? 'That username and password do not match.'
+          : 'The workspace could not be reached. Check that the API is running.');
+        this.busy.set(false);
+      },
+    });
+  }
+}
