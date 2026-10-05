@@ -40,6 +40,28 @@ public sealed class ProjectsController(AppDbContext db) : ControllerBase
         return project is null ? NotFound() : Ok(project);
     }
 
+    [HttpGet("{id:long}/members")]
+    public async Task<ActionResult<IReadOnlyList<ProjectMemberResponse>>> GetMembers(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var isMember = await db.ProjectMembers.AnyAsync(
+            member => member.ProjectId == id && member.UserId == userId,
+            cancellationToken);
+        if (!isMember) return NotFound();
+
+        var members = await db.ProjectMembers.AsNoTracking()
+            .Where(member => member.ProjectId == id)
+            .OrderBy(member => member.Role)
+            .Select(member => new ProjectMemberResponse(
+                member.UserId,
+                member.User.UserName ?? string.Empty,
+                member.User.DisplayName,
+                member.Role))
+            .ToListAsync(cancellationToken);
+
+        return Ok(members);
+    }
+
     [HttpPost]
     public async Task<ActionResult<ProjectResponse>> Create(
         CreateProjectRequest request, CancellationToken cancellationToken)
@@ -91,6 +113,9 @@ public sealed class ProjectsController(AppDbContext db) : ControllerBase
 
 /// <summary>Project summary visible to a member.</summary>
 public sealed record ProjectResponse(long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount);
+
+/// <summary>A member of a project visible to project participants.</summary>
+public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role);
 
 /// <summary>Data required to create a project.</summary>
 public sealed record CreateProjectRequest
