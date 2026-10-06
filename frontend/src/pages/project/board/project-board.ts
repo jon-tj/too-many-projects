@@ -10,9 +10,9 @@ import { ProjectTask, TaskStatus } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const COLUMNS = [
-  { status: 'todo', title: 'To do', label: 'UP NEXT', empty: 'Nothing queued yet' },
-  { status: 'doing', title: 'Doing', label: 'IN MOTION', empty: 'A clear runway' },
-  { status: 'done', title: 'Done', label: 'LANDED', empty: 'Wins show up here' },
+  { status: 'todo', title: 'To do', empty: 'Nothing queued yet' },
+  { status: 'doing', title: 'Doing', empty: 'A clear runway' },
+  { status: 'done', title: 'Done', empty: 'Wins show up here' },
 ] as const;
 
 @Component({

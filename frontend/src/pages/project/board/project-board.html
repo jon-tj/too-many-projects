@@ -22,7 +22,6 @@
           <span class="column-marker"></span>
           <h3>{{ column.title }}</h3>
           <span class="badge">{{ column.tasks.length }}</span>
-          <small>{{ column.label }}</small>
         </header>
         @for (task of column.tasks; track task.id) {
           <article
