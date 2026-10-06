@@ -32,6 +32,21 @@ export interface Account {
   avatarImage: string | null;
 }
 
+export type OverviewRange = '7d' | '30d' | '1y';
+
+/** Cumulative values at the end of the day (or week) starting at date. */
+export interface OverviewPoint {
+  date: string;
+  tasksCompleted: number;
+  hours: number;
+}
+
+export interface ProjectOverview {
+  points: OverviewPoint[];
+  working: boolean;
+  workingSince: string | null;
+}
+
 export type ProjectRole = 'Owner' | 'Developer' | 'External';
 
 export interface UserSummary {

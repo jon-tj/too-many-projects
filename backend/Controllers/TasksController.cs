@@ -109,7 +109,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
 
         task.Title = request.Title.Trim();
         task.Description = request.Description?.Trim() ?? string.Empty;
-        task.Status = request.Status;
+        task.SetStatus(request.Status);
         task.AssigneeUserId = request.AssigneeUserId;
         task.DueAt = request.DueAt;
         await db.SaveChangesAsync(cancellationToken);
@@ -143,7 +143,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             cancellationToken);
         if (task is null) return NotFound();
 
-        task.Status = request.Status;
+        task.SetStatus(request.Status);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }

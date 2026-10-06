@@ -9,6 +9,8 @@ import {
   CanvasSummary,
   Project,
   ProjectMember,
+  ProjectOverview,
+  OverviewRange,
   ProjectRole,
   ProjectTask,
   UserSummary,
@@ -39,6 +41,15 @@ export class WorkspaceApi {
     changes: Pick<Project, 'name' | 'description' | 'icon' | 'iconImage'>,
   ): Observable<void> {
     return this.http.put<void>(`/api/projects/${id}`, changes);
+  }
+
+  projectOverview(id: number, range: OverviewRange): Observable<ProjectOverview> {
+    return this.http.get<ProjectOverview>(`/api/projects/${id}/overview`, { params: { range } });
+  }
+
+  /** Working opens a work session for you in the project; idle closes it. */
+  setWorking(id: number, working: boolean): Observable<void> {
+    return this.http.put<void>(`/api/projects/${id}/work`, { working });
   }
 
   deleteProject(id: number): Observable<void> {

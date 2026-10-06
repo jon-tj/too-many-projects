@@ -1,0 +1,108 @@
+<section class="status" aria-label="Your work status">
+  <span>
+    @if (shown()?.working) {
+      Working since {{ shown()!.workingSince | date: 'shortTime' }}
+    } @else {
+      Idle
+    }
+  </span>
+  <button class="transparent" type="button" [class.active]="!shown()?.working" [disabled]="busy()" (click)="setWorking(false)">
+    <span>Idle</span>
+  </button>
+  <button class="transparent" type="button" [class.active]="shown()?.working" [disabled]="busy()" (click)="setWorking(true)">
+    <span>Working</span>
+  </button>
+</section>
+
+<!-- The range scopes both charts below. -->
+<nav aria-label="Time range">
+  @for (option of ranges; track option.value) {
+    <button class="transparent" type="button" [class.active]="range() === option.value" (click)="range.set(option.value)">
+      <span>{{ option.label }}</span>
+    </button>
+  }
+</nav>
+
+@if (overview.error()) {
+  <p role="alert">The overview could not be loaded.</p>
+}
+
+<div
+  #frame
+  class="frame"
+  tabindex="0"
+  aria-label="Tasks done and hours worked over time, each as a share of its total. Use the arrow keys to read values."
+  [style.opacity]="overview.isLoading() ? 0.5 : 1"
+  (pointermove)="onPointerMove($event)"
+  (pointerleave)="hovered.set(null)"
+  (keydown)="onKeydown($event)"
+  (blur)="hovered.set(null)"
+>
+  <svg [attr.width]="width()" [attr.height]="height" aria-hidden="true">
+    <line class="baseline" [attr.x1]="pad.left" [attr.x2]="width() - pad.right" [attr.y1]="height - pad.bottom" [attr.y2]="height - pad.bottom" />
+
+    <!-- Centre cross: half the period, half the total. Above it = slowing down, below it = speeding up. -->
+    @if (center(); as c) {
+      <path class="center" [attr.d]="'M' + (c.x - 6) + ',' + c.y + ' H' + (c.x + 6) + ' M' + c.x + ',' + (c.y - 6) + ' V' + (c.y + 6)" />
+    }
+
+    @for (line of lines(); track line.key) {
+      <path class="line {{ line.key }}" [attr.d]="line.path" />
+      @if (line.end; as end) {
+        <circle class="dot {{ line.key }}" [attr.cx]="end.x" [attr.cy]="end.y" r="4" />
+      }
+    }
+
+    @if (hovered() !== null) {
+      <line class="crosshair" [attr.x1]="hoveredX()" [attr.x2]="hoveredX()" [attr.y1]="pad.top" [attr.y2]="height - pad.bottom" />
+      @for (line of lines(); track line.key) {
+        <circle class="dot {{ line.key }}" [attr.cx]="hoveredX()" [attr.cy]="line.hoverY(hovered()!)" r="4" />
+      }
+    }
+
+    <!-- Totals for the period at the right: tasks on top, hours below, each keyed by a stroke of its line colour. -->
+    @for (line of lines(); track line.key; let i = $index) {
+      <line class="key {{ line.key }}" [attr.x1]="width() - pad.right + 16" [attr.x2]="width() - pad.right + 28" [attr.y1]="pad.top + 8 + i * 24" [attr.y2]="pad.top + 8 + i * 24" />
+      <text class="total" [attr.x]="width() - pad.right + 34" [attr.y]="pad.top + 8 + i * 24" dominant-baseline="middle">
+        <tspan class="value">{{ line.total }}</tspan> {{ line.title }}
+      </text>
+    }
+
+    @for (label of xLabels(); track label.date) {
+      <text class="tick" [attr.x]="label.x" [attr.y]="height - 6" text-anchor="middle">
+        {{ label.date | date: (range() === '7d' ? 'EEE' : 'MMM d') : 'UTC' }}
+      </text>
+    }
+  </svg>
+
+  @if (hoveredPoint(); as point) {
+    <!-- The real values at this date: values lead, names follow. -->
+    <div class="tooltip" [style.left.px]="hoveredX()">
+      <small>{{ point.date | date: (range() === '1y' ? "'Week of' MMM d" : 'EEE MMM d') : 'UTC' }}</small>
+      <span><span class="key-swatch tasksCompleted"></span><strong>{{ format('tasksCompleted', point.tasksCompleted) }}</strong> tasks done</span>
+      <span><span class="key-swatch hours"></span><strong>{{ format('hours', point.hours) }}</strong> hours worked</span>
+    </div>
+  }
+</div>
+
+<details>
+  <summary>Show as table</summary>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{{ range() === '1y' ? 'Week of' : 'Day' }}</th>
+        <th scope="col">Tasks done</th>
+        <th scope="col">Hours worked</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (point of shown()?.points ?? []; track point.date) {
+        <tr>
+          <td>{{ point.date | date: 'MMM d, y' : 'UTC' }}</td>
+          <td>{{ format('tasksCompleted', point.tasksCompleted) }}</td>
+          <td>{{ format('hours', point.hours) }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</details>

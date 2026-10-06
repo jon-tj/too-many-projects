@@ -7,6 +7,7 @@ import { WorkspaceShell } from '../components/workspace-shell/workspace-shell';
 import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { ProjectPage } from '../pages/project/project-page';
 import { ProjectBoard } from '../pages/project/board/project-board';
+import { ProjectOverview } from '../pages/project/overview/project-overview';
 import { CanvasList } from '../pages/project/canvas/canvas-list';
 import { ProjectCanvas } from '../pages/project/canvas/editor/project-canvas';
 import { CanvasSettings } from '../pages/project/canvas/settings/canvas-settings';
@@ -31,6 +32,7 @@ export const routes: Routes = [
 				path: 'projects/:projectId', component: ProjectPage,
 				children: [
 					{ path: '', pathMatch: 'full', redirectTo: 'board' },
+					{ path: 'overview', component: ProjectOverview },
 					{ path: 'board', component: ProjectBoard },
 					{ path: 'canvas', component: CanvasList },
 					{ path: 'canvas/:canvasId', component: ProjectCanvas },

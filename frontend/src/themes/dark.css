@@ -13,6 +13,8 @@
     --todo: #8fa3b8;
     --doing: #d9a441;
     --done: #6fae69;
+  --chart-tasks: #3987e5;
+  --chart-hours: #d95926;
   }
 }
 
@@ -29,4 +31,6 @@
   --todo: #8fa3b8;
   --doing: #d9a441;
   --done: #6fae69;
+  --chart-tasks: #3987e5;
+  --chart-hours: #d95926;
 }

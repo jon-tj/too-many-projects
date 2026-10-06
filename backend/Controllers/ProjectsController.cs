@@ -253,6 +253,73 @@ public sealed class ProjectsController(
         return NoContent();
     }
 
+    /// <summary>
+    /// Tasks completed and hours worked, cumulative from the start of the range (7d / 30d daily, 1y weekly, in UTC),
+    /// plus whether the caller is currently working.
+    /// </summary>
+    [HttpGet("{id:long}/overview")]
+    public async Task<ActionResult<ProjectOverviewResponse>> GetOverview(
+        long id, [FromQuery] string range, CancellationToken cancellationToken)
+    {
+        (int Buckets, int DaysPerBucket)? shape = range switch { "7d" => (7, 1), "30d" => (30, 1), "1y" => (52, 7), _ => null };
+        if (shape is not { } bucketing) return BadRequest(new { error = "Range must be 7d, 30d or 1y." });
+        if (await GetMemberProject(id, cancellationToken) is null) return NotFound();
+
+        var now = DateTimeOffset.UtcNow;
+        var today = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
+        var start = today.AddDays(-(bucketing.Buckets - 1) * bucketing.DaysPerBucket);
+
+        // Filtered in memory: SQLite cannot compare DateTimeOffset values in queries.
+        var completed = (await db.ProjectTasks.AsNoTracking()
+                .Where(task => task.ProjectId == id && task.CompletedAt != null)
+                .Select(task => task.CompletedAt!.Value)
+                .ToListAsync(cancellationToken))
+            .Where(at => at >= start)
+            .ToList();
+        var sessions = await db.WorkSessions.AsNoTracking()
+            .Where(session => session.ProjectId == id)
+            .Select(session => new { session.StartedAt, session.EndedAt })
+            .ToListAsync(cancellationToken);
+
+        var points = Enumerable.Range(0, bucketing.Buckets).Select(index =>
+        {
+            var bucketStart = start.AddDays(index * bucketing.DaysPerBucket);
+            var bucketEnd = bucketStart.AddDays(bucketing.DaysPerBucket);
+            var until = bucketEnd < now ? bucketEnd : now;
+            var hours = sessions.Sum(session =>
+            {
+                var from = session.StartedAt > start ? session.StartedAt : start;
+                var to = session.EndedAt is { } ended && ended < until ? ended : until;
+                return to > from ? (to - from).TotalHours : 0;
+            });
+            return new OverviewPoint(bucketStart, completed.Count(at => at < bucketEnd), Math.Round(hours, 2));
+        }).ToList();
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var open = await db.WorkSessions.AsNoTracking()
+            .Where(session => session.ProjectId == id && session.UserId == userId && session.EndedAt == null)
+            .Select(session => (DateTimeOffset?)session.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        return Ok(new ProjectOverviewResponse(points, open is not null, open));
+    }
+
+    /// <summary>"Working" opens a work session for the caller; "Idle" closes it.</summary>
+    [HttpPut("{id:long}/work")]
+    public async Task<IActionResult> SetWorking(long id, SetWorkingRequest request, CancellationToken cancellationToken)
+    {
+        if (await GetMemberProject(id, cancellationToken) is null) return NotFound();
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var open = await db.WorkSessions.SingleOrDefaultAsync(
+            session => session.ProjectId == id && session.UserId == userId && session.EndedAt == null, cancellationToken);
+
+        if (request.Working && open is null)
+            db.WorkSessions.Add(new WorkSession { ProjectId = id, UserId = userId });
+        else if (!request.Working && open is not null)
+            open.EndedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
@@ -390,3 +457,11 @@ public sealed record UpdateProjectRequest
 
 /// <summary>Whether cancelling the invite also deleted the account (it was the user's only project).</summary>
 public sealed record CancelInviteResponse(bool UserDeleted);
+
+/// <summary>Cumulative values at the end of one day (or week) starting at Date.</summary>
+public sealed record OverviewPoint(DateTimeOffset Date, int TasksCompleted, double Hours);
+
+/// <summary>The overview chart data and the caller's working status.</summary>
+public sealed record ProjectOverviewResponse(IReadOnlyList<OverviewPoint> Points, bool Working, DateTimeOffset? WorkingSince);
+
+public sealed record SetWorkingRequest(bool Working);
