@@ -35,12 +35,3 @@ h1 {
   line-height: 1;
 }
 
-h2,
-p {
-  margin: 0;
-}
-
-form {
-  flex: 0 1 400px;
-}
-

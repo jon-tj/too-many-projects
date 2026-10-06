@@ -33,7 +33,7 @@ export class ProjectMembers {
   protected readonly error = signal('');
   protected readonly removalError = signal('');
   protected readonly removingUserId = signal<string | null>(null);
-  protected readonly created = signal<{ userName: string; password: string } | null>(null);
+  protected readonly created = signal<{ userName: string; email: string; password: string; emailSent: boolean } | null>(null);
   protected readonly role = new FormControl<ProjectRole>('Developer', { nonNullable: true });
   protected readonly search = new FormControl('', { nonNullable: true });
   protected readonly candidates = toSignal(
@@ -73,9 +73,9 @@ export class ProjectMembers {
     if (this.newUser.invalid) return;
     const { userName, email } = this.newUser.getRawValue();
     this.api.addNewUserMember(this.projectId(), userName.trim(), email.trim(), this.role.value).subscribe({
-      next: ({ member, password }) => {
+      next: ({ member, password, emailSent }) => {
         this.added(member);
-        this.created.set({ userName: member.userName, password });
+        this.created.set({ userName: member.userName, email: email.trim(), password, emailSent });
       },
       error: (error: HttpErrorResponse) => this.error.set(error.error?.error ?? 'Could not create the user.'),
     });

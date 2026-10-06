@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, finalize, map, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, finalize, map, shareReplay, switchMap, tap, throwError } from 'rxjs';
 
 interface TokenResponse { accessToken: string; expiresIn: number; refreshToken: string; tokenType: string; }
 
@@ -41,6 +41,19 @@ export class AuthService {
         shareReplay(1),
       );
     return this.refreshing;
+  }
+
+  /** Changing the password invalidates the refresh token, so this signs in again with the new password. */
+  changePassword(userName: string, currentPassword: string, newPassword: string): Observable<TokenResponse> {
+    const remember = this.isRemembered();
+    return this.http
+      .post('/api/account/password', { currentPassword, newPassword })
+      .pipe(switchMap(() => this.login(userName, newPassword, remember)));
+  }
+
+  /** Whether the current sign-in was made with "Remember me". */
+  isRemembered(): boolean {
+    return !!localStorage.getItem(REFRESH_TOKEN);
   }
 
   logout(): void {

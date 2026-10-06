@@ -28,6 +28,7 @@ export interface Account {
   userName: string;
   displayName: string;
   email: string;
+  mustChangePassword: boolean;
 }
 
 export type ProjectRole = 'Owner' | 'Developer' | 'External';

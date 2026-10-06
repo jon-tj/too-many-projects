@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 import { Account } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
 
@@ -17,7 +17,7 @@ export class SettingsPage implements OnInit {
   protected readonly message = signal('');
   protected readonly error = signal('');
   private readonly formBuilder = inject(FormBuilder);
-  private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   protected readonly form = this.formBuilder.nonNullable.group({
     currentPassword: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -30,19 +30,20 @@ export class SettingsPage implements OnInit {
   }
 
   protected changePassword(): void {
-    if (this.form.invalid || this.busy()) return;
+    const account = this.account();
+    if (!account || this.form.invalid || this.busy()) return;
     this.busy.set(true);
     this.message.set('');
     this.error.set('');
-    this.http.post('/api/auth/changePassword', this.form.getRawValue()).subscribe({
+    const { currentPassword, newPassword } = this.form.getRawValue();
+    this.auth.changePassword(account.userName, currentPassword, newPassword).subscribe({
       next: () => {
         this.form.reset({ currentPassword: '', newPassword: '' });
         this.message.set('Password updated.');
         this.busy.set(false);
       },
       error: (response: HttpErrorResponse) => {
-        const details = response.error?.errors as Record<string, string[]> | undefined;
-        this.error.set(details ? Object.values(details).flat().join(' ') : 'Could not update the password. Check your current password and try again.');
+        this.error.set(response.error?.error ?? 'Could not update the password. Please try again.');
         this.busy.set(false);
       },
     });

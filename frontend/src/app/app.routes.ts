@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '../services/auth.guard';
+import { authGuard, passwordChangeGuard } from '../services/auth.guard';
 import { LoginPage } from '../pages/login/login-page';
+import { SignInForm } from '../pages/login/sign-in/sign-in-form';
+import { ChangePasswordForm } from '../pages/login/change-password/change-password-form';
 import { WorkspaceShell } from '../components/workspace-shell/workspace-shell';
 import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { ProjectPage } from '../pages/project/project-page';
@@ -14,9 +16,15 @@ import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
 
 export const routes: Routes = [
-	{ path: 'login', component: LoginPage },
 	{
-		path: '', component: WorkspaceShell, canActivate: [authGuard],
+		path: 'login', component: LoginPage,
+		children: [
+			{ path: '', component: SignInForm },
+			{ path: 'change-password', component: ChangePasswordForm, canActivate: [authGuard] },
+		],
+	},
+	{
+		path: '', component: WorkspaceShell, canActivate: [authGuard, passwordChangeGuard],
 		children: [
 			{ path: '', component: DashboardPage },
 			{

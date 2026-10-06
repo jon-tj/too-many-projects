@@ -4,30 +4,5 @@
 </aside>
 
 <main class="login-panel">
-  <form [formGroup]="form" (ngSubmit)="submit()">
-    <h2>Sign in to continue</h2>
-    <label>
-      Username
-      <input formControlName="username" autocomplete="username" placeholder="Your username" />
-    </label>
-    <label>
-      Password
-      <input
-        type="password"
-        formControlName="password"
-        autocomplete="current-password"
-        placeholder="Enter your password"
-      />
-    </label>
-    <label>
-      <input type="checkbox" formControlName="remember" />
-      Remember me
-    </label>
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-    }
-    <button class="primary" type="submit" [disabled]="form.invalid || busy()">
-      {{ busy() ? 'Signing in' : 'Sign in' }}
-    </button>
-  </form>
+  <router-outlet />
 </main>

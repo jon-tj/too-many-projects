@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,11 @@ using Model;
 [ApiController]
 [Authorize]
 [Route("api/projects")]
-public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public sealed class ProjectsController(
+    AppDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IEmailService emailService,
+    ILogger<ProjectsController> logger) : ControllerBase
 {
     private static readonly string[] MemberRoles = ["Owner", "Developer", "External"];
 
@@ -102,6 +107,13 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
 
         db.ProjectMembers.Add(new ProjectMember { ProjectId = id, UserId = user.Id, Role = request.Role });
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            var (projectName, inviterName) = await GetInvitationDetails(id, cancellationToken);
+            await TrySendEmail(MemberEmails.ExistingUser(
+                user.Email, user.DisplayName, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
+        }
         return Ok(new ProjectMemberResponse(user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role));
     }
 
@@ -152,7 +164,8 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
             UserName = request.UserName.Trim(),
             Email = request.Email.Trim(),
             EmailConfirmed = true,
-            DisplayName = request.UserName.Trim()
+            DisplayName = request.UserName.Trim(),
+            MustChangePassword = true
         };
         // An all-digit temporary password does not satisfy the Identity password rules, so it is hashed directly.
         user.PasswordHash = userManager.PasswordHasher.HashPassword(user, password);
@@ -162,8 +175,12 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
 
         db.ProjectMembers.Add(new ProjectMember { ProjectId = id, UserId = user.Id, Role = request.Role });
         await db.SaveChangesAsync(cancellationToken);
+        var (projectName, inviterName) = await GetInvitationDetails(id, cancellationToken);
+        var emailSent = await TrySendEmail(MemberEmails.NewUser(
+            user.Email, user.UserName, password, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
+
         var member = new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role);
-        return Ok(new NewUserMemberResponse(member, password));
+        return Ok(new NewUserMemberResponse(member, password, emailSent));
     }
 
     [HttpPost]
@@ -216,6 +233,34 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         db.Projects.Remove(project);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
+    }
+
+    private async Task<(string ProjectName, string InviterName)> GetInvitationDetails(
+        long projectId, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var projectName = await db.Projects.Where(project => project.Id == projectId)
+            .Select(project => project.Name).SingleAsync(cancellationToken);
+        var inviter = await db.Users.Where(user => user.Id == userId)
+            .Select(user => new { user.DisplayName, user.UserName }).SingleAsync(cancellationToken);
+        return (projectName, string.IsNullOrEmpty(inviter.DisplayName) ? inviter.UserName ?? "Someone" : inviter.DisplayName);
+    }
+
+    private string SignInUrl() => $"{Request.Scheme}://{Request.Host}/login";
+
+    /// <summary>Email is best effort: a failed send is logged and never undoes adding the member.</summary>
+    private async Task<bool> TrySendEmail(EmailMessage message, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await emailService.SendAsync(message, cancellationToken);
+            return true;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            logger.LogWarning(exception, "Could not send email to {To}.", message.To);
+            return false;
+        }
     }
 
     private Task<bool> IsProjectOwner(long projectId, CancellationToken cancellationToken)
@@ -280,7 +325,8 @@ public sealed record NewUserMemberRequest
 }
 
 /// <summary>The added member with the generated password, shown once to the project owner.</summary>
-public sealed record NewUserMemberResponse(ProjectMemberResponse Member, string Password);
+/// <remarks>The password is still returned so it can be shown if the email does not arrive.</remarks>
+public sealed record NewUserMemberResponse(ProjectMemberResponse Member, string Password, bool EmailSent);
 
 /// <summary>Editable project details. Icon is a Material icon name, IconImage a small image data URL; neither means the default icon.</summary>
 public sealed record UpdateProjectRequest
