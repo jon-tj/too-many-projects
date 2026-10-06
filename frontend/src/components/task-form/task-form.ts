@@ -53,10 +53,24 @@ export class TaskForm {
     this.form.markAsDirty();
   }
 
-  /** Sets the due date to today plus the given number of days. */
-  protected dueIn(days: number): void {
-    const date = new Date();
+  protected dueToday(): void {
+    this.setDueDate(new Date());
+  }
+
+  /** Adds days to the due date in the field, or to today when it is empty, so repeated clicks keep adding. */
+  protected addDays(days: number): void {
+    const current = this.form.controls.dueAt.value;
+    let date = new Date();
+    if (current) {
+      // Parse "YYYY-MM-DD" by parts so it is local midnight; new Date("YYYY-MM-DD") would be UTC.
+      const [year, month, day] = current.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    }
     date.setDate(date.getDate() + days);
+    this.setDueDate(date);
+  }
+
+  private setDueDate(date: Date): void {
     // sv-SE formats dates as YYYY-MM-DD in local time, which is what the date input expects.
     this.form.controls.dueAt.setValue(date.toLocaleDateString('sv-SE'));
     this.form.markAsDirty();

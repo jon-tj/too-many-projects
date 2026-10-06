@@ -36,8 +36,8 @@
       Due date
       <input type="date" formControlName="dueAt" />
     </label>
-    <button class="transparent" type="button" (click)="dueIn(0)"><span>Today</span></button>
-    <button class="transparent" type="button" (click)="dueIn(7)"><span>+7 days</span></button>
+    <button class="transparent" type="button" (click)="dueToday()"><span>Today</span></button>
+    <button class="transparent" type="button" (click)="addDays(7)"><span>+7 days</span></button>
   </div>
   <footer>
     <ng-content />
