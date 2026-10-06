@@ -2,15 +2,17 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Canvases;
 
 /// <summary>
 /// Live canvas editing. Clients join a canvas group, send small changes ({ upsert, remove, order }) that
-/// are relayed to everyone else on the canvas, and lock the items they drag. Saving stays on the HTTP API.
+/// are relayed to everyone else on the canvas, and lock the items they drag. Everyone in a canvas also sees
+/// who else is there, with their timer and dice. Saving stays on the HTTP API.
 /// </summary>
 [Authorize]
-public sealed class CanvasHub(CanvasAccessService access, CanvasLocks locks) : Hub
+public sealed class CanvasHub(AppDbContext db, CanvasAccessService access, CanvasLocks locks, CanvasPresence presence) : Hub
 {
     private string UserId => Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -27,12 +29,22 @@ public sealed class CanvasHub(CanvasAccessService access, CanvasLocks locks) : H
             ?? throw new HubException("This canvas could not be found.");
         Joined[canvasId] = canvas.CanWrite;
         await Groups.AddToGroupAsync(Context.ConnectionId, Group(canvasId));
+
+        var user = await db.Users.Where(user => user.Id == UserId)
+            .Select(user => new { user.DisplayName, user.UserName })
+            .SingleAsync(Context.ConnectionAborted);
+        presence.Join(canvasId, UserId, string.IsNullOrEmpty(user.DisplayName) ? user.UserName ?? "Someone" : user.DisplayName);
+        await SendPresence(canvasId);
         return locks.Active(canvasId);
     }
 
     public async Task Leave(int canvasId)
     {
-        Joined.Remove(canvasId);
+        if (Joined.Remove(canvasId))
+        {
+            presence.Leave(canvasId, UserId);
+            await SendPresence(canvasId);
+        }
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, Group(canvasId));
         await ReleaseLock();
     }
@@ -57,16 +69,45 @@ public sealed class CanvasHub(CanvasAccessService access, CanvasLocks locks) : H
 
     public Task Unlock() => ReleaseLock();
 
+    /// <summary>Starts (or with 0 removes) the user's timer, shown under their profile to everyone.</summary>
+    public async Task SetTimer(int canvasId, int seconds)
+    {
+        RequireJoined(canvasId);
+        if (!CanvasPresence.TimerOptions.Contains(seconds)) throw new HubException("That timer length is not available.");
+        presence.SetTimer(canvasId, UserId, seconds);
+        await SendPresence(canvasId);
+    }
+
+    /// <summary>Rolls on the server, so everyone sees the same result.</summary>
+    public async Task RollDice(int canvasId)
+    {
+        RequireJoined(canvasId);
+        presence.RollDice(canvasId, UserId);
+        await SendPresence(canvasId);
+    }
+
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        foreach (var canvasId in Joined.Keys)
+        {
+            presence.Leave(canvasId, UserId);
+            await SendPresence(canvasId);
+        }
         await ReleaseLock();
         await base.OnDisconnectedAsync(exception);
     }
+
+    private Task SendPresence(int canvasId) => Clients.Group(Group(canvasId)).SendAsync("Presence", presence.List(canvasId));
 
     private async Task ReleaseLock()
     {
         if (locks.Release(UserId) is int canvasId)
             await Clients.Group(Group(canvasId)).SendAsync("Locks", locks.Active(canvasId));
+    }
+
+    private void RequireJoined(int canvasId)
+    {
+        if (!Joined.ContainsKey(canvasId)) throw new HubException("Join the canvas first.");
     }
 
     private void RequireWrite(int canvasId)

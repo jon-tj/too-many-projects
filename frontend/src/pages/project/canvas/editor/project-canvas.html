@@ -191,6 +191,36 @@
     }
   </div>
 
+  @if (!preview() && pinTask() === null) {
+    <!-- Dice and timer (top right); who is here with their timers and dice (bottom right). -->
+    <div class="session-tools" (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
+      <button class="transparent" type="button" title="Roll a dice" (click)="rollDice()">
+        <app-icon name="casino" />
+      </button>
+      <button class="transparent" type="button" title="Timer: off, 10s, 30s, 5m, 30m" (click)="cycleTimer()">
+        <app-icon name="timer" />
+      </button>
+    </div>
+    <!-- Each person stacks upwards from their avatar: avatar, then timer, then dice on top. -->
+    <div class="people">
+      @for (person of people(); track person.userId) {
+        <div class="person">
+          @if (diceText(person); as dice) {
+            <!-- Keyed by roll, so every roll replays the animation even for the same number. -->
+            @for (roll of [person.diceRollId]; track roll) {
+              <span class="chip dice">{{ dice }}</span>
+            }
+          }
+          @let timer = timerText(person);
+          @if (timer) {
+            <span class="chip" [class.done]="timer === '0s'">{{ timer }}</span>
+          }
+          <span class="avatar" [title]="person.name">{{ person.name.charAt(0) }}</span>
+        </div>
+      }
+    </div>
+  }
+
   @if (preview()) {
     <!-- No hint or controls in a preview. -->
   } @else if (pinTask() !== null) {
@@ -208,7 +238,7 @@
         </button>
       }
       <button class="transparent" type="button" (click)="cancelPin()"><span>Cancel</span></button>
-      <button class="transparent" type="button" [title]="zenMode() ? 'Exit fullscreen' : 'Enter fullscreen'" (click)="toggleZenMode()">
+      <button class="transparent" type="button" [title]="zenMode() ? 'Exit zen mode' : 'Enter zen mode'" (click)="toggleZenMode()">
         <app-icon [name]="zenMode() ? 'fullscreen_exit' : 'fullscreen'" />
       </button>
     </div>
@@ -307,7 +337,7 @@
       <button class="transparent" type="button" title="Reset view" (click)="resetView()">
         <app-icon name="center_focus_strong" />
       </button>
-      <button class="transparent" type="button" [title]="zenMode() ? 'Exit fullscreen' : 'Enter fullscreen'" (click)="toggleZenMode()">
+      <button class="transparent" type="button" [title]="zenMode() ? 'Exit zen mode' : 'Enter zen mode'" (click)="toggleZenMode()">
         <app-icon [name]="zenMode() ? 'fullscreen_exit' : 'fullscreen'" />
       </button>
     </div>

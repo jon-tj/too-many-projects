@@ -57,6 +57,7 @@ else
 builder.Services.AddScoped<UserRemoval>();
 builder.Services.AddScoped<CanvasAccessService>();
 builder.Services.AddSingleton<CanvasLocks>();
+builder.Services.AddSingleton<CanvasPresence>();
 builder.Services.AddSignalR();
 builder.Services.AddControllers();
 

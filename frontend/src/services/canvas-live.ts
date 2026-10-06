@@ -22,9 +22,21 @@ export interface CanvasLock {
   itemIds: string[];
 }
 
+/** Someone in the canvas. Times are relative: timerRemainingMs is negative once their timer has ended. */
+export interface CanvasPresence {
+  userId: string;
+  name: string;
+  timerSeconds: number | null;
+  timerRemainingMs: number | null;
+  dice: number | null;
+  diceRollId: number | null;
+  diceAgeMs: number | null;
+}
+
 export interface CanvasLiveHandlers {
   changed(userId: string, change: CanvasChange): void;
   locks(locks: CanvasLock[]): void;
+  presence(people: CanvasPresence[]): void;
   /** Changes may have been missed while disconnected, so the canvas should be reloaded. */
   reconnected(): void;
 }
@@ -51,6 +63,7 @@ export class CanvasLive {
       .build();
     this.connection.on('Changed', handlers.changed);
     this.connection.on('Locks', handlers.locks);
+    this.connection.on('Presence', handlers.presence);
     this.connection.onreconnected(async () => {
       handlers.locks(await this.join());
       handlers.reconnected();
@@ -92,6 +105,15 @@ export class CanvasLive {
   async lock(itemIds: string[]): Promise<boolean> {
     if (!this.connected) return true;
     return this.connection.invoke<boolean>('Lock', this.canvasId, itemIds).catch(() => true);
+  }
+
+  rollDice(): void {
+    if (this.connected) void this.connection.invoke('RollDice', this.canvasId).catch(() => undefined);
+  }
+
+  /** Starts a timer of this many seconds; 0 removes it. */
+  setTimer(seconds: number): void {
+    if (this.connected) void this.connection.invoke('SetTimer', this.canvasId, seconds).catch(() => undefined);
   }
 
   unlock(): void {

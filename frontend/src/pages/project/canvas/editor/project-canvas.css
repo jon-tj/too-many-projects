@@ -12,14 +12,15 @@
 }
 
 :host(.zen-mode) {
-  position: fixed;
+  position: absolute;
   z-index: 1000;
   inset: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  overflow: auto;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
   background: var(--primary-surface);
 }
 
@@ -304,4 +305,84 @@ h2 {
 .image > .face:empty {
   background: var(--primary-active-surface);
   border-radius: 4px;
+}
+
+/* Dice and timer buttons, top right. */
+.session-tools {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+/* Everyone in the canvas, bottom right; each with their timer and dice underneath. */
+.people {
+  position: absolute;
+  right: 12px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.person .avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--secondary-text);
+  background: var(--secondary-surface);
+  border-radius: 50%;
+  font-weight: 700;
+  pointer-events: auto;
+}
+
+.chip {
+  padding: 2px 6px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Bounces like |sin|: fast off the ground, slowing at the top, a sharp turn at the bottom. */
+.chip.done {
+  animation: bounce 0.5s infinite;
+}
+
+.chip.dice {
+  animation: roll 0.4s ease-out;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.61, 1, 0.88, 1); /* ease-out sine */
+  }
+  50% {
+    transform: translateY(-8px);
+    animation-timing-function: cubic-bezier(0.12, 0, 0.39, 0); /* ease-in sine */
+  }
+}
+
+@keyframes roll {
+  from {
+    transform: rotate(-270deg) scale(0.4);
+  }
 }

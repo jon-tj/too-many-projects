@@ -30,7 +30,7 @@ import {
   ShapeKind,
 } from '../../../../services/models';
 import { AuthService } from '../../../../services/auth.service';
-import { CanvasChange, CanvasLive, CanvasLock } from '../../../../services/canvas-live';
+import { CanvasChange, CanvasLive, CanvasLock, CanvasPresence } from '../../../../services/canvas-live';
 import { WorkspaceApi } from '../../../../services/workspace-api';
 
 const STAMPS = [
@@ -56,6 +56,12 @@ const optionalNumber = (value: string | number | null | undefined) =>
   value === undefined || value === null || value === '' ? null : Number(value);
 
 type Gesture = { move: (event: PointerEvent) => void; tap?: () => void; end?: () => void; x: number; y: number };
+/** The timer button cycles through these (seconds); 0 removes the timer. Matches the server's options. */
+const TIMER_OPTIONS = [0, 10, 30, 300, 1800];
+/** A finished timer stays at 0 (bouncing) this long before it disappears; dice results show this long too. */
+const TIMER_DONE_MS = 3000;
+const DICE_SHOWN_MS = 3000;
+
 /** Someone else's lock stops counting this long after we last heard from them. */
 const LOCK_TIMEOUT_MS = 60_000;
 const PIN_SIZE = 32;
@@ -95,7 +101,6 @@ export class ProjectCanvas implements OnDestroy {
   readonly focusPin = input<string | null | undefined>(null);
   /** Read-only, non-interactive view without any controls, e.g. on the task page. */
   readonly preview = input(false, { transform: booleanAttribute });
-  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly api = inject(WorkspaceApi);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -137,8 +142,18 @@ export class ProjectCanvas implements OnDestroy {
   private live: CanvasLive | null = null;
   /** Other people's drag locks, with when we last heard from them. */
   private readonly locks = signal<(CanvasLock & { seen: number })[]>([]);
-  /** Ticks so expired locks stop showing even when nothing else changes. */
+  /** Ticks so timers count down and expired locks stop showing even when nothing else changes. */
   private readonly now = signal(Date.now());
+  /** Everyone in the canvas, with timer and dice times converted to this browser's clock. */
+  protected readonly people = signal<(CanvasPresence & { timerEndsAt: number | null; diceRolledAt: number | null })[]>(
+    [],
+  );
+  private readonly me = computed(() => this.people().find((person) => person.userId === this.account.value()?.id));
+  /** The timer length currently running on my profile, or 0. */
+  private readonly myTimerSeconds = computed(() => {
+    const me = this.me();
+    return me?.timerEndsAt && me.timerEndsAt > this.now() ? (me.timerSeconds ?? 0) : 0;
+  });
   private clock?: ReturnType<typeof setInterval>;
   /** Object URLs of loaded images by image id; images are fetched with auth, then shown from memory. */
   protected readonly imageUrls = signal(new Map<number, string>());
@@ -271,25 +286,16 @@ export class ProjectCanvas implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   protected stopTool(): void {
+    if (this.zenMode()) {
+      this.zenMode.set(false);
+      return;
+    }
     this.tool.set(null);
     this.menu.set(null);
   }
 
-  @HostListener('document:fullscreenchange')
-  protected onFullscreenChange(): void {
-    this.zenMode.set(document.fullscreenElement === this.host.nativeElement);
-  }
-
-  protected async toggleZenMode(): Promise<void> {
-    try {
-      if (document.fullscreenElement === this.host.nativeElement) {
-        await document.exitFullscreen();
-      } else {
-        await this.host.nativeElement.requestFullscreen();
-      }
-    } catch {
-      this.error.set('Fullscreen mode is unavailable in this browser.');
-    }
+  protected toggleZenMode(): void {
+    this.zenMode.update((enabled) => !enabled);
   }
 
   // ---- items ----
@@ -464,6 +470,33 @@ export class ProjectCanvas implements OnDestroy {
     this.touch();
     this.send({ upsert: [{ id: pin.id, label }] });
     this.save();
+  }
+
+  // ---- dice and timer ----
+
+  protected rollDice(): void {
+    this.live?.rollDice();
+  }
+
+  /** Off → 10s → 30s → 5 min → 30 min → off; each click starts the new length from now. */
+  protected cycleTimer(): void {
+    const next = TIMER_OPTIONS[(TIMER_OPTIONS.indexOf(this.myTimerSeconds()) + 1) % TIMER_OPTIONS.length];
+    this.live?.setTimer(next);
+  }
+
+  /** Whole minutes down to 1 minute, then seconds; "0s" for a few seconds once done; null when hidden. */
+  protected timerText(person: { timerEndsAt: number | null }): string | null {
+    if (person.timerEndsAt === null) return null;
+    const left = person.timerEndsAt - this.now();
+    if (left > 60_000) return `${Math.ceil(left / 60_000)}m`;
+    if (left > 0) return `${Math.ceil(left / 1000)}s`;
+    return left > -TIMER_DONE_MS ? '0s' : null;
+  }
+
+  /** The latest roll, for a few seconds after it was rolled; null otherwise. */
+  protected diceText(person: { dice: number | null; diceRolledAt: number | null }): string | null {
+    if (person.dice === null || person.diceRolledAt === null) return null;
+    return this.now() - person.diceRolledAt < DICE_SHOWN_MS ? `🎲 ${person.dice}` : null;
   }
 
   // ---- images ----
@@ -770,6 +803,17 @@ export class ProjectCanvas implements OnDestroy {
     this.locks.update((locks) => locks.map((lock) => (lock.userId === userId ? { ...lock, seen: Date.now() } : lock)));
   }
 
+  private setPeople(people: CanvasPresence[]): void {
+    const now = Date.now();
+    this.people.set(
+      people.map((person) => ({
+        ...person,
+        timerEndsAt: person.timerRemainingMs === null ? null : now + person.timerRemainingMs,
+        diceRolledAt: person.diceAgeMs === null ? null : now - person.diceAgeMs,
+      })),
+    );
+  }
+
   private setLocks(locks: CanvasLock[]): void {
     const seen = Date.now();
     this.locks.set(locks.map((lock) => ({ ...lock, seen })));
@@ -780,10 +824,12 @@ export class ProjectCanvas implements OnDestroy {
     this.live = null;
     this.locks.set([]);
     if (this.preview()) return;
-    this.clock ??= setInterval(() => this.now.set(Date.now()), 5000);
+    this.people.set([]);
+    this.clock ??= setInterval(() => this.now.set(Date.now()), 500);
     this.live = new CanvasLive(projectId, canvasId, this.auth, {
       changed: (userId, change) => this.applyRemote(userId, change),
       locks: (locks) => this.setLocks(locks),
+      presence: (people) => this.setPeople(people),
       reconnected: () => this.fetch(),
     });
     // Without a live connection the canvas still works; edits just are not shared until saved.
