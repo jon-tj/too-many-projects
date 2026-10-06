@@ -2,3 +2,24 @@ app-task-form {
   display: block;
   max-width: 560px;
 }
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 560px;
+  margin-top: 32px;
+}
+
+h2 {
+  margin: 0;
+}
+
+/* Each preview links to its canvas, centred on this task's pin. */
+section a {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}

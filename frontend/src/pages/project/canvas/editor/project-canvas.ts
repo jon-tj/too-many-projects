@@ -1,5 +1,6 @@
 import {
   Component,
+  booleanAttribute,
   ElementRef,
   HostListener,
   OnDestroy,
@@ -12,7 +13,8 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Icon } from '../../../../components/icon/icon';
 import {
   CANVAS_COLORS,
@@ -21,6 +23,7 @@ import {
   CanvasItem,
   CanvasList,
   CanvasNote,
+  CanvasPin,
   CanvasShape,
   CanvasView,
   ShapeKind,
@@ -44,20 +47,35 @@ const SHAPES: { label: string; shape: ShapeKind; icon: string }[] = [
 const MARKERS = ['circle', 'number', 'cross'] as const;
 const DEFAULT_VIEW: CanvasView = { x: 40, y: 40, zoom: 1 };
 
-type Tool = { label: string } & ({ type: 'stamp'; emoji: string } | { type: 'shape'; shape: ShapeKind });
+type Tool = { label: string } & ({ type: 'stamp'; emoji: string } | { type: 'shape'; shape: ShapeKind } | { type: 'pin' });
+/** Optional numeric input that may come from a query parameter (string) or a binding (number). */
+const optionalNumber = (value: string | number | null | undefined) =>
+  value === undefined || value === null || value === '' ? null : Number(value);
+
+type Gesture = { move: (event: PointerEvent) => void; tap?: () => void; x: number; y: number };
+const PIN_SIZE = 32;
 
 const isLine = (item: CanvasItem) => item.type === 'shape' && (item.shape === 'line' || item.shape === 'arrow');
 
 @Component({
   selector: 'app-project-canvas',
   imports: [RouterLink, Icon],
+  host: { '[class.preview]': 'preview()' },
   templateUrl: './project-canvas.html',
   styleUrl: './project-canvas.css',
 })
 export class ProjectCanvas implements OnDestroy {
   readonly projectId = input.required({ transform: numberAttribute });
   readonly canvasId = input.required({ transform: numberAttribute });
+  /** Task to pin, from `?pinTask=`. While set, the editor only offers "Drop pin" and "Cancel". */
+  readonly pinTask = input(null, { transform: optionalNumber });
+  /** Pin to centre on at the zoom it was dropped at (`?focusPin=`); clicking a pin sets it, so the URL can be shared. */
+  readonly focusPin = input<string | null | undefined>(null);
+  /** Read-only, non-interactive view without any controls, e.g. on the task page. */
+  readonly preview = input(false, { transform: booleanAttribute });
   private readonly api = inject(WorkspaceApi);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly viewport = viewChild.required<ElementRef<HTMLElement>>('viewport');
   protected readonly colors = CANVAS_COLORS;
   protected readonly stamps = STAMPS;
@@ -69,13 +87,25 @@ export class ProjectCanvas implements OnDestroy {
   protected readonly error = signal('');
   protected readonly detail = signal<CanvasDetail | null>(null);
   protected readonly canWrite = computed(() => this.detail()?.canWrite ?? false);
+  /** Items can be edited only with write access and outside pin mode. */
+  protected readonly editable = computed(() => this.canWrite() && this.pinTask() === null && !this.preview());
+  /** A viewing option only; it is not saved. */
+  protected readonly showPins = signal(true);
+  /** Project tasks, so linked pins show the current title and status colour. */
+  private readonly tasks = rxResource({
+    params: () => this.projectId(),
+    stream: ({ params }) => this.api.projectTasks(params),
+    defaultValue: [],
+  });
+  private readonly taskById = computed(() => new Map(this.tasks.value().map((task) => [task.id, task])));
   protected readonly hint = computed(() => {
+    if (this.pinTask() !== null) return 'Pan and zoom so the spot is in the middle, then drop the pin';
     const tool = this.tool();
     if (!tool) return 'Double-click to add a note · drag to pan · Ctrl+scroll to zoom';
-    const verb = tool.type === 'stamp' ? 'Click to place' : 'Drag to draw';
+    const verb = tool.type === 'shape' ? 'Drag to draw' : 'Click to place';
     return `${verb} ${tool.label.toLowerCase()} · Esc to stop`;
   });
-  private gesture: ((event: PointerEvent) => void) | null = null;
+  private gesture: Gesture | null = null;
   private saveTimer?: ReturnType<typeof setTimeout>;
   private loaded = { projectId: 0, canvasId: 0 };
 
@@ -84,6 +114,13 @@ export class ProjectCanvas implements OnDestroy {
       const projectId = this.projectId();
       const canvasId = this.canvasId();
       untracked(() => this.load(projectId, canvasId));
+    });
+    // Also follow ?focusPin= changes after loading, e.g. back/forward or a pasted link.
+    effect(() => {
+      const pinId = this.focusPin();
+      untracked(() => {
+        if (pinId && this.detail()) this.centerOnPin(pinId);
+      });
     });
   }
 
@@ -99,6 +136,9 @@ export class ProjectCanvas implements OnDestroy {
       const point = this.toWorld(event);
       if (tool.type === 'stamp') {
         this.add({ id: crypto.randomUUID(), type: 'stamp', emoji: tool.emoji, x: point.x - 32, y: point.y - 32, w: 64, h: 64 });
+      } else if (tool.type === 'pin') {
+        const label = prompt('Pin name')?.trim();
+        if (label) this.add(this.newPin(point, label, null));
       } else {
         this.draw(event, tool.shape, point);
       }
@@ -115,18 +155,21 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   protected onPointerMove(event: PointerEvent): void {
-    this.gesture?.(event);
+    this.gesture?.move(event);
   }
 
-  protected onPointerUp(): void {
-    if (!this.gesture) return;
+  protected onPointerUp(event: PointerEvent): void {
+    const gesture = this.gesture;
+    if (!gesture) return;
     this.gesture = null;
+    // A press that barely moved counts as a click, e.g. opening a linked pin's task.
+    if (gesture.tap && Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 4) gesture.tap();
     this.save();
   }
 
   /** Double-clicking empty space or a shape adds a note there, like in the original board. */
   protected onDoubleClick(event: MouseEvent): void {
-    if (!this.canWrite()) return;
+    if (!this.editable()) return;
     // Pointer capture retargets the event to the viewport, so look at what is actually under the cursor.
     const target = document.elementFromPoint(event.clientX, event.clientY);
     if (target === this.viewport().nativeElement || target?.matches('.world, .shape > .face')) {
@@ -176,6 +219,11 @@ export class ProjectCanvas implements OnDestroy {
     this.menu.set(null);
   }
 
+  protected pickPin(): void {
+    this.tool.set({ type: 'pin', label: 'Pin' });
+    this.menu.set(null);
+  }
+
   @HostListener('document:keydown.escape')
   protected stopTool(): void {
     this.tool.set(null);
@@ -206,7 +254,13 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   protected drag(event: PointerEvent, item: CanvasItem): void {
-    if (this.tool() || !this.canWrite() || event.button !== 0) return;
+    if (this.tool() || event.button !== 0) return;
+    // Clicking (not dragging) a pin shows it: moves there and puts it in the URL.
+    const focus = item.type === 'pin' && this.pinTask() === null ? () => this.goToPin(item) : undefined;
+    if (!this.editable()) {
+      focus?.();
+      return;
+    }
     event.stopPropagation();
     const moving = [item];
     if (item.type === 'shape' && item.shape === 'box') {
@@ -223,22 +277,33 @@ export class ProjectCanvas implements OnDestroy {
       const dy = (move.clientY - start.y) / start.zoom;
       origins.forEach(({ entry, x, y }) => Object.assign(entry, { x: x + dx, y: y + dy }));
       this.touch();
+    }, focus);
+  }
+
+  /** Moves to the pin's spot and zoom and puts it in the URL, so the address can be shared. */
+  protected goToPin(pin: CanvasPin): void {
+    this.centerOnPin(pin.id);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { focusPin: pin.id },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
     });
   }
 
   protected resize(event: PointerEvent, item: CanvasItem): void {
-    if (!this.canWrite()) return;
+    if (!this.editable()) return;
     event.stopPropagation();
     const start = { x: event.clientX, y: event.clientY, w: item.w, h: 'h' in item ? item.h : 0, zoom: this.view().zoom };
     this.begin(event, (move) => {
       item.w = Math.max(40, start.w + (move.clientX - start.x) / start.zoom);
-      if (item.type === 'stamp') item.h = item.w;
+      if (item.type === 'stamp' || item.type === 'pin') item.h = item.w;
       else if (item.type === 'shape' && !isLine(item)) item.h = Math.max(40, start.h + (move.clientY - start.y) / start.zoom);
       this.touch();
     });
   }
 
-  protected setColor(item: CanvasNote | CanvasList | CanvasShape, color: CanvasColor): void {
+  protected setColor(item: CanvasNote | CanvasList | CanvasShape | CanvasPin, color: CanvasColor): void {
     item.color = color;
     this.touch();
     this.save();
@@ -254,8 +319,52 @@ export class ProjectCanvas implements OnDestroy {
     this.save();
   }
 
+  /** Linked pins take their task's status colour instead, see statusOf. */
   protected colorOf(item: CanvasItem): CanvasColor | null {
-    return item.type === 'stamp' ? null : item.color;
+    if (item.type === 'stamp' || (item.type === 'pin' && item.taskId !== null)) return null;
+    return item.color;
+  }
+
+  protected statusOf(item: CanvasItem): string | null {
+    return item.type === 'pin' && item.taskId !== null ? (this.taskById().get(item.taskId)?.status ?? null) : null;
+  }
+
+  protected pinLabel(pin: CanvasPin): string {
+    return pin.taskId !== null ? (this.taskById().get(pin.taskId)?.title ?? pin.label) : pin.label;
+  }
+
+  protected renamePin(pin: CanvasPin): void {
+    const label = prompt('Pin name', pin.label)?.trim();
+    if (!label) return;
+    pin.label = label;
+    this.touch();
+    this.save();
+  }
+
+  // ---- pin mode ----
+
+  /** Drops the task's pin at the middle of the screen, moving it if this canvas already has one. */
+  protected dropPin(): void {
+    const taskId = this.pinTask();
+    if (taskId === null) return;
+    const rect = this.viewport().nativeElement.getBoundingClientRect();
+    const { x, y, zoom } = this.view();
+    const middle = { x: (rect.width / 2 - x) / zoom, y: (rect.height / 2 - y) / zoom };
+    const pin = this.newPin(middle, this.taskById().get(taskId)?.title ?? 'Task', taskId);
+    const existing = this.items().find((item): item is CanvasPin => item.type === 'pin' && item.taskId === taskId);
+    if (existing) {
+      Object.assign(existing, { x: pin.x, y: pin.y, label: pin.label, zoom: pin.zoom });
+      this.touch();
+      this.save();
+    } else {
+      this.add(pin);
+    }
+    this.openTask(taskId);
+  }
+
+  protected cancelPin(): void {
+    const taskId = this.pinTask();
+    if (taskId !== null) this.openTask(taskId);
   }
 
   protected setText(item: CanvasNote | CanvasList['rows'][number], event: Event): void {
@@ -334,20 +443,41 @@ export class ProjectCanvas implements OnDestroy {
     });
   }
 
-  /** Lines and stamps count as inside when their centre is; everything else must fit entirely. */
+  /** Lines, stamps and pins count as inside when their centre is; everything else must fit entirely. */
   private isInside(item: CanvasItem, box: CanvasShape): boolean {
     const element = this.viewport().nativeElement.querySelector<HTMLElement>(`[data-id="${item.id}"]`);
-    const w = element?.offsetWidth ?? item.w;
-    const h = element?.offsetHeight ?? 0;
+    // Hidden items (e.g. pins while pins are hidden) have no size in the page, so fall back to their own.
+    const w = element?.offsetWidth || item.w;
+    const h = element?.offsetHeight || ('h' in item ? item.h : 0);
     const within = (x: number, y: number) => x >= box.x && y >= box.y && x <= box.x + box.w && y <= box.y + box.h;
-    if (item.type === 'stamp' || isLine(item)) return within(item.x + w / 2, item.y + h / 2);
+    if (item.type === 'stamp' || item.type === 'pin' || isLine(item)) return within(item.x + w / 2, item.y + h / 2);
     return within(item.x, item.y) && within(item.x + w, item.y + h);
   }
 
-  private begin(event: PointerEvent, gesture: (event: PointerEvent) => void): void {
+  private begin(event: PointerEvent, move: (event: PointerEvent) => void, tap?: () => void): void {
     event.preventDefault();
     this.viewport().nativeElement.setPointerCapture(event.pointerId);
-    this.gesture = gesture;
+    this.gesture = { move, tap, x: event.clientX, y: event.clientY };
+  }
+
+  /** A pin whose tip (bottom middle) is at the given point, remembering the current zoom. */
+  private newPin(tip: { x: number; y: number }, label: string, taskId: number | null): CanvasPin {
+    return {
+      id: crypto.randomUUID(),
+      type: 'pin',
+      x: tip.x - PIN_SIZE / 2,
+      y: tip.y - PIN_SIZE,
+      w: PIN_SIZE,
+      h: PIN_SIZE,
+      label,
+      color: 'rose',
+      taskId,
+      zoom: this.view().zoom,
+    };
+  }
+
+  private openTask(taskId: number): void {
+    void this.router.navigate(['/projects', this.projectId(), 'tasks', taskId]);
   }
 
   private add(item: CanvasItem): void {
@@ -396,13 +526,24 @@ export class ProjectCanvas implements OnDestroy {
         this.view.set(canvas.view ?? DEFAULT_VIEW);
         // Items saved by the previous canvas version have no width and are dropped.
         this.items.set((canvas.items ?? []).filter((item) => typeof item.w === 'number'));
+        const focusPin = this.focusPin();
+        if (focusPin) this.centerOnPin(focusPin);
       },
       error: () => this.error.set('Canvas could not be loaded.'),
     });
   }
 
+  /** Puts the task's pin tip in the middle of the viewport at the zoom it was dropped at, without saving. */
+  private centerOnPin(pinId: string): void {
+    const pin = this.items().find((item): item is CanvasPin => item.type === 'pin' && item.id === pinId);
+    if (!pin) return;
+    const rect = this.viewport().nativeElement.getBoundingClientRect();
+    const tip = { x: pin.x + pin.w / 2, y: pin.y + pin.h };
+    this.view.set({ x: rect.width / 2 - tip.x * pin.zoom, y: rect.height / 2 - tip.y * pin.zoom, zoom: pin.zoom });
+  }
+
   private save(): void {
-    if (!this.canWrite()) return;
+    if (!this.canWrite() || this.preview()) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.flush(), 300);
   }

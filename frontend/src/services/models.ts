@@ -70,7 +70,20 @@ export interface CanvasShape extends CanvasItemBase {
   color: CanvasColor;
 }
 export interface CanvasStamp extends CanvasItemBase { type: 'stamp'; emoji: string; h: number; }
-export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp;
+/**
+ * A marker on the canvas. When taskId is set it is linked to that task: it shows the task's title and
+ * status colour (color is then unused), and clicking it opens the task.
+ */
+export interface CanvasPin extends CanvasItemBase {
+  type: 'pin';
+  h: number;
+  label: string;
+  color: CanvasColor;
+  taskId: number | null;
+  /** The zoom the pin was dropped at, so the spot can later be shown as it looked. */
+  zoom: number;
+}
+export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp | CanvasPin;
 export interface CanvasDocument { view: CanvasView; items: CanvasItem[]; }
 
 export interface CanvasSummary {

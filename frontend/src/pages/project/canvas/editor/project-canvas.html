@@ -1,13 +1,17 @@
-<header>
-  <h2>{{ detail()?.name }}</h2>
-  @if (detail() && !canWrite()) {
-    <span class="badge">Read only</span>
-  }
-  <button class="transparent" type="button" routerLink="settings">
-    <app-icon name="settings" />
-    <span>Settings</span>
-  </button>
-</header>
+@if (!preview()) {
+  <header>
+    <h2>{{ detail()?.name }}</h2>
+    @if (detail() && !canWrite()) {
+      <span class="badge">Read only</span>
+    }
+    @if (pinTask() === null) {
+      <button class="transparent" type="button" routerLink="settings">
+        <app-icon name="settings" />
+        <span>Settings</span>
+      </button>
+    }
+  </header>
+}
 
 @if (error()) {
   <p role="alert">{{ error() }}</p>
@@ -21,30 +25,38 @@
   [style.background-size]="24 * view().zoom + 'px ' + 24 * view().zoom + 'px'"
   (pointerdown)="onPointerDown($event)"
   (pointermove)="onPointerMove($event)"
-  (pointerup)="onPointerUp()"
-  (pointercancel)="onPointerUp()"
+  (pointerup)="onPointerUp($event)"
+  (pointercancel)="onPointerUp($event)"
   (dblclick)="onDoubleClick($event)"
   (wheel)="onWheel($event)"
 >
   <div
     class="world"
-    [style.transform]="'translate(' + view().x + 'px, ' + view().y + 'px) scale(' + view().zoom + ')'"
+    [style.transform]="
+      'translate(' + view().x + 'px, ' + view().y + 'px) scale(' + view().zoom + ')'
+    "
   >
     @for (item of items(); track item.id) {
       <div
         class="item {{ item.type }}"
         [attr.data-id]="item.id"
         [attr.data-color]="colorOf(item)"
+        [attr.data-status]="statusOf(item)"
+        [hidden]="item.type === 'pin' && !showPins()"
         [style.left.px]="item.x"
         [style.top.px]="item.y"
         [style.width.px]="item.w"
-        [style.height.px]="item.type === 'shape' || item.type === 'stamp' ? item.h : null"
+        [style.height.px]="
+          item.type === 'shape' || item.type === 'stamp' || item.type === 'pin' ? item.h : null
+        "
       >
         @if (item.type === 'note') {
-          <div class="handle" (pointerdown)="drag($event, item)"><app-icon name="drag_indicator" /></div>
+          <div class="handle" (pointerdown)="drag($event, item)">
+            <app-icon name="drag_indicator" />
+          </div>
           <textarea
             placeholder="Write something…"
-            [readOnly]="!canWrite()"
+            [readOnly]="!editable()"
             [value]="item.text"
             (input)="setText(item, $event)"
           ></textarea>
@@ -58,7 +70,7 @@
                 class="transparent"
                 type="button"
                 title="Change marker"
-                [disabled]="!canWrite()"
+                [disabled]="!editable()"
                 (click)="cycleMarker(row)"
               >
                 {{ marker(item, $index) }}
@@ -66,15 +78,20 @@
               <textarea
                 rows="1"
                 placeholder="List item"
-                [readOnly]="!canWrite()"
+                [readOnly]="!editable()"
                 [value]="row.text"
                 (input)="setText(row, $event)"
                 (keydown)="onRowKeydown($event, item, $index)"
               ></textarea>
             </div>
           }
-          @if (canWrite()) {
-            <button class="transparent" type="button" title="Add row" (click)="addRow(item, item.rows.length)">
+          @if (editable()) {
+            <button
+              class="transparent"
+              type="button"
+              title="Add row"
+              (click)="addRow(item, item.rows.length)"
+            >
               <app-icon name="add" />
             </button>
           }
@@ -82,6 +99,22 @@
           <div class="face" [style.font-size.px]="item.w * 0.82" (pointerdown)="drag($event, item)">
             {{ item.emoji }}
           </div>
+        } @else if (item.type === 'pin') {
+          <div class="face" (pointerdown)="drag($event, item)">
+            <app-icon name="location_on" [size]="item.w" />
+          </div>
+          @if (item.taskId !== null && !preview()) {
+            <!-- Clicking the pin focuses it; the label of a linked pin opens its task. -->
+            <a
+              class="label"
+              [routerLink]="['/projects', projectId(), 'tasks', item.taskId]"
+              (pointerdown)="$event.stopPropagation()"
+            >
+              {{ pinLabel(item) }} · Open task
+            </a>
+          } @else {
+            <span class="label">{{ pinLabel(item) }}</span>
+          }
         } @else {
           <div
             class="face {{ item.shape }}"
@@ -90,14 +123,25 @@
           ></div>
         }
 
-        @if (canWrite()) {
+        @if (editable()) {
           <div class="controls" (pointerdown)="$event.stopPropagation()">
             @if (item.type === 'shape') {
-              <button class="transparent" type="button" title="Send to back" (click)="sendToBack(item)">
+              <button
+                class="transparent"
+                type="button"
+                title="Send to back"
+                (click)="sendToBack(item)"
+              >
                 <app-icon name="vertical_align_bottom" />
               </button>
             }
-            @if (item.type !== 'stamp') {
+            @if (item.type === 'pin' && item.taskId === null) {
+              <button class="transparent" type="button" title="Rename" (click)="renamePin(item)">
+                <app-icon name="edit" />
+              </button>
+            }
+            <!-- Linked pins use their task's status colour, so they get no colour choice. -->
+            @if (item.type !== 'stamp' && colorOf(item) !== null) {
               @for (color of colors; track color) {
                 <button
                   class="transparent"
@@ -120,78 +164,119 @@
     }
   </div>
 
-  <p class="hint">{{ hint() }}</p>
-
-  <div class="tools" (pointerdown)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()">
-    @if (canWrite()) {
-      <button class="transparent" type="button" title="Add note" (click)="addNote()">
-        <app-icon name="sticky_note_2" />
-      </button>
-      <button class="transparent" type="button" title="Add list" (click)="addList()">
-        <app-icon name="checklist" />
-      </button>
-      <div class="menu-wrap">
+  @if (preview()) {
+    <!-- No hint or controls in a preview. -->
+  } @else if (pinTask() !== null) {
+    <p class="hint">{{ hint() }}</p>
+    <app-icon class="target" name="location_on" [size]="32" />
+    <div
+      class="tools"
+      (pointerdown)="$event.stopPropagation()"
+      (dblclick)="$event.stopPropagation()"
+    >
+      @if (canWrite()) {
+        <button class="primary" type="button" (click)="dropPin()">
+          <app-icon name="location_on" />
+          <span>Drop pin</span>
+        </button>
+      }
+      <button class="transparent" type="button" (click)="cancelPin()"><span>Cancel</span></button>
+    </div>
+  } @else {
+    <p class="hint">{{ hint() }}</p>
+    <div
+      class="tools"
+      (pointerdown)="$event.stopPropagation()"
+      (dblclick)="$event.stopPropagation()"
+    >
+      @if (editable()) {
         <button
           class="transparent"
           type="button"
-          title="Emoji"
-          [class.active]="menu() === 'stamp'"
-          (click)="toggleMenu('stamp')"
+          title="Add pin"
+          [class.active]="tool()?.type === 'pin'"
+          (click)="pickPin()"
         >
-          <app-icon name="add_reaction" />
+          <app-icon name="location_on" />
         </button>
-        @if (menu() === 'stamp') {
-          <div class="menu">
-            @for (stamp of stamps; track stamp.emoji) {
-              <button
-                class="transparent"
-                type="button"
-                [title]="stamp.label"
-                [class.active]="tool()?.label === stamp.label"
-                (click)="pickStamp(stamp)"
-              >
-                <span class="emoji">{{ stamp.emoji }}</span>
-              </button>
-            }
-          </div>
-        }
-      </div>
-      <div class="menu-wrap">
-        <button
-          class="transparent"
-          type="button"
-          title="Shapes and lines"
-          [class.active]="menu() === 'shape'"
-          (click)="toggleMenu('shape')"
-        >
-          <app-icon name="shapes" />
+        <button class="transparent" type="button" title="Add note" (click)="addNote()">
+          <app-icon name="sticky_note_2" />
         </button>
-        @if (menu() === 'shape') {
-          <div class="menu">
-            @for (shape of shapes; track shape.shape) {
-              <button
-                class="transparent"
-                type="button"
-                [title]="shape.label"
-                [class.active]="tool()?.label === shape.label"
-                (click)="pickShape(shape)"
-              >
-                <app-icon [name]="shape.icon" />
-              </button>
-            }
-          </div>
-        }
-      </div>
-    }
-    <button class="transparent" type="button" title="Zoom out" (click)="zoom(1 / 1.2)">
-      <app-icon name="remove" />
-    </button>
-    <span>{{ (view().zoom * 100).toFixed(0) }}%</span>
-    <button class="transparent" type="button" title="Zoom in" (click)="zoom(1.2)">
-      <app-icon name="add" />
-    </button>
-    <button class="transparent" type="button" title="Reset view" (click)="resetView()">
-      <app-icon name="center_focus_strong" />
-    </button>
-  </div>
+        <button class="transparent" type="button" title="Add list" (click)="addList()">
+          <app-icon name="checklist" />
+        </button>
+        <div class="menu-wrap">
+          <button
+            class="transparent"
+            type="button"
+            title="Emoji"
+            [class.active]="menu() === 'stamp'"
+            (click)="toggleMenu('stamp')"
+          >
+            <app-icon name="add_reaction" />
+          </button>
+          @if (menu() === 'stamp') {
+            <div class="menu">
+              @for (stamp of stamps; track stamp.emoji) {
+                <button
+                  class="transparent"
+                  type="button"
+                  [title]="stamp.label"
+                  [class.active]="tool()?.label === stamp.label"
+                  (click)="pickStamp(stamp)"
+                >
+                  <span class="emoji">{{ stamp.emoji }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        <div class="menu-wrap">
+          <button
+            class="transparent"
+            type="button"
+            title="Shapes and lines"
+            [class.active]="menu() === 'shape'"
+            (click)="toggleMenu('shape')"
+          >
+            <app-icon name="shapes" />
+          </button>
+          @if (menu() === 'shape') {
+            <div class="menu">
+              @for (shape of shapes; track shape.shape) {
+                <button
+                  class="transparent"
+                  type="button"
+                  [title]="shape.label"
+                  [class.active]="tool()?.label === shape.label"
+                  (click)="pickShape(shape)"
+                >
+                  <app-icon [name]="shape.icon" />
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+      <button
+        class="transparent"
+        type="button"
+        [title]="showPins() ? 'Hide pins' : 'Show pins'"
+        [class.active]="!showPins()"
+        (click)="showPins.set(!showPins())"
+      >
+        <app-icon [name]="showPins() ? 'visibility' : 'visibility_off'" />
+      </button>
+      <button class="transparent" type="button" title="Zoom out" (click)="zoom(1 / 1.2)">
+        <app-icon name="remove" />
+      </button>
+      <span>{{ (view().zoom * 100).toFixed(0) }}%</span>
+      <button class="transparent" type="button" title="Zoom in" (click)="zoom(1.2)">
+        <app-icon name="add" />
+      </button>
+      <button class="transparent" type="button" title="Reset view" (click)="resetView()">
+        <app-icon name="center_focus_strong" />
+      </button>
+    </div>
+  }
 </div>

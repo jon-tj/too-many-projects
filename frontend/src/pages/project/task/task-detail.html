@@ -16,7 +16,23 @@
     <button class="primary" type="submit" [disabled]="taskForm.form.invalid || taskForm.form.pristine || busy()">
       Save changes
     </button>
+    <button class="transparent" type="button" (click)="pinToCanvas()">
+      <app-icon name="location_on" />
+      <span>Pin to canvas</span>
+    </button>
     <button class="transparent" type="button" (click)="backToBoard()">Cancel</button>
     <button class="transparent" type="button" [disabled]="busy()" (click)="deleteTask()">Delete task</button>
   </app-task-form>
+
+  @if (pinnedCanvases.value().length) {
+    <section>
+      <h2>On canvas</h2>
+      @for (canvas of pinnedCanvases.value(); track canvas.id) {
+        <a [routerLink]="['/projects', projectId(), 'canvas', canvas.id]" [queryParams]="{ focusPin: canvas.pinId }">
+          <strong>{{ canvas.name }}</strong>
+          <app-project-canvas [projectId]="projectId()" [canvasId]="canvas.id" [focusPin]="canvas.pinId" preview />
+        </a>
+      }
+    </section>
+  }
 }

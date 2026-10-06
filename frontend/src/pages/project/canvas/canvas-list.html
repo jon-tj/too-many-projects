@@ -1,4 +1,7 @@
 <header>
+  @if (pinTask()) {
+    <p>Choose the canvas to pin the task to.</p>
+  }
   <button class="primary" type="button" (click)="openCreate()">
     <app-icon name="add" />
     <span>New canvas</span>
@@ -11,7 +14,7 @@
   <p role="alert">Could not load canvases.</p>
 } @else {
   @for (canvas of canvases.value(); track canvas.id) {
-    <a [routerLink]="[canvas.id]">
+    <a [routerLink]="[canvas.id]" [queryParams]="{ pinTask: pinTask() }">
       <div>
         <strong>{{ canvas.name }}</strong>
         <small>Updated {{ canvas.updatedAt | date: 'medium' }}</small>

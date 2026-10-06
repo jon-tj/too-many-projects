@@ -1,12 +1,14 @@
 import { Component, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { Icon } from '../../../components/icon/icon';
 import { TaskForm, TaskFormValue } from '../../../components/task-form/task-form';
+import { ProjectCanvas } from '../canvas/editor/project-canvas';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 @Component({
   selector: 'app-task-detail',
-  imports: [TaskForm],
+  imports: [TaskForm, Icon, RouterLink, ProjectCanvas],
   templateUrl: './task-detail.html',
   styleUrl: './task-detail.css',
 })
@@ -25,6 +27,11 @@ export class TaskDetail {
     defaultValue: [],
   });
   protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
+  protected readonly pinnedCanvases = rxResource({
+    params: () => ({ projectId: this.projectId(), taskId: this.taskId() }),
+    stream: ({ params }) => this.api.canvasesPinnedTo(params.projectId, params.taskId),
+    defaultValue: [],
+  });
   protected readonly busy = signal(false);
   protected readonly message = signal('');
 
@@ -51,6 +58,20 @@ export class TaskDetail {
         this.busy.set(false);
         this.message.set('Could not delete the task. Please try again.');
       },
+    });
+  }
+
+  /** Goes straight to the canvas when the project has one, otherwise to the list to pick one. */
+  protected pinToCanvas(): void {
+    const task = this.task.value();
+    if (!task) return;
+    this.api.canvases(this.projectId()).subscribe({
+      next: (canvases) => {
+        const path = ['/projects', this.projectId(), 'canvas'];
+        if (canvases.length === 1) path.push(canvases[0].id);
+        void this.router.navigate(path, { queryParams: { pinTask: task.id } });
+      },
+      error: () => this.message.set('Could not load the canvases. Please try again.'),
     });
   }
 

@@ -119,6 +119,13 @@ export class WorkspaceApi {
     return this.http.get<CanvasSummary[]>(`/api/projects/${projectId}/canvases`);
   }
 
+  /** Canvases (that you can read) with a pin linked to the task, and that pin's id. */
+  canvasesPinnedTo(projectId: number, taskId: number): Observable<{ id: number; name: string; pinId: string }[]> {
+    return this.http.get<{ id: number; name: string; pinId: string }[]>(
+      `/api/projects/${projectId}/canvases/pinned/${taskId}`,
+    );
+  }
+
   createCanvas(projectId: number, name: string): Observable<CanvasSummary> {
     return this.http.post<CanvasSummary>(`/api/projects/${projectId}/canvases`, { name });
   }

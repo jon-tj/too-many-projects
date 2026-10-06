@@ -16,6 +16,8 @@ import { WorkspaceApi } from '../../../services/workspace-api';
 })
 export class CanvasList {
   readonly projectId = input.required({ transform: numberAttribute });
+  /** Set when choosing a canvas to pin a task to; passed on to the chosen canvas. */
+  readonly pinTask = input<string>();
   private readonly api = inject(WorkspaceApi);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -40,7 +42,8 @@ export class CanvasList {
   protected create(): void {
     if (this.form.invalid) return;
     this.api.createCanvas(this.projectId(), this.form.getRawValue().name.trim()).subscribe({
-      next: (canvas) => void this.router.navigate([canvas.id], { relativeTo: this.route }),
+      next: (canvas) =>
+        void this.router.navigate([canvas.id], { relativeTo: this.route, queryParams: { pinTask: this.pinTask() } }),
       error: (error: HttpErrorResponse) =>
         this.error.set(
           error.status === 403
