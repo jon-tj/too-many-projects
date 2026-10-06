@@ -1,3 +1,5 @@
+import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
+import { CdkScrollable } from '@angular/cdk/scrolling';
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -15,7 +17,7 @@ const COLUMNS = [
 
 @Component({
   selector: 'app-project-board',
-  imports: [ReactiveFormsModule, RouterLink, Icon, Modal],
+  imports: [ReactiveFormsModule, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
   templateUrl: './project-board.html',
   styleUrl: './project-board.css',
 })
@@ -33,7 +35,6 @@ export class ProjectBoard {
     defaultValue: [],
   });
   private readonly account = rxResource({ stream: () => this.api.currentAccount() });
-  private dragged: ProjectTask | null = null;
   protected readonly columns = computed(() =>
     COLUMNS.map((column) => ({
       ...column,
@@ -83,14 +84,9 @@ ${task.description}` : task.title;
     return member ? member.displayName || member.userName : 'Assigned';
   }
 
-  protected dragStart(event: DragEvent, task: ProjectTask): void {
-    this.dragged = task;
-    event.dataTransfer?.setData('text/plain', String(task.id));
-  }
-
-  protected drop(status: TaskStatus): void {
-    if (this.dragged) this.changeStatus(this.dragged, status);
-    this.dragged = null;
+  /** Dropping a card on another column changes its status. Touch drags start after a short hold, so swiping still scrolls. */
+  protected drop(event: CdkDragDrop<TaskStatus, TaskStatus, ProjectTask>): void {
+    this.changeStatus(event.item.data, event.container.data);
   }
 
   private changeStatus(task: ProjectTask, status: TaskStatus): void {

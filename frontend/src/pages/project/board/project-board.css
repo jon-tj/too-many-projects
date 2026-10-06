@@ -160,3 +160,9 @@
     gap: 10px;
   }
 }
+.cdk-drag-placeholder {
+  opacity: 0.4;
+}
+.cdk-drag-preview {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+}

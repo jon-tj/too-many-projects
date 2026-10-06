@@ -8,13 +8,15 @@
 @if (tasks.isLoading()) {
   <div class="board-loading">Preparing your board<span></span></div>
 } @else {
-  <div class="kanban-board">
+  <div class="kanban-board" cdkDropListGroup cdkScrollable>
     @for (column of columns(); track column.status) {
       <section
         class="kanban-column"
         [attr.data-status]="column.status"
-        (dragover)="$event.preventDefault()"
-        (drop)="drop(column.status)"
+        cdkDropList
+        cdkDropListSortingDisabled
+        [cdkDropListData]="column.status"
+        (cdkDropListDropped)="drop($event)"
       >
         <header>
           <span class="column-marker"></span>
@@ -26,8 +28,10 @@
           <article
             class="task-card"
             [class.done-card]="task.status === 'done'"
-            draggable="true"
-            (dragstart)="dragStart($event, task)"
+            [attr.data-status]="task.status"
+            cdkDrag
+            [cdkDragData]="task"
+            [cdkDragStartDelay]="{ touch: 250, mouse: 0 }"
           >
             <h4>
               <a [routerLink]="['../tasks', task.id]" draggable="false">{{ task.title }}</a>

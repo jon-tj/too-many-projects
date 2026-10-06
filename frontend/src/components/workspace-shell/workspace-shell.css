@@ -19,7 +19,8 @@
 .profile-copy strong,.profile-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-copy strong { color: var(--primary-active-text); font-size: 11px; }.profile-copy small { margin-top: 3px; color: var(--secondary-surface); font-size: 9px; }
 .account-menu { position: absolute; z-index: 10; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; gap: 2px; padding: 4px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 5px; }
-.workspace-main { display: flex; min-width: 0; min-height: 100dvh; flex-direction: column; }
+/* overflow-x: clip stops wide content from widening the page, which makes mobile browsers zoom out. */
+.workspace-main { display: flex; min-width: 0; min-height: 100dvh; flex-direction: column; overflow-x: clip; }
 @media (max-width: 700px) {
   .workspace-frame { grid-template-columns: 58px minmax(0,1fr); }
   .sidebar { padding: 15px 6px 9px; }
@@ -27,5 +28,6 @@
   .primary-nav > a,.project-nav-list > a { justify-content: center; padding: 0; }
   .project-mark { width: 30px; height: 30px; }.project-nav-list { margin-top: 16px; }
   .section-heading { justify-content: center; margin: 16px 0 5px; }
-  .account-menu { right: auto; left: 42px; bottom: 0; width: 150px; }
+  /* Open beside the collapsed sidebar: 6px sidebar padding + 1px border + 8px gap past the wrapper. */
+  .account-menu { right: auto; left: calc(100% + 15px); bottom: 0; width: 150px; }
 }

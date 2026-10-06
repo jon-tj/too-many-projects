@@ -23,8 +23,16 @@ p {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
+}
+
+/* On phones the tabs show only their icons and counts. */
+@media (max-width: 620px) {
+  nav span:not(.badge) {
+    display: none;
+  }
 }
