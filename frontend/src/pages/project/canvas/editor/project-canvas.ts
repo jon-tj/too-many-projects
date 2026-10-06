@@ -15,6 +15,7 @@ import {
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Avatar } from '../../../../components/avatar/avatar';
 import { Icon } from '../../../../components/icon/icon';
 import {
   CANVAS_COLORS,
@@ -87,7 +88,7 @@ async function shrinkImage(file: File): Promise<{ blob: Blob; width: number; hei
 
 @Component({
   selector: 'app-project-canvas',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Avatar],
   host: { '[class.preview]': 'preview()', '[class.zen-mode]': 'zenMode()' },
   templateUrl: './project-canvas.html',
   styleUrl: './project-canvas.css',

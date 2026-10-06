@@ -215,7 +215,7 @@
           @if (timer) {
             <span class="chip" [class.done]="timer === '0s'">{{ timer }}</span>
           }
-          <span class="avatar" [title]="person.name">{{ person.name.charAt(0) }}</span>
+          <app-avatar class="avatar" [name]="person.name" [image]="person.avatar" [title]="person.name" />
         </div>
       }
     </div>

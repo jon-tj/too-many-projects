@@ -17,6 +17,25 @@
   </dl>
 </section>
 <section class="settings-section">
+  <h2>Profile picture</h2>
+  <form (submit)="$event.preventDefault(); saveAvatar()">
+    <app-avatar class="avatar" [name]="account()?.displayName ?? ''" [image]="avatarPreview()" />
+    <label>
+      Upload a picture
+      <input type="file" accept="image/*" (change)="chooseAvatar($event)" />
+    </label>
+    @if (avatarMessage()) {
+      <p class="success" role="status">{{ avatarMessage() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="pendingAvatar() === undefined">Save picture</button>
+      <button class="transparent" type="button" [disabled]="!avatarPreview()" (click)="pendingAvatar.set(null)">
+        <span>Remove picture</span>
+      </button>
+    </footer>
+  </form>
+</section>
+<section class="settings-section">
   <h2>Change password</h2>
   <form [formGroup]="form" (ngSubmit)="changePassword()">
     <label>

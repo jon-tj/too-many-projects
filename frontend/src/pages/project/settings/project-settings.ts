@@ -6,6 +6,7 @@ import { Icon } from '../../../components/icon/icon';
 import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
+import { squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const PROJECT_ICONS = [
@@ -14,19 +15,6 @@ const PROJECT_ICONS = [
   'storefront', 'savings', 'work', 'school', 'groups', 'favorite',
   'lightbulb', 'eco', 'pets', 'home', 'flight', 'sports_esports',
 ];
-
-/** Crops an uploaded image to a small square PNG data URL, so it can be stored with the project. */
-async function toIconDataUrl(file: File, size = 128): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const side = Math.min(bitmap.width, bitmap.height);
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  canvas
-    .getContext('2d')!
-    .drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
-  bitmap.close();
-  return canvas.toDataURL('image/png');
-}
 
 @Component({
   selector: 'app-project-settings',
@@ -107,7 +95,7 @@ export class ProjectSettings {
     input.value = '';
     if (!file) return;
     try {
-      this.setIcon(null, await toIconDataUrl(file));
+      this.setIcon(null, await squareImageDataUrl(file, 128));
     } catch {
       this.message.set('That file could not be read as an image.');
     }

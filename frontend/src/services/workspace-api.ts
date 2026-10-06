@@ -66,6 +66,11 @@ export class WorkspaceApi {
     return this.http.delete<{ userDeleted: boolean }>(`/api/projects/${projectId}/members/${userId}/invite`);
   }
 
+  /** Sets the profile picture (a small image data URL), or removes it with null. */
+  setAvatar(image: string | null): Observable<void> {
+    return this.http.put<void>('/api/account/avatar', { image });
+  }
+
   deleteAccount(password: string): Observable<void> {
     return this.http.post<void>('/api/account/delete', { password });
   }

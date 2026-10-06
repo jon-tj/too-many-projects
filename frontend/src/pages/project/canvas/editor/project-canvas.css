@@ -340,14 +340,8 @@ h2 {
 }
 
 .person .avatar {
-  display: grid;
   width: 32px;
   height: 32px;
-  place-items: center;
-  color: var(--secondary-text);
-  background: var(--secondary-surface);
-  border-radius: 50%;
-  font-weight: 700;
   pointer-events: auto;
 }
 

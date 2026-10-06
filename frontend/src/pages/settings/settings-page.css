@@ -11,3 +11,4 @@ dl div { display: grid; grid-template-columns: 140px 1fr; gap: 12px; padding: 11
 dt { color: var(--secondary-surface); } dd { margin: 0; color: var(--primary-active-text); }
 form { max-width: 420px; }
 .success,.error { font-size: 11px; }.success { color: var(--secondary-surface); }.error { color: var(--secondary-surface); }
+.avatar { width: 64px; height: 64px; font-size: 24px; }

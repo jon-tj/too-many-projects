@@ -27,7 +27,7 @@
           </div>
         }
         <button class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
-          <span class="avatar">{{ account()?.displayName?.charAt(0) ?? 'J' }}</span>
+          <app-avatar class="avatar" [name]="account()?.displayName ?? ''" [image]="account()?.avatarImage" />
           <span class="profile-copy"><strong>{{ account()?.displayName ?? 'Account' }}</strong><small>{{ account()?.email ?? '' }}</small></span>
         </button>
       </div>

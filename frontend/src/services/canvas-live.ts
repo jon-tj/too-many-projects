@@ -26,6 +26,7 @@ export interface CanvasLock {
 export interface CanvasPresence {
   userId: string;
   name: string;
+  avatar: string | null;
   timerSeconds: number | null;
   timerRemainingMs: number | null;
   dice: number | null;

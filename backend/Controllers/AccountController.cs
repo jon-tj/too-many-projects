@@ -16,7 +16,8 @@ public sealed class AccountController(UserManager<ApplicationUser> users, UserRe
         var user = await users.GetUserAsync(User);
         return user is null
             ? Unauthorized()
-            : Ok(new AccountResponse(user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword));
+            : Ok(new AccountResponse(
+                user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage));
     }
 
     [HttpPost("password")]
@@ -34,6 +35,20 @@ public sealed class AccountController(UserManager<ApplicationUser> users, UserRe
             user.MustChangePassword = false;
             await users.UpdateAsync(user);
         }
+        return NoContent();
+    }
+
+    /// <summary>Sets (or with null removes) the profile picture shown in the sidebar and on canvases.</summary>
+    [HttpPut("avatar")]
+    public async Task<IActionResult> SetAvatar(SetAvatarRequest request)
+    {
+        if (request.Image is not null && !request.Image.StartsWith("data:image/", StringComparison.Ordinal))
+            return BadRequest(new { error = "The picture must be an image data URL." });
+
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        user.AvatarImage = request.Image;
+        await users.UpdateAsync(user);
         return NoContent();
     }
 
@@ -62,7 +77,15 @@ public sealed class AccountController(UserManager<ApplicationUser> users, UserRe
 }
 
 /// <summary>Profile data for the authenticated account.</summary>
-public sealed record AccountResponse(string Id, string UserName, string DisplayName, string Email, bool MustChangePassword);
+public sealed record AccountResponse(
+    string Id, string UserName, string DisplayName, string Email, bool MustChangePassword, string? AvatarImage);
+
+/// <summary>A profile picture as a small image data URL, or null to remove it.</summary>
+public sealed record SetAvatarRequest
+{
+    [StringLength(100_000)]
+    public string? Image { get; init; }
+}
 
 /// <summary>The current password (or temporary password) and the new one.</summary>
 public sealed record ChangePasswordRequest

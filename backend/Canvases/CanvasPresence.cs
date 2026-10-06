@@ -6,7 +6,8 @@ namespace Canvases;
 /// roll, so a repeated value still animates.
 /// </summary>
 public sealed record PresenceView(
-    string UserId, string Name, int? TimerSeconds, long? TimerRemainingMs, int? Dice, long? DiceRollId, long? DiceAgeMs);
+    string UserId, string Name, string? Avatar, int? TimerSeconds, long? TimerRemainingMs, int? Dice, long? DiceRollId,
+    long? DiceAgeMs);
 
 /// <summary>Who is in each canvas, kept in memory like the locks (single instance on the free Render tier).</summary>
 public sealed class CanvasPresence
@@ -17,6 +18,7 @@ public sealed class CanvasPresence
     private sealed class Entry
     {
         public required string Name { get; init; }
+        public string? Avatar { get; init; }
         public int Connections { get; set; }
         public int? TimerSeconds { get; set; }
         public DateTimeOffset? TimerEndsAt { get; set; }
@@ -30,12 +32,12 @@ public sealed class CanvasPresence
     private long rolls;
 
     /// <summary>Counts connections, so a second tab does not make the person appear twice or leave early.</summary>
-    public void Join(int canvasId, string userId, string name)
+    public void Join(int canvasId, string userId, string name, string? avatar)
     {
         lock (gate)
         {
             if (!byCanvas.TryGetValue(canvasId, out var people)) byCanvas[canvasId] = people = new();
-            if (!people.TryGetValue(userId, out var entry)) people[userId] = entry = new Entry { Name = name };
+            if (!people.TryGetValue(userId, out var entry)) people[userId] = entry = new Entry { Name = name, Avatar = avatar };
             entry.Connections++;
         }
     }
@@ -73,6 +75,7 @@ public sealed class CanvasPresence
             return people.Select(pair => new PresenceView(
                 pair.Key,
                 pair.Value.Name,
+                pair.Value.Avatar,
                 pair.Value.TimerSeconds,
                 pair.Value.TimerEndsAt is { } endsAt ? (long)(endsAt - now).TotalMilliseconds : null,
                 pair.Value.Dice,

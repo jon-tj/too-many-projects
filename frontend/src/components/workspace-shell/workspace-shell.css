@@ -15,7 +15,7 @@
 .project-link-name { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-bottom { position: relative; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--primary-active-surface); }
 .account-menu-wrap { position: relative; display: grid; }
-.avatar { display: grid; width: 31px; height: 31px; flex: 0 0 31px; place-items: center; color: var(--primary-surface); background: var(--secondary-surface); border-radius: 50%; font-size: 12px; font-weight: 700; }
+.avatar { width: 31px; height: 31px; flex: 0 0 31px; font-size: 12px; }
 .profile-copy { overflow: hidden; }
 .profile-copy strong,.profile-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-copy strong { color: var(--primary-active-text); font-size: 11px; }.profile-copy small { margin-top: 3px; color: var(--secondary-surface); font-size: 9px; }

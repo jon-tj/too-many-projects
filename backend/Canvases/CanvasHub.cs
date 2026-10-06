@@ -31,9 +31,10 @@ public sealed class CanvasHub(AppDbContext db, CanvasAccessService access, Canva
         await Groups.AddToGroupAsync(Context.ConnectionId, Group(canvasId));
 
         var user = await db.Users.Where(user => user.Id == UserId)
-            .Select(user => new { user.DisplayName, user.UserName })
+            .Select(user => new { user.DisplayName, user.UserName, user.AvatarImage })
             .SingleAsync(Context.ConnectionAborted);
-        presence.Join(canvasId, UserId, string.IsNullOrEmpty(user.DisplayName) ? user.UserName ?? "Someone" : user.DisplayName);
+        var name = string.IsNullOrEmpty(user.DisplayName) ? user.UserName ?? "Someone" : user.DisplayName;
+        presence.Join(canvasId, UserId, name, user.AvatarImage);
         await SendPresence(canvasId);
         return locks.Active(canvasId);
     }

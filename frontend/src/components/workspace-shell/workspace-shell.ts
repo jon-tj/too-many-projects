@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
 import { Icon } from '../icon/icon';
+import { Avatar } from '../avatar/avatar';
 import { Modal } from '../modal/modal';
 import { ProjectIcon } from '../project-icon/project-icon';
 import { AuthService } from '../../services/auth.service';
@@ -19,7 +20,7 @@ type Theme = (typeof THEMES)[number]['name'];
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })
@@ -42,9 +43,14 @@ export class WorkspaceShell implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.api.currentAccount().subscribe({ next: (account) => this.account.set(account) });
+    this.refreshAccount();
     this.refreshProjects();
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => this.refreshProjects());
+  }
+
+  /** Reloads the signed-in account, e.g. after the profile picture changed in settings. */
+  refreshAccount(): void {
+    this.api.currentAccount().subscribe({ next: (account) => this.account.set(account) });
   }
 
   refreshProjects(): void {
