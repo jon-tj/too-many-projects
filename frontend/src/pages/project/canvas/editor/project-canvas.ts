@@ -329,6 +329,23 @@ export class ProjectCanvas implements OnDestroy {
     return item.type === 'pin' && item.taskId !== null ? (this.taskById().get(item.taskId)?.status ?? null) : null;
   }
 
+  /**
+   * Where a line's or arrow's controls sit: centred above its higher end (or its middle when level).
+   * The element is an unrotated box around the line's midpoint, so the ends are found from length and angle.
+   */
+  protected lineControlsAt(item: CanvasItem): { x: number; y: number } | null {
+    if (item.type !== 'shape' || !isLine(item)) return null;
+    const angle = (item.angle * Math.PI) / 180;
+    const half = item.w / 2;
+    const level = Math.abs(Math.sin(angle)) < 1e-6;
+    const toTop = level ? 0 : Math.sin(angle) > 0 ? -1 : 1;
+    return { x: half + toTop * half * Math.cos(angle), y: item.h / 2 + toTop * half * Math.sin(angle) };
+  }
+
+  protected isLinkedPin(item: CanvasItem): boolean {
+    return item.type === 'pin' && item.taskId !== null;
+  }
+
   protected pinLabel(pin: CanvasPin): string {
     return pin.taskId !== null ? (this.taskById().get(pin.taskId)?.title ?? pin.label) : pin.label;
   }
@@ -463,7 +480,7 @@ export class ProjectCanvas implements OnDestroy {
   /** A pin whose tip (bottom middle) is at the given point, remembering the current zoom. */
   private newPin(tip: { x: number; y: number }, label: string, taskId: number | null): CanvasPin {
     return {
-      id: crypto.randomUUID(),
+      id: String(this.nextPinNumber()),
       type: 'pin',
       x: tip.x - PIN_SIZE / 2,
       y: tip.y - PIN_SIZE,
@@ -474,6 +491,22 @@ export class ProjectCanvas implements OnDestroy {
       taskId,
       zoom: this.view().zoom,
     };
+  }
+
+  /** Pins are numbered 1, 2, 3… per canvas so share links stay short (?focusPin=3). */
+  private nextPinNumber(): number {
+    const numbers = this.items()
+      .filter((item) => item.type === 'pin')
+      .map((pin) => Number(pin.id))
+      .filter(Number.isInteger);
+    return Math.max(0, ...numbers) + 1;
+  }
+
+  /** Pins made before pins were numbered have long random ids; give them numbers. Returns whether any changed. */
+  private numberOldPins(): boolean {
+    const old = this.items().filter((item) => item.type === 'pin' && !Number.isInteger(Number(item.id)));
+    for (const pin of old) pin.id = String(this.nextPinNumber());
+    return old.length > 0;
   }
 
   private openTask(taskId: number): void {
@@ -526,6 +559,7 @@ export class ProjectCanvas implements OnDestroy {
         this.view.set(canvas.view ?? DEFAULT_VIEW);
         // Items saved by the previous canvas version have no width and are dropped.
         this.items.set((canvas.items ?? []).filter((item) => typeof item.w === 'number'));
+        if (this.numberOldPins()) this.save();
         const focusPin = this.focusPin();
         if (focusPin) this.centerOnPin(focusPin);
       },

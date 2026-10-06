@@ -103,18 +103,7 @@
           <div class="face" (pointerdown)="drag($event, item)">
             <app-icon name="location_on" [size]="item.w" />
           </div>
-          @if (item.taskId !== null && !preview()) {
-            <!-- Clicking the pin focuses it; the label of a linked pin opens its task. -->
-            <a
-              class="label"
-              [routerLink]="['/projects', projectId(), 'tasks', item.taskId]"
-              (pointerdown)="$event.stopPropagation()"
-            >
-              {{ pinLabel(item) }} · Open task
-            </a>
-          } @else {
-            <span class="label">{{ pinLabel(item) }}</span>
-          }
+          <span class="label">{{ pinLabel(item) }}</span>
         } @else {
           <div
             class="face {{ item.shape }}"
@@ -123,9 +112,18 @@
           ></div>
         }
 
-        @if (editable()) {
-          <div class="controls" (pointerdown)="$event.stopPropagation()">
-            @if (item.type === 'shape') {
+        <!-- Linked pins get "View task" even when the canvas is read only. -->
+        @if (editable() || (isLinkedPin(item) && !preview() && pinTask() === null)) {
+          @let lineAnchor = lineControlsAt(item);
+          <div
+            class="controls"
+            [style.left.px]="lineAnchor?.x"
+            [style.top.px]="lineAnchor?.y"
+            [style.bottom]="lineAnchor ? 'auto' : null"
+            [style.translate]="lineAnchor ? '-50% -100%' : null"
+            (pointerdown)="$event.stopPropagation()"
+          >
+            @if (editable() && item.type === 'shape') {
               <button
                 class="transparent"
                 type="button"
@@ -135,13 +133,13 @@
                 <app-icon name="vertical_align_bottom" />
               </button>
             }
-            @if (item.type === 'pin' && item.taskId === null) {
+            @if (editable() && item.type === 'pin' && item.taskId === null) {
               <button class="transparent" type="button" title="Rename" (click)="renamePin(item)">
                 <app-icon name="edit" />
               </button>
             }
             <!-- Linked pins use their task's status colour, so they get no colour choice. -->
-            @if (item.type !== 'stamp' && colorOf(item) !== null) {
+            @if (editable() && item.type !== 'stamp' && colorOf(item) !== null) {
               @for (color of colors; track color) {
                 <button
                   class="transparent"
@@ -154,10 +152,24 @@
                 </button>
               }
             }
-            <button class="transparent" type="button" title="Delete" (click)="remove(item)">
-              <app-icon name="close" />
-            </button>
+            @if (item.type === 'pin' && item.taskId !== null) {
+              <button
+                class="transparent"
+                type="button"
+                [routerLink]="['/projects', projectId(), 'tasks', item.taskId]"
+              >
+                <app-icon name="open_in_new" />
+                <span>View task</span>
+              </button>
+            }
+            @if (editable()) {
+              <button class="transparent" type="button" title="Delete" (click)="remove(item)">
+                <app-icon name="close" />
+              </button>
+            }
           </div>
+        }
+        @if (editable()) {
           <div class="resize" (pointerdown)="resize($event, item)"></div>
         }
       </div>

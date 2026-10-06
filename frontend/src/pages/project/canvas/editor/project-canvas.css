@@ -130,11 +130,14 @@ textarea {
   clip-path: polygon(0 0, 100% 50%, 0 100%, 24% 50%);
 }
 
+/* Centred above the element whatever its width; max-content stops narrow elements (e.g. pins) squeezing it. */
 .controls {
   position: absolute;
   z-index: 1;
-  right: 0;
   bottom: 100%;
+  left: 50%;
+  width: max-content;
+  translate: -50% 0;
   display: none;
   align-items: center;
   background: var(--primary-surface);
@@ -244,11 +247,6 @@ h2 {
 
 .pin:hover > .label {
   display: block;
-}
-
-a.label {
-  text-decoration: none;
-  pointer-events: auto;
 }
 
 /* Where "Drop pin" will place the pin: its tip sits on the middle of the screen. */
