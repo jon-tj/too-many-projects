@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.Json;
+using Canvases;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,7 @@ using Model;
 [ApiController]
 [Authorize]
 [Route("api/projects/{projectId:long}/canvases")]
-public sealed class CanvasesController(AppDbContext db) : ControllerBase
+public sealed class CanvasesController(AppDbContext db, CanvasAccessService access) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<CanvasSummaryResponse>>> GetAll(
@@ -202,37 +203,16 @@ public sealed class CanvasesController(AppDbContext db) : ControllerBase
         return null;
     }
 
-    /// <summary>Owners always have full access; otherwise an override applies, else the role default.</summary>
     private static (bool CanRead, bool CanWrite) Effective(string role, CanvasPermission? permission) =>
-        role == "Owner" ? (true, true)
-        : permission is not null ? (permission.CanRead, permission.CanWrite)
-        : role == "External" ? (false, false)
-        : (true, true);
+        CanvasAccessService.Effective(role, permission);
 
-    private Task<ProjectMember?> GetMember(long projectId, CancellationToken cancellationToken)
-    {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        return db.ProjectMembers.AsNoTracking().SingleOrDefaultAsync(
-            member => member.ProjectId == projectId && member.UserId == userId, cancellationToken);
-    }
+    private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-    /// <summary>The canvas and the caller's access to it, or null when the caller cannot read it.</summary>
-    private async Task<CanvasAccess?> GetAccess(long projectId, int canvasId, CancellationToken cancellationToken)
-    {
-        var member = await GetMember(projectId, cancellationToken);
-        if (member is null) return null;
+    private Task<ProjectMember?> GetMember(long projectId, CancellationToken cancellationToken) =>
+        access.GetMember(projectId, UserId, cancellationToken);
 
-        var canvas = await db.Canvases.SingleOrDefaultAsync(
-            canvas => canvas.Id == canvasId && canvas.ProjectId == projectId, cancellationToken);
-        if (canvas is null) return null;
-
-        var permission = await db.CanvasPermissions.AsNoTracking().SingleOrDefaultAsync(
-            permission => permission.CanvasId == canvasId && permission.UserId == member.UserId, cancellationToken);
-        var (canRead, canWrite) = Effective(member.Role, permission);
-        return canRead ? new CanvasAccess(canvas, canWrite, member.Role == "Owner") : null;
-    }
-
-    private sealed record CanvasAccess(Canvas Canvas, bool CanWrite, bool IsOwner);
+    private Task<CanvasAccess?> GetAccess(long projectId, int canvasId, CancellationToken cancellationToken) =>
+        access.GetAccess(projectId, canvasId, UserId, cancellationToken);
 }
 
 /// <summary>Canvas listed in a project.</summary>

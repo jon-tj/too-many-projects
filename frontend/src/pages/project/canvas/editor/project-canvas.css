@@ -266,3 +266,9 @@ h2 {
   min-height: 0;
   pointer-events: none;
 }
+
+/* Someone else is dragging this item. */
+.item.locked {
+  outline: 2px dashed var(--secondary-surface);
+  outline-offset: 2px;
+}

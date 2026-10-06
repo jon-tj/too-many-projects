@@ -37,12 +37,15 @@
     "
   >
     @for (item of items(); track item.id) {
+      @let movingBy = lockedBy(item.id);
       <div
         class="item {{ item.type }}"
         [attr.data-id]="item.id"
         [attr.data-color]="colorOf(item)"
         [attr.data-status]="statusOf(item)"
         [hidden]="item.type === 'pin' && !showPins()"
+        [class.locked]="movingBy"
+        [attr.title]="movingBy ? movingBy + ' is working on this' : null"
         [style.left.px]="item.x"
         [style.top.px]="item.y"
         [style.width.px]="item.w"
@@ -56,8 +59,10 @@
           </div>
           <textarea
             placeholder="Write something…"
-            [readOnly]="!editable()"
+            [readOnly]="!editable() || !!movingBy"
             [value]="item.text"
+            (focus)="startEditing(item, $event)"
+            (blur)="stopEditing(item, $event)"
             (input)="setText(item, $event)"
           ></textarea>
         } @else if (item.type === 'list') {
@@ -71,16 +76,18 @@
                 type="button"
                 title="Change marker"
                 [disabled]="!editable()"
-                (click)="cycleMarker(row)"
+                (click)="cycleMarker(item, row)"
               >
                 {{ marker(item, $index) }}
               </button>
               <textarea
                 rows="1"
                 placeholder="List item"
-                [readOnly]="!editable()"
+                [readOnly]="!editable() || !!movingBy"
+                (focus)="startEditing(item, $event)"
+                (blur)="stopEditing(item, $event)"
                 [value]="row.text"
-                (input)="setText(row, $event)"
+                (input)="setRowText(item, row, $event)"
                 (keydown)="onRowKeydown($event, item, $index)"
               ></textarea>
             </div>

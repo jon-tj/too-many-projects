@@ -1,4 +1,5 @@
 using Accounts;
+using Canvases;
 using Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.BearerToken;
@@ -32,7 +33,16 @@ builder.Services.AddDataProtection()
 
 // "Remember me" keeps the refresh token in the browser; each refresh issues a new one, valid for 15 days.
 builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, options =>
-    options.RefreshTokenExpiration = TimeSpan.FromDays(15));
+{
+    options.RefreshTokenExpiration = TimeSpan.FromDays(15);
+    // Browsers cannot set headers on WebSocket requests, so the live canvas hub sends the token in the URL.
+    options.Events.OnMessageReceived = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/hubs") && context.Request.Query.TryGetValue("access_token", out var token))
+            context.Token = token;
+        return Task.CompletedTask;
+    };
+});
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
 builder.Services.AddAuthorization();
@@ -45,6 +55,9 @@ if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
 else
     builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
 builder.Services.AddScoped<UserRemoval>();
+builder.Services.AddScoped<CanvasAccessService>();
+builder.Services.AddSingleton<CanvasLocks>();
+builder.Services.AddSignalR();
 builder.Services.AddControllers();
 
 // Add services to the container.
@@ -119,5 +132,6 @@ app.UseAuthorization();
 
 app.MapGroup("/api/auth").MapIdentityApi<ApplicationUser>();
 app.MapControllers();
+app.MapHub<CanvasHub>("/hubs/canvas");
 
 app.Run();
