@@ -35,6 +35,33 @@ public sealed class CanvasesController(AppDbContext db) : ControllerBase
             .ToList());
     }
 
+    /// <summary>Canvases the caller can read that have a pin linked to the task, with that pin's id.</summary>
+    [HttpGet("pinned/{taskId:long}")]
+    public async Task<ActionResult<IReadOnlyList<PinnedCanvasResponse>>> GetPinnedTo(
+        long projectId, long taskId, CancellationToken cancellationToken)
+    {
+        var member = await GetMember(projectId, cancellationToken);
+        if (member is null) return NotFound();
+
+        var canvases = await db.Canvases.AsNoTracking()
+            .Where(canvas => canvas.ProjectId == projectId)
+            .Select(canvas => new
+            {
+                canvas.Id,
+                canvas.Name,
+                canvas.CanvasJson,
+                Permission = canvas.Permissions.FirstOrDefault(permission => permission.UserId == member.UserId)
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(canvases
+            .Where(canvas => Effective(member.Role, canvas.Permission).CanRead)
+            .Select(canvas => (canvas, pinId: FindPinFor(canvas.CanvasJson, taskId)))
+            .Where(match => match.pinId is not null)
+            .Select(match => new PinnedCanvasResponse(match.canvas.Id, match.canvas.Name, match.pinId!))
+            .ToList());
+    }
+
     [HttpPost]
     public async Task<ActionResult<CanvasSummaryResponse>> Create(
         long projectId, CanvasNameRequest request, CancellationToken cancellationToken)
@@ -158,6 +185,23 @@ public sealed class CanvasesController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Pins live inside the canvas document: the id of the item with type "pin" and a matching taskId.</summary>
+    private static string? FindPinFor(string canvasJson, long taskId)
+    {
+        using var document = JsonDocument.Parse(canvasJson);
+        if (!document.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+            return null;
+
+        foreach (var item in items.EnumerateArray())
+        {
+            if (item.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == "pin"
+                && item.TryGetProperty("taskId", out var id) && id.ValueKind == JsonValueKind.Number && id.GetInt64() == taskId
+                && item.TryGetProperty("id", out var pinId) && pinId.ValueKind == JsonValueKind.String)
+                return pinId.GetString();
+        }
+        return null;
+    }
+
     /// <summary>Owners always have full access; otherwise an override applies, else the role default.</summary>
     private static (bool CanRead, bool CanWrite) Effective(string role, CanvasPermission? permission) =>
         role == "Owner" ? (true, true)
@@ -193,6 +237,9 @@ public sealed class CanvasesController(AppDbContext db) : ControllerBase
 
 /// <summary>Canvas listed in a project.</summary>
 public sealed record CanvasSummaryResponse(int Id, string Name, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+
+/// <summary>A canvas with the id of the pin linked to a task.</summary>
+public sealed record PinnedCanvasResponse(int Id, string Name, string PinId);
 
 /// <summary>Canvas document with the caller's access.</summary>
 public sealed record CanvasResponse(
