@@ -19,6 +19,10 @@ export interface ProjectTask {
   assigneeUserId: string | null;
   dueAt: string | null;
   createdAt: string;
+  /** Units of work the task is split into; null when it is not split. */
+  units: number | null;
+  /** Units completed so far. A done task counts as complete whatever this is. */
+  unitsDone: number;
 }
 
 export type TaskStatus = 'todo' | 'doing' | 'done';

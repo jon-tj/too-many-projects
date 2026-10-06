@@ -38,6 +38,34 @@
             @if (task.description) {
               <p>{{ task.description }}</p>
             }
+            @if (task.units) {
+              <!-- Done counts as complete; otherwise − / + step the completed units. -->
+              <div class="units">
+                @if (task.status === 'done') {
+                  <span>{{ task.units }}/{{ task.units }}</span>
+                } @else {
+                  <button
+                    class="transparent"
+                    type="button"
+                    title="One unit less"
+                    [disabled]="task.unitsDone === 0"
+                    (click)="stepUnits(task, -1)"
+                  >
+                    <app-icon name="remove" />
+                  </button>
+                  <span>{{ task.unitsDone }}/{{ task.units }}</span>
+                  <button
+                    class="transparent"
+                    type="button"
+                    title="One unit more"
+                    [disabled]="task.unitsDone === task.units"
+                    (click)="stepUnits(task, 1)"
+                  >
+                    <app-icon name="add" />
+                  </button>
+                }
+              </div>
+            }
             <footer>
               <span class="badge">{{ assigneeName(task) }}</span>
               <div>

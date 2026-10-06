@@ -23,7 +23,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             .OrderByDescending(task => task.Id)
             .Select(task => new TaskResponse(
                 task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
-                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt))
+                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.Units, task.UnitsDone))
             .ToListAsync(cancellationToken);
 
         return Ok(tasks);
@@ -37,7 +37,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             .Where(task => task.Id == id && task.Project.Members.Any(member => member.UserId == userId))
             .Select(task => new TaskResponse(
                 task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
-                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt))
+                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.Units, task.UnitsDone))
             .SingleOrDefaultAsync(cancellationToken);
 
         return task is null ? NotFound() : Ok(task);
@@ -52,7 +52,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             .OrderByDescending(task => task.Id)
             .Select(task => new TaskResponse(
                 task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
-                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt))
+                task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.Units, task.UnitsDone))
             .ToListAsync(cancellationToken);
 
         return Ok(tasks);
@@ -79,13 +79,14 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             Description = request.Description?.Trim() ?? string.Empty,
             CreatedByUserId = userId,
             AssigneeUserId = request.AssigneeUserId,
+            Units = request.Units,
             DueAt = request.DueAt
         };
         db.ProjectTasks.Add(task);
         await db.SaveChangesAsync(cancellationToken);
 
         var response = new TaskResponse(task.Id, projectId, project.Name, task.Title, task.Description,
-            task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt);
+            task.Status, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.Units, task.UnitsDone);
         return Created($"/api/tasks/{task.Id}", response);
     }
 
@@ -112,6 +113,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         task.SetStatus(request.Status);
         task.AssigneeUserId = request.AssigneeUserId;
         task.DueAt = request.DueAt;
+        task.SetUnits(request.Units);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -126,6 +128,25 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         if (task is null) return NotFound();
 
         db.ProjectTasks.Remove(task);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Sets how many units are done, from the board's − / + controls.</summary>
+    [HttpPatch("{id:long}/units")]
+    public async Task<IActionResult> SetUnitsDone(
+        long id, SetUnitsDoneRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var task = await db.ProjectTasks.SingleOrDefaultAsync(
+            task => task.Id == id && task.Project.Members.Any(member => member.UserId == userId),
+            cancellationToken);
+        if (task is null) return NotFound();
+        if (task.Units is not { } total) return BadRequest(new { error = "This task is not split into units." });
+        if (request.Done < 0 || request.Done > total)
+            return BadRequest(new { error = $"Units done must be between 0 and {total}." });
+
+        task.UnitsDone = request.Done;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -152,7 +173,10 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
 /// <summary>Task summary for project and dashboard views.</summary>
 public sealed record TaskResponse(
     long Id, long ProjectId, string ProjectName, string Title, string Description,
-    string Status, string? AssigneeUserId, DateTimeOffset? DueAt, DateTimeOffset CreatedAt);
+    string Status, string? AssigneeUserId, DateTimeOffset? DueAt, DateTimeOffset CreatedAt, int? Units, int UnitsDone);
+
+/// <summary>How many units of a task are done.</summary>
+public sealed record SetUnitsDoneRequest(int Done);
 
 /// <summary>Data required to add a task to a project.</summary>
 public sealed record CreateTaskRequest
@@ -164,6 +188,9 @@ public sealed record CreateTaskRequest
     public string? Description { get; init; }
 
     public string? AssigneeUserId { get; init; }
+
+    [Range(1, 1000)]
+    public int? Units { get; init; }
 
     public DateTimeOffset? DueAt { get; init; }
 }
@@ -188,6 +215,9 @@ public sealed record UpdateTaskRequest
     public required string Status { get; init; }
 
     public string? AssigneeUserId { get; init; }
+
+    [Range(1, 1000)]
+    public int? Units { get; init; }
 
     public DateTimeOffset? DueAt { get; init; }
 }

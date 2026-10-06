@@ -7,6 +7,10 @@
     Description
     <textarea formControlName="description" rows="4" placeholder="A little context (optional)"></textarea>
   </label>
+  <label>
+    Units of work
+    <input type="number" min="1" max="1000" formControlName="units" placeholder="Optional, e.g. 5" />
+  </label>
   @if (task()) {
     <label>
       Status

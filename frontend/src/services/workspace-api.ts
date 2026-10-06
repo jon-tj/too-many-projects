@@ -108,10 +108,16 @@ export class WorkspaceApi {
 
   createTask(
     projectId: number,
-    task: Pick<ProjectTask, 'title' | 'description' | 'assigneeUserId' | 'dueAt'>,
+    task: Pick<ProjectTask, 'title' | 'description' | 'assigneeUserId' | 'dueAt' | 'units'>,
   ): Observable<ProjectTask> {
-    const { title, description, assigneeUserId, dueAt } = task;
-    return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, { title, description, assigneeUserId, dueAt });
+    const { title, description, assigneeUserId, dueAt, units } = task;
+    return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, {
+      title,
+      description,
+      assigneeUserId,
+      dueAt,
+      units,
+    });
   }
 
   task(id: number): Observable<ProjectTask> {
@@ -119,8 +125,12 @@ export class WorkspaceApi {
   }
 
   updateTask(task: ProjectTask): Observable<void> {
-    const { title, description, status, assigneeUserId, dueAt } = task;
-    return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt });
+    const { title, description, status, assigneeUserId, dueAt, units } = task;
+    return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt, units });
+  }
+
+  setTaskUnitsDone(taskId: number, done: number): Observable<void> {
+    return this.http.patch<void>(`/api/tasks/${taskId}/units`, { done });
   }
 
   deleteTask(id: number): Observable<void> {

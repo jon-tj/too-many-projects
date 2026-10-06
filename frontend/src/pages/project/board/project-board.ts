@@ -70,6 +70,21 @@ ${task.description}` : task.title;
     );
   }
 
+  /** Saves straight away like moving a card; rolls back if the server refuses. */
+  protected stepUnits(task: ProjectTask, step: number): void {
+    const done = Math.max(0, Math.min(task.units ?? 0, task.unitsDone + step));
+    if (done === task.unitsDone) return;
+    const setDone = (value: number) =>
+      this.tasks.update((tasks) => tasks.map((item) => (item.id === task.id ? { ...item, unitsDone: value } : item)));
+    setDone(done);
+    this.api.setTaskUnitsDone(task.id, done).subscribe({
+      error: () => {
+        setDone(task.unitsDone);
+        this.taskError.set('Could not update the task progress.');
+      },
+    });
+  }
+
   protected assigneeName(task: ProjectTask): string {
     if (!task.assigneeUserId) return 'Unassigned';
     if (task.assigneeUserId === this.account.value()?.id) return 'You';

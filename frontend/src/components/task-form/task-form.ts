@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProjectMember, ProjectTask, TaskStatus } from '../../services/models';
 
 /** The editable task fields, with the due date as an ISO timestamp or null. */
-export type TaskFormValue = Pick<ProjectTask, 'title' | 'description' | 'status' | 'assigneeUserId' | 'dueAt'>;
+export type TaskFormValue = Pick<ProjectTask, 'title' | 'description' | 'status' | 'assigneeUserId' | 'dueAt' | 'units'>;
 
 /**
  * Task fields shared by "New task" and the task page. Status is only shown when editing an existing task.
@@ -30,6 +30,8 @@ export class TaskForm {
     status: ['todo' as TaskStatus],
     assigneeUserId: [null as string | null],
     dueAt: [''],
+    /** Empty = the task is not split into units. */
+    units: [null as number | null, [Validators.min(1), Validators.max(1000)]],
   });
   private readonly assignee = toSignal(this.form.controls.assigneeUserId.valueChanges, { initialValue: null });
   protected readonly assignedToMe = computed(() => !!this.currentUserId() && this.assignee() === this.currentUserId());
@@ -44,6 +46,7 @@ export class TaskForm {
         status: task.status,
         assigneeUserId: task.assigneeUserId,
         dueAt: task.dueAt?.slice(0, 10) ?? '',
+        units: task.units,
       });
     });
   }
@@ -78,13 +81,14 @@ export class TaskForm {
 
   protected submit(): void {
     if (this.form.invalid) return;
-    const { title, description, status, assigneeUserId, dueAt } = this.form.getRawValue();
+    const { title, description, status, assigneeUserId, dueAt, units } = this.form.getRawValue();
     this.save.emit({
       title: title.trim(),
       description: description.trim(),
       status,
       assigneeUserId,
       dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+      units: units || null,
     });
   }
 }
