@@ -1,15 +1,18 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Model;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
-    : IdentityDbContext<ApplicationUser>(options)
+    : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
 	public DbSet<Project> Projects => Set<Project>();
 	public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 	public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
 	public DbSet<Canvas> Canvases => Set<Canvas>();
 	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
+	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
+	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
 	protected override void OnModelCreating(ModelBuilder builder)
 	{

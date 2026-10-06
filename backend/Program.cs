@@ -2,6 +2,7 @@ using Accounts;
 using Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Model;
 
@@ -23,6 +24,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlite($"Data Source={localDatabasePath}");
     }
 });
+// Sign-in tokens are encrypted with Data Protection keys. Keeping the keys in the database (instead of the
+// container's file system) means a new Render deploy can still read tokens issued before it.
+builder.Services.AddDataProtection()
+    .SetApplicationName("too-many-projects")
+    .PersistKeysToDbContext<AppDbContext>();
+
 // "Remember me" keeps the refresh token in the browser; each refresh issues a new one, valid for 15 days.
 builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, options =>
     options.RefreshTokenExpiration = TimeSpan.FromDays(15));
