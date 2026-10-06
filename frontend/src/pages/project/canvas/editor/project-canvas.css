@@ -36,6 +36,7 @@
 
 .note,
 .list {
+  color: #29322c;
   background: var(--paper);
   border: 1px solid color-mix(in srgb, var(--ink) 40%, transparent);
   border-radius: 8px;

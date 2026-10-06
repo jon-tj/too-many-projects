@@ -1,0 +1,32 @@
+/* Dark tokens: used when the system prefers dark and no theme was chosen, or when dark was chosen. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #151a16;
+    --border: #2c352e;
+    --primary-text: #e4e9e2;
+    --primary-surface: #1d231f;
+    --primary-active-surface: #27302a;
+    --primary-active-text: #cfe3c6;
+    --secondary-text: #151a16;
+    --secondary-surface: #8fb383;
+    --todo: #8fa3b8;
+    --doing: #d9a441;
+    --done: #6fae69;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #151a16;
+  --border: #2c352e;
+  --primary-text: #e4e9e2;
+  --primary-surface: #1d231f;
+  --primary-active-surface: #27302a;
+  --primary-active-text: #cfe3c6;
+  --secondary-text: #151a16;
+  --secondary-surface: #8fb383;
+  --todo: #8fa3b8;
+  --doing: #d9a441;
+  --done: #6fae69;
+}

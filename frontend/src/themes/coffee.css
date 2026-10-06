@@ -1,0 +1,15 @@
+/* Coffee: warm espresso browns with a caramel accent. Only used when chosen with the theme toggle. */
+:root[data-theme='coffee'] {
+  color-scheme: dark;
+  --background: #1e1712;
+  --border: #3a2c22;
+  --primary-text: #f1e6d8;
+  --primary-surface: #2a201a;
+  --primary-active-surface: #3a2c22;
+  --primary-active-text: #f3d9b8;
+  --secondary-text: #1e1712;
+  --secondary-surface: #d4a373;
+  --todo: #b39c8a;
+  --doing: #e0a85c;
+  --done: #9bb07a;
+}

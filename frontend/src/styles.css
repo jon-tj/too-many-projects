@@ -1,7 +1,6 @@
 * { box-sizing: border-box; }
 
 :root {
-	color-scheme: light;
 	font-family: 'DM Sans', 'Segoe UI', sans-serif;
 	color: var(--primary-text);
 	background: var(--background);

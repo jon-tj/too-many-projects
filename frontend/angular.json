@@ -26,6 +26,8 @@
             ],
             "styles": [
               "src/themes/light.css",
+              "src/themes/dark.css",
+              "src/themes/coffee.css",
               "src/styles.css"
             ]
           },

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { NavigationEnd } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -9,6 +9,13 @@ import { ProjectIcon } from '../project-icon/project-icon';
 import { AuthService } from '../../services/auth.service';
 import { Account, Project } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
+
+const THEMES = [
+  { name: 'light', label: 'day', icon: 'light_mode' },
+  { name: 'dark', label: 'night', icon: 'dark_mode' },
+  { name: 'coffee', label: 'coffee', icon: 'coffee' },
+] as const;
+type Theme = (typeof THEMES)[number]['name'];
 
 @Component({
   selector: 'app-workspace-shell',
@@ -61,6 +68,27 @@ export class WorkspaceShell implements OnInit {
       },
       error: () => this.createError.set('Could not create this project. Please try again.'),
     });
+  }
+
+  /** Follows the system setting until a theme is chosen; the choice is applied early in index.html. */
+  protected readonly theme = signal<Theme>(
+    THEMES.find((theme) => theme.name === document.documentElement.dataset['theme'])?.name ??
+      (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+  );
+  /** The theme the toggle switches to: day → night → coffee → day. */
+  protected readonly nextTheme = computed(
+    () => THEMES[(THEMES.findIndex((theme) => theme.name === this.theme()) + 1) % THEMES.length],
+  );
+
+  protected toggleTheme(): void {
+    const theme = this.nextTheme().name;
+    this.theme.set(theme);
+    document.documentElement.dataset['theme'] = theme;
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      // Storage can be unavailable (e.g. private windows); the theme then lasts until reload.
+    }
   }
 
   protected logout(): void { this.auth.logout(); }

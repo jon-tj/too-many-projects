@@ -1,6 +1,11 @@
 <div class="workspace-frame" (click)="closeAccountMenu()">
   <aside class="sidebar">
-    <a class="wordmark" routerLink="/"><img class="brand-mark" src="logo.png" alt="" /><span>TMP</span></a>
+    <header class="sidebar-top">
+      <a class="wordmark" routerLink="/"><img class="brand-mark" src="logo.png" alt="" /><span>TMP</span></a>
+      <button class="transparent" type="button" [title]="'Switch to ' + nextTheme().label + ' theme'" (click)="toggleTheme()">
+        <app-icon [name]="nextTheme().icon" />
+      </button>
+    </header>
 
     <nav class="primary-nav" aria-label="Main navigation">
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" /><span>Dashboard</span></a>
