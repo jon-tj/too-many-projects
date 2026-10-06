@@ -29,7 +29,7 @@
         <span class="badge" [attr.data-status]="task.status">{{ task.status }}</span>
       </a>
     } @empty {
-      <p>No tasks assigned to you or waiting to be assigned.</p>
+      <p>No open tasks assigned to you or waiting to be assigned.</p>
     }
     @if (tasks().length > previewCount) {
       <footer>

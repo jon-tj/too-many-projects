@@ -18,7 +18,8 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var tasks = await db.ProjectTasks.AsNoTracking()
             .Where(task => task.Project.Members.Any(member => member.UserId == userId)
-                && (task.AssigneeUserId == null || task.AssigneeUserId == userId))
+                && (task.AssigneeUserId == null || task.AssigneeUserId == userId)
+                && task.Status != "done")
             .OrderByDescending(task => task.Id)
             .Select(task => new TaskResponse(
                 task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
