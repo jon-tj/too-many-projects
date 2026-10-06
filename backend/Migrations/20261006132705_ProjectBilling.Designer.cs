@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006132705_ProjectBilling")]
+    partial class ProjectBilling
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -324,10 +327,6 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BillingContactName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("BillingCostPerHour")
                         .HasColumnType("TEXT");
 
@@ -338,6 +337,10 @@ namespace backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("BillingMinHoursPerDay")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BillingSigneeName")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")

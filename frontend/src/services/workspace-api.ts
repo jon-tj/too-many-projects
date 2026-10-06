@@ -8,6 +8,9 @@ import {
   CanvasPermission,
   CanvasSummary,
   Project,
+  BillableFraction,
+  BillingReport,
+  BillingSettings,
   ProjectMember,
   ProjectOverview,
   OverviewRange,
@@ -50,6 +53,23 @@ export class WorkspaceApi {
   /** Working opens a work session for you in the project; idle closes it. */
   setWorking(id: number, working: boolean): Observable<void> {
     return this.http.put<void>(`/api/projects/${id}/work`, { working });
+  }
+
+  billing(projectId: number): Observable<BillingSettings> {
+    return this.http.get<BillingSettings>(`/api/projects/${projectId}/billing`);
+  }
+
+  saveBilling(projectId: number, settings: BillingSettings): Observable<void> {
+    return this.http.put<void>(`/api/projects/${projectId}/billing`, settings);
+  }
+
+  setBillableFraction(projectId: number, userId: string, fraction: BillableFraction): Observable<void> {
+    return this.http.put<void>(`/api/projects/${projectId}/billing/members/${userId}`, { fraction });
+  }
+
+  /** month is "yyyy-MM". */
+  billingReport(projectId: number, month: string): Observable<BillingReport> {
+    return this.http.get<BillingReport>(`/api/projects/${projectId}/billing/report`, { params: { month } });
   }
 
   deleteProject(id: number): Observable<void> {

@@ -7,6 +7,9 @@ export interface Project {
   memberCount: number;
   icon: string | null;
   iconImage: string | null;
+  /** Your role in the project. */
+  myRole: string;
+  billingEnabled: boolean;
 }
 
 export interface ProjectTask {
@@ -67,6 +70,50 @@ export interface ProjectMember {
   role: string;
   /** Invited but not signed in yet. */
   pending: boolean;
+  billableFraction: BillableFraction;
+}
+
+export const BILLABLE_FRACTIONS = ['1/1', '3/4', '2/3', '1/2'] as const;
+export type BillableFraction = (typeof BILLABLE_FRACTIONS)[number];
+
+export interface BillingSettings {
+  enabled: boolean;
+  clientName: string;
+  /** Our side's point of contact for the client. */
+  contactName: string;
+  costPerHour: number;
+  minHoursPerDay: number;
+  maxHoursPerDay: number;
+}
+
+export interface BillingMemberTotal {
+  name: string;
+  fraction: BillableFraction;
+  daysWorked: number;
+  hoursWorked: number;
+  billableHours: number;
+  amount: number;
+}
+
+export interface BillingDay {
+  date: string;
+  userId: string;
+  name: string;
+  fraction: BillableFraction;
+  hoursWorked: number;
+  billableHours: number;
+}
+
+/** A month's billing; month is "yyyy-MM". */
+export interface BillingReport {
+  projectName: string;
+  month: string;
+  settings: BillingSettings;
+  members: BillingMemberTotal[];
+  days: BillingDay[];
+  hoursWorked: number;
+  billableHours: number;
+  amount: number;
 }
 
 export const CANVAS_COLORS = ['white', 'yellow', 'rose', 'blue', 'green', 'lavender'] as const;

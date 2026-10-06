@@ -25,6 +25,18 @@
         <span class="badge">Invited</span>
       }
       <span class="badge">{{ member.role }}</span>
+      @if (isOwner() && project.value()?.billingEnabled) {
+        <select
+          aria-label="Billable share of hours"
+          title="Billable share of hours"
+          [value]="member.billableFraction"
+          (change)="setFraction(member, $any($event.target).value)"
+        >
+          @for (fraction of fractions; track fraction) {
+            <option [value]="fraction">{{ fraction }}</option>
+          }
+        </select>
+      }
       @if (isOwner()) {
         @if (member.pending) {
           <button class="transparent" type="button" [disabled]="removingUserId() === member.userId" (click)="cancelInvite(member)">

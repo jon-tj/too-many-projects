@@ -15,8 +15,10 @@ import { ProjectMembers } from '../pages/project/members/project-members';
 import { ProjectSettings } from '../pages/project/settings/project-settings';
 import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
+import { BillingReportPage } from '../pages/report/billing-report';
 
 export const routes: Routes = [
+	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
 	{
 		path: 'login', component: LoginPage,
 		children: [

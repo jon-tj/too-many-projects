@@ -5,7 +5,13 @@ import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angu
 import { debounceTime, of, switchMap } from 'rxjs';
 import { Icon } from '../../../components/icon/icon';
 import { Modal } from '../../../components/modal/modal';
-import { ProjectMember, ProjectRole, UserSummary } from '../../../services/models';
+import {
+  BILLABLE_FRACTIONS,
+  BillableFraction,
+  ProjectMember,
+  ProjectRole,
+  UserSummary,
+} from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 import { ProjectPage } from '../project-page';
 
@@ -18,7 +24,8 @@ import { ProjectPage } from '../project-page';
 export class ProjectMembers {
   readonly projectId = input.required({ transform: numberAttribute });
   private readonly api = inject(WorkspaceApi);
-  private readonly project = inject(ProjectPage).project;
+  protected readonly project = inject(ProjectPage).project;
+  protected readonly fractions = BILLABLE_FRACTIONS;
   protected readonly members = rxResource({
     params: () => this.projectId(),
     stream: ({ params }) => this.api.projectMembers(params),
@@ -118,6 +125,21 @@ export class ProjectMembers {
       error: (error: HttpErrorResponse) => {
         this.removalError.set(error.error?.error ?? 'Could not cancel the invite. Please try again.');
         this.removingUserId.set(null);
+      },
+    });
+  }
+
+  /** Saves straight away; rolls back if the server refuses. */
+  protected setFraction(member: ProjectMember, fraction: BillableFraction): void {
+    const set = (value: BillableFraction) =>
+      this.members.update((members) =>
+        members.map((item) => (item.userId === member.userId ? { ...item, billableFraction: value } : item)),
+      );
+    set(fraction);
+    this.api.setBillableFraction(this.projectId(), member.userId, fraction).subscribe({
+      error: () => {
+        set(member.billableFraction);
+        this.removalError.set('Could not change the billable share.');
       },
     });
   }

@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -12,6 +12,9 @@ import {
   viewChild,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { ProjectPage } from '../project-page';
 import { OverviewPoint, OverviewRange, ProjectOverview as Overview } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
@@ -37,13 +40,30 @@ const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
 
 @Component({
   selector: 'app-project-overview',
-  imports: [DatePipe],
+  imports: [DatePipe, DecimalPipe],
   templateUrl: './project-overview.html',
   styleUrl: './project-overview.css',
 })
 export class ProjectOverview implements OnDestroy {
   readonly projectId = input.required({ transform: numberAttribute });
   private readonly api = inject(WorkspaceApi);
+  private readonly router = inject(Router);
+  private readonly project = inject(ProjectPage).project;
+  /** "yyyy-MM" for this month and last month (UTC, like the report). */
+  protected readonly months = (() => {
+    const now = new Date();
+    const month = (offset: number) =>
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 1)).toISOString().slice(0, 7);
+    return [month(0), month(1)];
+  })();
+  /** Billing is for owners of billing-enabled projects only. */
+  protected readonly billing = rxResource({
+    params: () => {
+      const project = this.project.value();
+      return project?.billingEnabled && project.myRole === 'Owner' ? project.id : undefined;
+    },
+    stream: ({ params }) => forkJoin(this.months.map((month) => this.api.billingReport(params, month))),
+  });
   protected readonly ranges = RANGES;
   protected readonly range = signal<OverviewRange>('30d');
   protected readonly overview = rxResource({
@@ -89,6 +109,15 @@ export class ProjectOverview implements OnDestroy {
 
   ngOnDestroy(): void {
     this.resize.disconnect();
+  }
+
+  /** Opens the printable report in a new tab. */
+  protected openReport(month: string): void {
+    window.open(this.router.serializeUrl(this.router.createUrlTree(['/report', this.projectId(), month])), '_blank');
+  }
+
+  protected monthStart(month: string): string {
+    return `${month}-01T00:00:00Z`;
   }
 
   protected setWorking(working: boolean): void {

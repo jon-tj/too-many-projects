@@ -30,7 +30,9 @@ public sealed class ProjectsController(
             .OrderByDescending(project => project.Id)
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage))
+                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
+                project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
+                project.BillingEnabled))
             .ToListAsync(cancellationToken);
 
         return Ok(projects);
@@ -44,7 +46,9 @@ public sealed class ProjectsController(
             .Where(project => project.Id == id && project.Members.Any(member => member.UserId == userId))
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage))
+                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
+                project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
+                project.BillingEnabled))
             .SingleOrDefaultAsync(cancellationToken);
 
         return project is null ? NotFound() : Ok(project);
@@ -67,7 +71,8 @@ public sealed class ProjectsController(
                 member.User.UserName ?? string.Empty,
                 member.User.DisplayName,
                 member.Role,
-                member.User.MustChangePassword))
+                member.User.MustChangePassword,
+                member.BillableFraction))
             .ToListAsync(cancellationToken);
 
         return Ok(members);
@@ -117,7 +122,8 @@ public sealed class ProjectsController(
             await TrySendEmail(MemberEmails.ExistingUser(
                 user.Email, user.DisplayName, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
         }
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword));
+        return Ok(new ProjectMemberResponse(
+            user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword, "1/1"));
     }
 
     [HttpDelete("{id:long}/members/{userId}")]
@@ -210,7 +216,7 @@ public sealed class ProjectsController(
                 new { error = "The invitation email could not be sent, so the user was not created. Please try again." });
         }
 
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true));
+        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true, "1/1"));
     }
 
     [HttpPost]
@@ -229,7 +235,8 @@ public sealed class ProjectsController(
         db.Projects.Add(project);
         await db.SaveChangesAsync(cancellationToken);
 
-        var response = new ProjectResponse(project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null);
+        var response = new ProjectResponse(
+            project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
     }
 
@@ -394,13 +401,15 @@ public sealed class ProjectsController(
 }
 
 /// <summary>Project summary visible to a member.</summary>
+/// <param name="MyRole">The caller's role in the project.</param>
 public sealed record ProjectResponse(
     long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
-    string? Icon, string? IconImage);
+    string? Icon, string? IconImage, string MyRole, bool BillingEnabled);
 
 /// <summary>A member of a project visible to project participants.</summary>
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
-public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role, bool Pending);
+public sealed record ProjectMemberResponse(
+    string UserId, string UserName, string DisplayName, string Role, bool Pending, string BillableFraction);
 
 /// <summary>Data required to create a project.</summary>
 public sealed record ProjectRequest

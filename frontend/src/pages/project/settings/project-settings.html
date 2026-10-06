@@ -48,6 +48,53 @@
   </footer>
 </form>
 
+@if (isOwner()) {
+  <section>
+    <h2>Billing</h2>
+    <form [formGroup]="billingForm" (ngSubmit)="saveBilling()">
+      <label>
+        <input type="checkbox" formControlName="enabled" />
+        Enable billing
+      </label>
+      @if (billingForm.controls.enabled.value) {
+        <label>
+          Client name
+          <input formControlName="clientName" />
+        </label>
+        <label>
+          Point of contact (our side)
+          <input formControlName="contactName" placeholder="Who the client deals with" />
+        </label>
+        <label>
+          Cost per hour
+          <input type="number" min="0" step="0.01" formControlName="costPerHour" />
+        </label>
+        <label>
+          Minimum hours per day
+          <input type="number" min="0" max="24" step="0.5" formControlName="minHoursPerDay" />
+        </label>
+        <label>
+          Maximum hours per day
+          <input type="number" min="0" step="0.5" formControlName="maxHoursPerDay" />
+        </label>
+        <p>
+          Each member's billable hours per day: hours worked, raised to the minimum on days with work and capped at
+          the maximum, times their billable share (set on the Members tab). A minimum of 0 means no minimum; a maximum
+          of 0 or 24 and above means no cap.
+        </p>
+      }
+      @if (billingMessage()) {
+        <p role="status">{{ billingMessage() }}</p>
+      }
+      <footer>
+        <button class="primary" type="submit" [disabled]="billingForm.invalid || billingForm.pristine">
+          Save billing
+        </button>
+      </footer>
+    </form>
+  </section>
+}
+
 <section>
   <h2>Delete project</h2>
   <p>Deletes the project with all of its tasks and canvas. This cannot be undone.</p>

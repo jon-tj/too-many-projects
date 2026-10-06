@@ -1,0 +1,86 @@
+@if (report.isLoading()) {
+  <p>Loading report...</p>
+} @else if (report.error()) {
+  <p role="alert">This report could not be loaded. Only project owners can see billing, and billing must be enabled.</p>
+} @else if (report.value(); as r) {
+  <header>
+    <div>
+      <h1>{{ r.projectName }}</h1>
+      <p>Billing report · {{ monthStart(r.month) | date: 'MMMM y' : 'UTC' }}</p>
+    </div>
+    <button class="primary" type="button" (click)="print()"><span>Print or save as PDF</span></button>
+  </header>
+
+  <dl>
+    <dt>Client</dt>
+    <dd>{{ r.settings.clientName || '—' }}</dd>
+    <dt>Point of contact</dt>
+    <dd>{{ r.settings.contactName || '—' }}</dd>
+    <dt>Cost per hour</dt>
+    <dd>{{ r.settings.costPerHour | number: '1.2-2' }}</dd>
+    @if (hoursPerDay(r.settings); as limits) {
+      <dt>Hours per day</dt>
+      <dd>{{ limits }}</dd>
+    }
+  </dl>
+
+  <h2>Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Member</th>
+        <th scope="col">Share</th>
+        <th scope="col" class="number">Days</th>
+        <th scope="col" class="number">Hours worked</th>
+        <th scope="col" class="number">Billable hours</th>
+        <th scope="col" class="number">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (member of r.members; track member.name) {
+        <tr>
+          <td>{{ member.name }}</td>
+          <td>{{ member.fraction }}</td>
+          <td class="number">{{ member.daysWorked }}</td>
+          <td class="number">{{ member.hoursWorked | number: '1.2-2' }}</td>
+          <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
+          <td class="number">{{ member.amount | number: '1.2-2' }}</td>
+        </tr>
+      } @empty {
+        <tr><td colspan="6">No work recorded this month.</td></tr>
+      }
+    </tbody>
+    <tfoot>
+      <tr>
+        <th scope="row" colspan="3">Total</th>
+        <td class="number">{{ r.hoursWorked | number: '1.2-2' }}</td>
+        <td class="number">{{ r.billableHours | number: '1.2-2' }}</td>
+        <td class="number">{{ r.amount | number: '1.2-2' }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  @if (r.days.length) {
+    <h2>Days</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Member</th>
+          <th scope="col" class="number">Hours worked</th>
+          <th scope="col" class="number">Billable hours</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (day of r.days; track day.date + day.userId) {
+          <tr>
+            <td>{{ day.date | date: 'EEE MMM d' : 'UTC' }}</td>
+            <td>{{ day.name }}</td>
+            <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+            <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}

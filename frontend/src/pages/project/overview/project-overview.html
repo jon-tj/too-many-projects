@@ -106,3 +106,27 @@
     </tbody>
   </table>
 </details>
+
+@if (billing.value(); as reports) {
+  <section class="billing" aria-label="Billing">
+    <h2>Billing</h2>
+    <div class="months">
+      @for (report of reports; track report.month) {
+        <article>
+          <h3>{{ monthStart(report.month) | date: 'MMMM y' : 'UTC' }}</h3>
+          <dl>
+            <dt>Hours worked</dt>
+            <dd>{{ report.hoursWorked | number: '1.1-2' }}</dd>
+            <dt>Billable hours</dt>
+            <dd>{{ report.billableHours | number: '1.1-2' }}</dd>
+            <dt>Amount</dt>
+            <dd><strong>{{ report.amount | number: '1.2-2' }}</strong></dd>
+          </dl>
+          <button class="transparent" type="button" (click)="openReport(report.month)">
+            <span>Monthly report</span>
+          </button>
+        </article>
+      }
+    </div>
+  </section>
+}
