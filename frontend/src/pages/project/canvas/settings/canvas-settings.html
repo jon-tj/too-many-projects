@@ -1,0 +1,64 @@
+@if (canvas.isLoading() && !canvas.value()) {
+  <p>Loading canvas...</p>
+} @else if (canvas.error()) {
+  <p role="alert">This canvas could not be found.</p>
+} @else if (canvas.value(); as current) {
+  <form [formGroup]="form" (ngSubmit)="rename()">
+    <label>
+      Name
+      <input formControlName="name" [readOnly]="!current.canWrite" />
+    </label>
+    @if (current.canWrite) {
+      <footer>
+        <button class="primary" type="submit" [disabled]="form.invalid || form.pristine">Save name</button>
+      </footer>
+    }
+  </form>
+
+  <dl>
+    <dt>Created</dt>
+    <dd>{{ current.createdAt | date: 'medium' }}</dd>
+    <dt>Last updated</dt>
+    <dd>{{ current.updatedAt | date: 'medium' }}</dd>
+  </dl>
+
+  <h2>Member access</h2>
+  @for (member of permissions.value(); track member.userId) {
+    <article>
+      <div>
+        <strong>{{ member.displayName || member.userName }}</strong>
+        <small>{{ member.role }}</small>
+      </div>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="member.canRead"
+          [disabled]="!current.canManage || member.role === 'Owner'"
+          (change)="setRead(member, $any($event.target).checked)"
+        />
+        Read
+      </label>
+      <label>
+        <input
+          type="checkbox"
+          [checked]="member.canWrite"
+          [disabled]="!current.canManage || member.role === 'Owner'"
+          (change)="setWrite(member, $any($event.target).checked)"
+        />
+        Write
+      </label>
+    </article>
+  }
+
+  @if (message()) {
+    <p role="status">{{ message() }}</p>
+  }
+
+  @if (current.canManage) {
+    <section>
+      <h2>Delete canvas</h2>
+      <p>Deletes the canvas and everything on it. This cannot be undone.</p>
+      <button class="primary" type="button" (click)="deleteCanvas(current.name)">Delete canvas</button>
+    </section>
+  }
+}

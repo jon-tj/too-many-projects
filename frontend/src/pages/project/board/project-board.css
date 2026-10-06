@@ -52,9 +52,7 @@
     monospace;
 }
 .task-card {
-  display: block;
-  color: inherit;
-  text-decoration: none;
+  position: relative;
   cursor: grab;
   margin-top: 10px;
   padding: 13px 13px 9px;
@@ -75,6 +73,22 @@
   font-size: 12px;
   line-height: 1.45;
   font-weight: 650;
+}
+/* The title link covers the whole card, so clicking anywhere opens the task. */
+.task-card h4 a {
+  color: inherit;
+  text-decoration: none;
+}
+.task-card h4 a::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+.task-card footer div {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 .task-card p {
   margin: 7px 0 0;

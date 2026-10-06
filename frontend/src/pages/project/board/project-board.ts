@@ -1,6 +1,7 @@
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { map, of, switchMap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { Modal } from '../../../components/modal/modal';
@@ -59,6 +60,26 @@ export class ProjectBoard {
       },
       error: () => this.taskError.set('Could not create the task. Please try again.'),
     });
+  }
+
+  /** Duplicates a task into the same column, keeping its assignee and due date. */
+  protected copyTask(task: ProjectTask): void {
+    this.api
+      .createTask(this.projectId(), task.title, task.description)
+      .pipe(
+        switchMap((created) => {
+          const copy = { ...created, status: task.status, assigneeUserId: task.assigneeUserId, dueAt: task.dueAt };
+          const unchanged = copy.status === created.status && !copy.assigneeUserId && !copy.dueAt;
+          return unchanged ? of(copy) : this.api.updateTask(copy).pipe(map(() => copy));
+        }),
+      )
+      .subscribe({
+        next: (copy) => {
+          this.tasks.update((tasks) => [copy, ...tasks]);
+          this.taskError.set('');
+        },
+        error: () => this.taskError.set('Could not copy the task. Please try again.'),
+      });
   }
 
   protected assigneeName(task: ProjectTask): string {

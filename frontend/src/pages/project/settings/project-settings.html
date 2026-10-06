@@ -17,6 +17,39 @@
   </footer>
 </form>
 
+@if (project.value(); as current) {
+  <section>
+    <h2>Icon</h2>
+    <app-project-icon [project]="current" />
+    <label>
+      Upload an image
+      <input type="file" accept="image/*" (change)="upload($event)" />
+    </label>
+    <p>Or choose an icon:</p>
+    <nav aria-label="Project icons">
+      @for (icon of icons; track icon) {
+        <button
+          class="transparent"
+          type="button"
+          [title]="icon"
+          [class.active]="!current.iconImage && current.icon === icon"
+          (click)="setIcon(icon, null)"
+        >
+          <app-icon [name]="icon" />
+        </button>
+      }
+    </nav>
+    <button
+      class="transparent"
+      type="button"
+      [disabled]="!current.icon && !current.iconImage"
+      (click)="setIcon(null, null)"
+    >
+      <span>Use default</span>
+    </button>
+  </section>
+}
+
 <section>
   <h2>Delete project</h2>
   <p>Deletes the project with all of its tasks and canvas. This cannot be undone.</p>

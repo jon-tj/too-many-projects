@@ -1,0 +1,38 @@
+<header>
+  <button class="primary" type="button" (click)="openCreate()">
+    <app-icon name="add" />
+    <span>New canvas</span>
+  </button>
+</header>
+
+@if (canvases.isLoading()) {
+  <p>Loading canvases...</p>
+} @else if (canvases.error()) {
+  <p role="alert">Could not load canvases.</p>
+} @else {
+  @for (canvas of canvases.value(); track canvas.id) {
+    <a [routerLink]="[canvas.id]">
+      <div>
+        <strong>{{ canvas.name }}</strong>
+        <small>Updated {{ canvas.updatedAt | date: 'medium' }}</small>
+      </div>
+    </a>
+  } @empty {
+    <p>No canvases yet. Create one to start fresh.</p>
+  }
+}
+
+<app-modal heading="New canvas" [(open)]="creating">
+  <form [formGroup]="form" (ngSubmit)="create()">
+    <label>
+      Name
+      <input formControlName="name" autofocus />
+    </label>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="form.invalid">Create canvas</button>
+    </footer>
+  </form>
+</app-modal>

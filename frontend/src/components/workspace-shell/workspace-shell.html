@@ -1,13 +1,13 @@
 <div class="workspace-frame" (click)="closeAccountMenu()">
   <aside class="sidebar">
-    <a class="wordmark" routerLink="/"><span class="brand-mark">T</span><span>TMP</span></a>
+    <a class="wordmark" routerLink="/"><img class="brand-mark" src="logo.png" alt="" /><span>TMP</span></a>
 
     <nav class="primary-nav" aria-label="Main navigation">
       <a routerLink="/" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" /><span>Dashboard</span></a>
       <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
-          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><span class="project-mark" [attr.data-color]="$index % 5"><app-icon name="view_kanban"/></span><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
+          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
         } @empty {
         }
       </div>

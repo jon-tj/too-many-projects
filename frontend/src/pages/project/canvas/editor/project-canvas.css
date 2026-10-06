@@ -209,3 +209,15 @@ textarea {
 .emoji {
   font-size: 20px;
 }
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+h2 {
+  flex: 1;
+  margin: 0;
+}

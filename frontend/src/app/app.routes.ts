@@ -5,7 +5,9 @@ import { WorkspaceShell } from '../components/workspace-shell/workspace-shell';
 import { DashboardPage } from '../pages/dashboard/dashboard-page';
 import { ProjectPage } from '../pages/project/project-page';
 import { ProjectBoard } from '../pages/project/board/project-board';
-import { ProjectCanvas } from '../pages/project/canvas/project-canvas';
+import { CanvasList } from '../pages/project/canvas/canvas-list';
+import { ProjectCanvas } from '../pages/project/canvas/editor/project-canvas';
+import { CanvasSettings } from '../pages/project/canvas/settings/canvas-settings';
 import { ProjectMembers } from '../pages/project/members/project-members';
 import { ProjectSettings } from '../pages/project/settings/project-settings';
 import { TaskDetail } from '../pages/project/task/task-detail';
@@ -22,7 +24,9 @@ export const routes: Routes = [
 				children: [
 					{ path: '', pathMatch: 'full', redirectTo: 'board' },
 					{ path: 'board', component: ProjectBoard },
-					{ path: 'canvas', component: ProjectCanvas },
+					{ path: 'canvas', component: CanvasList },
+					{ path: 'canvas/:canvasId', component: ProjectCanvas },
+					{ path: 'canvas/:canvasId/settings', component: CanvasSettings },
 					{ path: 'members', component: ProjectMembers },
 					{ path: 'settings', component: ProjectSettings },
 					{ path: 'tasks/:taskId', component: TaskDetail },

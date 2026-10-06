@@ -12,18 +12,20 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { Icon } from '../../../components/icon/icon';
+import { RouterLink } from '@angular/router';
+import { Icon } from '../../../../components/icon/icon';
 import {
   CANVAS_COLORS,
   CanvasColor,
+  CanvasDetail,
   CanvasItem,
   CanvasList,
   CanvasNote,
   CanvasShape,
   CanvasView,
   ShapeKind,
-} from '../../../services/models';
-import { WorkspaceApi } from '../../../services/workspace-api';
+} from '../../../../services/models';
+import { WorkspaceApi } from '../../../../services/workspace-api';
 
 const STAMPS = [
   { label: 'Star', emoji: '⭐' },
@@ -48,12 +50,13 @@ const isLine = (item: CanvasItem) => item.type === 'shape' && (item.shape === 'l
 
 @Component({
   selector: 'app-project-canvas',
-  imports: [Icon],
+  imports: [RouterLink, Icon],
   templateUrl: './project-canvas.html',
   styleUrl: './project-canvas.css',
 })
 export class ProjectCanvas implements OnDestroy {
   readonly projectId = input.required({ transform: numberAttribute });
+  readonly canvasId = input.required({ transform: numberAttribute });
   private readonly api = inject(WorkspaceApi);
   private readonly viewport = viewChild.required<ElementRef<HTMLElement>>('viewport');
   protected readonly colors = CANVAS_COLORS;
@@ -64,6 +67,8 @@ export class ProjectCanvas implements OnDestroy {
   protected readonly tool = signal<Tool | null>(null);
   protected readonly menu = signal<'stamp' | 'shape' | null>(null);
   protected readonly error = signal('');
+  protected readonly detail = signal<CanvasDetail | null>(null);
+  protected readonly canWrite = computed(() => this.detail()?.canWrite ?? false);
   protected readonly hint = computed(() => {
     const tool = this.tool();
     if (!tool) return 'Double-click to add a note · drag to pan · Ctrl+scroll to zoom';
@@ -72,12 +77,13 @@ export class ProjectCanvas implements OnDestroy {
   });
   private gesture: ((event: PointerEvent) => void) | null = null;
   private saveTimer?: ReturnType<typeof setTimeout>;
-  private loadedId = 0;
+  private loaded = { projectId: 0, canvasId: 0 };
 
   constructor() {
     effect(() => {
       const projectId = this.projectId();
-      untracked(() => this.load(projectId));
+      const canvasId = this.canvasId();
+      untracked(() => this.load(projectId, canvasId));
     });
   }
 
@@ -120,6 +126,7 @@ export class ProjectCanvas implements OnDestroy {
 
   /** Double-clicking empty space or a shape adds a note there, like in the original board. */
   protected onDoubleClick(event: MouseEvent): void {
+    if (!this.canWrite()) return;
     // Pointer capture retargets the event to the viewport, so look at what is actually under the cursor.
     const target = document.elementFromPoint(event.clientX, event.clientY);
     if (target === this.viewport().nativeElement || target?.matches('.world, .shape > .face')) {
@@ -199,7 +206,7 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   protected drag(event: PointerEvent, item: CanvasItem): void {
-    if (this.tool() || event.button !== 0) return;
+    if (this.tool() || !this.canWrite() || event.button !== 0) return;
     event.stopPropagation();
     const moving = [item];
     if (item.type === 'shape' && item.shape === 'box') {
@@ -220,6 +227,7 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   protected resize(event: PointerEvent, item: CanvasItem): void {
+    if (!this.canWrite()) return;
     event.stopPropagation();
     const start = { x: event.clientX, y: event.clientY, w: item.w, h: 'h' in item ? item.h : 0, zoom: this.view().zoom };
     this.begin(event, (move) => {
@@ -377,11 +385,14 @@ export class ProjectCanvas implements OnDestroy {
     return { x: (rect.width / 2 - 100 - x) / zoom, y: (rect.height / 2 - 60 - y) / zoom };
   }
 
-  private load(projectId: number): void {
+  private load(projectId: number, canvasId: number): void {
     this.flush();
-    this.loadedId = projectId;
-    this.api.canvas(projectId).subscribe({
-      next: ({ canvas }) => {
+    this.loaded = { projectId, canvasId };
+    this.detail.set(null);
+    this.api.canvas(projectId, canvasId).subscribe({
+      next: (detail) => {
+        const { canvas } = detail;
+        this.detail.set(detail);
         this.view.set(canvas.view ?? DEFAULT_VIEW);
         // Items saved by the previous canvas version have no width and are dropped.
         this.items.set((canvas.items ?? []).filter((item) => typeof item.w === 'number'));
@@ -391,6 +402,7 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   private save(): void {
+    if (!this.canWrite()) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.flush(), 300);
   }
@@ -399,7 +411,8 @@ export class ProjectCanvas implements OnDestroy {
     if (this.saveTimer === undefined) return;
     clearTimeout(this.saveTimer);
     this.saveTimer = undefined;
-    this.api.saveCanvas(this.loadedId, { view: this.view(), items: this.items() }).subscribe({
+    const { projectId, canvasId } = this.loaded;
+    this.api.saveCanvas(projectId, canvasId, { view: this.view(), items: this.items() }).subscribe({
       error: () => this.error.set('Canvas changes could not be saved.'),
     });
   }

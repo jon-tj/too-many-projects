@@ -5,13 +5,14 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { filter } from 'rxjs';
 import { Icon } from '../icon/icon';
 import { Modal } from '../modal/modal';
+import { ProjectIcon } from '../project-icon/project-icon';
 import { AuthService } from '../../services/auth.service';
 import { Account, Project } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })
@@ -39,7 +40,7 @@ export class WorkspaceShell implements OnInit {
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => this.refreshProjects());
   }
 
-  protected refreshProjects(): void {
+  refreshProjects(): void {
     this.api.projects().subscribe({ next: (projects) => this.projects.set(projects) });
   }
 

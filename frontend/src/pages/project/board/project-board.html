@@ -23,24 +23,30 @@
           <small>{{ column.label }}</small>
         </header>
         @for (task of column.tasks; track task.id) {
-          <a
+          <article
             class="task-card"
             [class.done-card]="task.status === 'done'"
-            [routerLink]="['../tasks', task.id]"
             draggable="true"
             (dragstart)="dragStart($event, task)"
           >
-            <h4>{{ task.title }}</h4>
+            <h4>
+              <a [routerLink]="['../tasks', task.id]" draggable="false">{{ task.title }}</a>
+            </h4>
             @if (task.description) {
               <p>{{ task.description }}</p>
             }
             <footer>
               <span class="badge">{{ assigneeName(task) }}</span>
-              @if (task.status === 'done') {
-                <span class="done-check"><app-icon name="check" /></span>
-              }
+              <div>
+                @if (task.status === 'done') {
+                  <span class="done-check"><app-icon name="check" /></span>
+                }
+                <button class="transparent" type="button" title="Copy task" (click)="copyTask(task)">
+                  <app-icon name="content_copy" />
+                </button>
+              </div>
             </footer>
-          </a>
+          </article>
         } @empty {
           <div class="column-empty">{{ column.empty }}</div>
         }

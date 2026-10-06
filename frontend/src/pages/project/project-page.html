@@ -1,4 +1,9 @@
-<h1>{{ project.value()?.name ?? 'Loading project' }}</h1>
+<h1>
+  @if (project.value(); as current) {
+    <app-project-icon [project]="current" />
+  }
+  {{ project.value()?.name ?? 'Loading project' }}
+</h1>
 @if (project.value()?.description; as description) {
   <p>{{ description }}</p>
 }

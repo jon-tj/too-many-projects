@@ -1,0 +1,47 @@
+form {
+  max-width: 480px;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  margin: 24px 0;
+}
+
+dt {
+  color: var(--secondary-surface);
+}
+
+dd {
+  margin: 0;
+}
+
+article {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+small {
+  color: var(--secondary-surface);
+}
+
+article label {
+  flex-direction: row;
+  align-items: center;
+}
+
+section {
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+}

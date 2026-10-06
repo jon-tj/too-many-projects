@@ -8,12 +8,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<Project> Projects => Set<Project>();
 	public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 	public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
+	public DbSet<Canvas> Canvases => Set<Canvas>();
+	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
 
 	protected override void OnModelCreating(ModelBuilder builder)
 	{
 		base.OnModelCreating(builder);
 
 		builder.Entity<ProjectMember>().HasKey(member => new { member.ProjectId, member.UserId });
+		builder.Entity<CanvasPermission>().HasKey(permission => new { permission.CanvasId, permission.UserId });
+		builder.Entity<Canvas>().Property(canvas => canvas.Name).HasMaxLength(120);
 		builder.Entity<ProjectMember>()
 			.HasOne(member => member.Project)
 			.WithMany(project => project.Members)

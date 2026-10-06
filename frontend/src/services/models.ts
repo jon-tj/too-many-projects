@@ -5,6 +5,8 @@ export interface Project {
   createdAt: string;
   taskCount: number;
   memberCount: number;
+  icon: string | null;
+  iconImage: string | null;
 }
 
 export interface ProjectTask {
@@ -67,3 +69,25 @@ export interface CanvasShape extends CanvasItemBase {
 export interface CanvasStamp extends CanvasItemBase { type: 'stamp'; emoji: string; h: number; }
 export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp;
 export interface CanvasDocument { view: CanvasView; items: CanvasItem[]; }
+
+export interface CanvasSummary {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CanvasDetail extends CanvasSummary {
+  canWrite: boolean;
+  canManage: boolean;
+  canvas: CanvasDocument;
+}
+
+export interface CanvasPermission {
+  userId: string;
+  userName: string;
+  displayName: string;
+  role: string;
+  canRead: boolean;
+  canWrite: boolean;
+}

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +23,7 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
             .OrderByDescending(project => project.Id)
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count))
+                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage))
             .ToListAsync(cancellationToken);
 
         return Ok(projects);
@@ -38,7 +37,7 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
             .Where(project => project.Id == id && project.Members.Any(member => member.UserId == userId))
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count))
+                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage))
             .SingleOrDefaultAsync(cancellationToken);
 
         return project is null ? NotFound() : Ok(project);
@@ -131,6 +130,8 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         foreach (var task in unfinishedTasks)
             task.AssigneeUserId = null;
 
+        db.CanvasPermissions.RemoveRange(db.CanvasPermissions.Where(
+            permission => permission.Canvas.ProjectId == id && permission.UserId == userId));
         db.ProjectMembers.Remove(member);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
@@ -181,7 +182,7 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         db.Projects.Add(project);
         await db.SaveChangesAsync(cancellationToken);
 
-        var response = new ProjectResponse(project.Id, project.Name, project.Description, project.CreatedAt, 0, 1);
+        var response = new ProjectResponse(project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
     }
 
@@ -198,6 +199,24 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         return NoContent();
     }
 
+    [HttpPut("{id:long}/icon")]
+    public async Task<IActionResult> SetIcon(
+        long id, SetProjectIconRequest request, CancellationToken cancellationToken)
+    {
+        if (request.Icon is not null && request.IconImage is not null)
+            return BadRequest(new { error = "Choose either an icon or an image." });
+        if (request.IconImage is not null && !request.IconImage.StartsWith("data:image/", StringComparison.Ordinal))
+            return BadRequest(new { error = "The image must be an image data URL." });
+
+        var project = await GetMemberProject(id, cancellationToken);
+        if (project is null) return NotFound();
+
+        project.Icon = request.Icon;
+        project.IconImage = request.IconImage;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
@@ -206,26 +225,6 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         if (project.OwnerId != User.FindFirstValue(ClaimTypes.NameIdentifier)) return Forbid();
 
         db.Projects.Remove(project);
-        await db.SaveChangesAsync(cancellationToken);
-        return NoContent();
-    }
-
-    [HttpGet("{id:long}/canvas")]
-    public async Task<ActionResult<CanvasResponse>> GetCanvas(long id, CancellationToken cancellationToken)
-    {
-        var project = await GetMemberProject(id, cancellationToken);
-        if (project is null) return NotFound();
-        return Ok(new CanvasResponse(JsonDocument.Parse(project.CanvasJson).RootElement.Clone()));
-    }
-
-    [HttpPut("{id:long}/canvas")]
-    public async Task<IActionResult> SaveCanvas(
-        long id, SaveCanvasRequest request, CancellationToken cancellationToken)
-    {
-        var project = await GetMemberProject(id, cancellationToken);
-        if (project is null) return NotFound();
-
-        project.CanvasJson = request.Canvas.GetRawText();
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -248,7 +247,9 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
 }
 
 /// <summary>Project summary visible to a member.</summary>
-public sealed record ProjectResponse(long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount);
+public sealed record ProjectResponse(
+    long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
+    string? Icon, string? IconImage);
 
 /// <summary>A member of a project visible to project participants.</summary>
 public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role);
@@ -262,12 +263,6 @@ public sealed record ProjectRequest
     [StringLength(1000)]
     public string? Description { get; init; }
 }
-
-/// <summary>Canvas document for a project.</summary>
-public sealed record CanvasResponse(JsonElement Canvas);
-
-/// <summary>Updated project canvas document.</summary>
-public sealed record SaveCanvasRequest(JsonElement Canvas);
 
 /// <summary>A user that can be added to a project.</summary>
 public sealed record UserSummaryResponse(string Id, string UserName, string DisplayName, string Email);
@@ -297,3 +292,13 @@ public sealed record NewUserMemberRequest
 
 /// <summary>The added member with the generated password, shown once to the project owner.</summary>
 public sealed record NewUserMemberResponse(ProjectMemberResponse Member, string Password);
+
+/// <summary>Project icon: a Material icon name, a small image data URL, or neither for the default.</summary>
+public sealed record SetProjectIconRequest
+{
+    [RegularExpression("^[a-z0-9_]{1,40}$")]
+    public string? Icon { get; init; }
+
+    [StringLength(200_000)]
+    public string? IconImage { get; init; }
+}
