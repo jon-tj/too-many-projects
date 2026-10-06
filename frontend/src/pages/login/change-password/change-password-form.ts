@@ -16,14 +16,23 @@ import { WorkspaceApi } from '../../../services/workspace-api';
 export class ChangePasswordForm {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
-  protected readonly account = rxResource({ stream: () => inject(WorkspaceApi).currentAccount() });
+  private readonly api = inject(WorkspaceApi);
+  protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
   protected readonly busy = signal(false);
   protected readonly error = signal('');
+  /** Set when arriving straight from sign-in, so the temporary password is not asked for again. */
+  protected readonly knowsCurrentPassword: boolean;
   protected readonly form = inject(FormBuilder).nonNullable.group({
     currentPassword: ['', Validators.required],
     newPassword: ['', Validators.required],
     confirmPassword: ['', Validators.required],
   });
+
+  constructor() {
+    const signInPassword = this.auth.takeSignInPassword();
+    this.knowsCurrentPassword = signInPassword !== null;
+    if (signInPassword !== null) this.form.controls.currentPassword.setValue(signInPassword);
+  }
 
   protected logout(): void {
     this.auth.logout();

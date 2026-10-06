@@ -18,13 +18,25 @@ export class AuthService {
   readonly token = this.tokenState.asReadonly();
   readonly isAuthenticated = computed(() => !!this.tokenState());
   private refreshing: Observable<string> | null = null;
+  /** The password from the last sign-in, kept in memory only so a temporary password need not be typed twice. */
+  private signInPassword: string | null = null;
 
   constructor(private readonly http: HttpClient, private readonly router: Router) {}
 
   login(username: string, password: string, remember: boolean): Observable<TokenResponse> {
     return this.http.post<TokenResponse>('/api/auth/login', { email: username.trim(), password }).pipe(
-      tap((result) => this.store(result, remember ? localStorage : sessionStorage)),
+      tap((result) => {
+        this.store(result, remember ? localStorage : sessionStorage);
+        this.signInPassword = password;
+      }),
     );
+  }
+
+  /** Returns the password used to sign in, once; null after a reload or when already taken. */
+  takeSignInPassword(): string | null {
+    const password = this.signInPassword;
+    this.signInPassword = null;
+    return password;
   }
 
   /** Swaps the refresh token for new tokens. Concurrent callers share one request. */
@@ -48,7 +60,10 @@ export class AuthService {
     const remember = this.isRemembered();
     return this.http
       .post('/api/account/password', { currentPassword, newPassword })
-      .pipe(switchMap(() => this.login(userName, newPassword, remember)));
+      .pipe(
+        switchMap(() => this.login(userName, newPassword, remember)),
+        tap(() => (this.signInPassword = null)),
+      );
   }
 
   /** Whether the current sign-in was made with "Remember me". */
@@ -57,6 +72,7 @@ export class AuthService {
   }
 
   logout(): void {
+    this.signInPassword = null;
     this.clear();
     this.tokenState.set(null);
     void this.router.navigateByUrl('/login');
