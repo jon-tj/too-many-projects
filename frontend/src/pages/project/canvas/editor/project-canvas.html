@@ -1,15 +1,6 @@
-@if (!preview()) {
+@if (!preview() && detail() && !canWrite()) {
   <header>
-    <h2>{{ detail()?.name }}</h2>
-    @if (detail() && !canWrite()) {
-      <span class="badge">Read only</span>
-    }
-    @if (pinTask() === null) {
-      <button class="transparent" type="button" routerLink="settings">
-        <app-icon name="settings" />
-        <span>Settings</span>
-      </button>
-    }
+    <span class="badge">Read only</span>
   </header>
 }
 

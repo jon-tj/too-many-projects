@@ -240,11 +240,6 @@ header {
   margin-bottom: 12px;
 }
 
-h2 {
-  flex: 1;
-  margin: 0;
-}
-
 /* Pins: linked pins use their task's status colour, others their own colour. */
 .pin > .face {
   color: var(--status, var(--ink));

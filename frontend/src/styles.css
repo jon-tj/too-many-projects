@@ -16,6 +16,14 @@ main {
     padding: 32px;
 }
 
+.workspace-frame:has(app-project-canvas.zen-mode) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-frame:has(app-project-canvas.zen-mode) > .sidebar {
+    display: none;
+}
+
 /* Forms */
 form {
     display: flex;

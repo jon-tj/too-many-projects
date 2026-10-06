@@ -287,12 +287,14 @@ export class ProjectCanvas implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   protected stopTool(): void {
-    if (this.zenMode()) {
-      this.zenMode.set(false);
+    if (this.tool() || this.menu()) {
+      this.tool.set(null);
+      this.menu.set(null);
       return;
     }
-    this.tool.set(null);
-    this.menu.set(null);
+    if (this.zenMode()) {
+      this.zenMode.set(false);
+    }
   }
 
   protected toggleZenMode(): void {

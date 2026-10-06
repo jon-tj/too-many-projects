@@ -14,12 +14,19 @@
   <p role="alert">Could not load canvases.</p>
 } @else {
   @for (canvas of canvases.value(); track canvas.id) {
-    <a [routerLink]="[canvas.id]" [queryParams]="{ pinTask: pinTask() }">
-      <div>
+    <article>
+      <a [routerLink]="[canvas.id]" [queryParams]="{ pinTask: pinTask() }">
         <strong>{{ canvas.name }}</strong>
         <small>Updated {{ canvas.updatedAt | date: 'medium' }}</small>
-      </div>
-    </a>
+      </a>
+      <!-- Not while choosing a canvas to pin a task to. -->
+      @if (!pinTask()) {
+        <button class="transparent" type="button" [routerLink]="[canvas.id, 'settings']">
+          <app-icon name="edit" />
+          <span>Edit</span>
+        </button>
+      }
+    </article>
   } @empty {
     <p>No canvases yet. Create one to start fresh.</p>
   }

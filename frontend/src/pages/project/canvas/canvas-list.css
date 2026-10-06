@@ -2,25 +2,27 @@ header {
   margin-bottom: 16px;
 }
 
-a {
+article {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  color: inherit;
-  text-decoration: none;
+  padding-right: 12px;
   border-bottom: 1px solid var(--border);
 }
 
-a:hover {
+article:hover {
   background: var(--primary-active-surface);
 }
 
-div {
+/* The link fills the row; the Edit button sits at its end. */
+a {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 4px;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
 }
 
 small {
