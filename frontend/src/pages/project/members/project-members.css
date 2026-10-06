@@ -16,3 +16,24 @@ div {
 small {
   color: var(--secondary-surface);
 }
+
+header {
+  margin-bottom: 16px;
+}
+
+section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+section + section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+h3,
+p {
+  margin: 0;
+}

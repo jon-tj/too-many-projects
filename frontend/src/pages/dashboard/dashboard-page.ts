@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Project, ProjectTask } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -13,6 +13,11 @@ export class DashboardPage implements OnInit {
   protected readonly projects = signal<Project[]>([]);
   protected readonly tasks = signal<ProjectTask[]>([]);
   protected readonly loading = signal(true);
+  protected readonly previewCount = 5;
+  protected readonly showAllTasks = signal(false);
+  protected readonly visibleTasks = computed(() =>
+    this.showAllTasks() ? this.tasks() : this.tasks().slice(0, this.previewCount),
+  );
 
   constructor(private readonly api: WorkspaceApi) {}
 

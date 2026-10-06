@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Account, CanvasDocument, Project, ProjectMember, ProjectTask } from './models';
+import { Account, CanvasDocument, Project, ProjectMember, ProjectRole, ProjectTask, UserSummary } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceApi {
@@ -33,6 +33,30 @@ export class WorkspaceApi {
 
   projectMembers(id: number): Observable<ProjectMember[]> {
     return this.http.get<ProjectMember[]>(`/api/projects/${id}/members`);
+  }
+
+  memberCandidates(projectId: number, search: string): Observable<UserSummary[]> {
+    return this.http.get<UserSummary[]>(`/api/projects/${projectId}/member-candidates`, { params: { search } });
+  }
+
+  addMember(projectId: number, userId: string, role: ProjectRole): Observable<ProjectMember> {
+    return this.http.post<ProjectMember>(`/api/projects/${projectId}/members`, { userId, role });
+  }
+
+  removeMember(projectId: number, userId: string): Observable<void> {
+    return this.http.delete<void>(`/api/projects/${projectId}/members/${userId}`);
+  }
+
+  addNewUserMember(
+    projectId: number,
+    userName: string,
+    email: string,
+    role: ProjectRole,
+  ): Observable<{ member: ProjectMember; password: string }> {
+    return this.http.post<{ member: ProjectMember; password: string }>(
+      `/api/projects/${projectId}/members/new-user`,
+      { userName, email, role },
+    );
   }
 
   dashboardTasks(): Observable<ProjectTask[]> {

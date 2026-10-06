@@ -1,8 +1,20 @@
+@if (isOwner()) {
+  <header>
+    <button class="primary" type="button" (click)="openAdd()">
+      <app-icon name="person_add" />
+      <span>Add member</span>
+    </button>
+  </header>
+}
+
 @if (members.isLoading()) {
   <p>Loading members...</p>
 } @else if (members.error()) {
   <p role="alert">Could not load project members.</p>
 } @else {
+  @if (removalError()) {
+    <p role="alert">{{ removalError() }}</p>
+  }
   @for (member of members.value(); track member.userId) {
     <article>
       <div>
@@ -10,6 +22,69 @@
         <small>{{ member.userName }}</small>
       </div>
       <span class="badge">{{ member.role }}</span>
+      @if (isOwner()) {
+        <button class="transparent" type="button" [disabled]="removingUserId() === member.userId" (click)="removeMember(member)">
+          <span>{{ removingUserId() === member.userId ? 'Removing...' : 'Remove' }}</span>
+        </button>
+      }
     </article>
   }
 }
+
+<app-modal heading="Add member" [(open)]="adding">
+  @if (created(); as user) {
+    <section>
+      <p>
+        <strong>{{ user.userName }}</strong> was created and added. Share this temporary password with them, it
+        will not be shown again:
+      </p>
+      <strong>{{ user.password }}</strong>
+      <footer>
+        <button class="primary" type="button" (click)="adding.set(false)">Done</button>
+      </footer>
+    </section>
+  } @else {
+    <section>
+      <label>
+        Role
+        <select [formControl]="role">
+          <option value="Developer">Developer</option>
+          <option value="Owner">Owner</option>
+          <option value="External">External</option>
+        </select>
+      </label>
+      <label>
+        Find an existing user
+        <input [formControl]="search" placeholder="Username, name or email" />
+      </label>
+      @for (user of candidates(); track user.id) {
+        <article>
+          <div>
+            <strong>{{ user.displayName || user.userName }}</strong>
+            <small>{{ user.email }}</small>
+          </div>
+          <button class="transparent" type="button" (click)="addExisting(user)"><span>Add</span></button>
+        </article>
+      }
+    </section>
+    <section>
+      <h3>Or create a new user</h3>
+      <form [formGroup]="newUser" (ngSubmit)="addNewUser()">
+        <label>
+          Username
+          <input formControlName="userName" autocomplete="off" />
+        </label>
+        <label>
+          Email
+          <input type="email" formControlName="email" autocomplete="off" />
+        </label>
+        <footer>
+          <button class="primary" type="submit" [disabled]="newUser.invalid">Create and add</button>
+        </footer>
+      </form>
+    </section>
+    @if (error()) {
+      <p role="alert">{{ error() }}</p>
+    }
+  }
+</app-modal>

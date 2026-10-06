@@ -28,6 +28,15 @@ export interface Account {
   email: string;
 }
 
+export type ProjectRole = 'Owner' | 'Developer' | 'External';
+
+export interface UserSummary {
+  id: string;
+  userName: string;
+  displayName: string;
+  email: string;
+}
+
 export interface ProjectMember {
   userId: string;
   userName: string;

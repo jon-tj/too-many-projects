@@ -1,23 +1,4 @@
 <section>
-  <h2>Tasks <span class="badge">{{ tasks().length }}</span></h2>
-  @if (loading()) {
-    <p>Loading tasks...</p>
-  } @else {
-    @for (task of tasks(); track task.id) {
-      <a [routerLink]="['/projects', task.projectId, 'tasks', task.id]">
-        <div>
-          <strong>{{ task.title }}</strong>
-          <small>{{ task.projectName }} · {{ task.assigneeUserId ? 'Assigned to you' : 'Unassigned' }}</small>
-        </div>
-        <span class="badge" [attr.data-status]="task.status">{{ task.status }}</span>
-      </a>
-    } @empty {
-      <p>No tasks assigned to you or waiting to be assigned.</p>
-    }
-  }
-</section>
-
-<section>
   <h2>Projects <span class="badge">{{ projects().length }}</span></h2>
   @for (project of projects(); track project.id) {
     <a [routerLink]="['/projects', project.id, 'board']">
@@ -31,5 +12,31 @@
     </a>
   } @empty {
     <p>No projects yet. Use the plus button in the sidebar to create one.</p>
+  }
+</section>
+
+<section>
+  <h2>Tasks <span class="badge">{{ tasks().length }}</span></h2>
+  @if (loading()) {
+    <p>Loading tasks...</p>
+  } @else {
+    @for (task of visibleTasks(); track task.id) {
+      <a [routerLink]="['/projects', task.projectId, 'tasks', task.id]">
+        <div>
+          <strong>{{ task.title }}</strong>
+          <small>{{ task.projectName }} · {{ task.assigneeUserId ? 'Assigned to you' : 'Unassigned' }}</small>
+        </div>
+        <span class="badge" [attr.data-status]="task.status">{{ task.status }}</span>
+      </a>
+    } @empty {
+      <p>No tasks assigned to you or waiting to be assigned.</p>
+    }
+    @if (tasks().length > previewCount) {
+      <footer>
+        <button class="transparent" type="button" (click)="showAllTasks.set(!showAllTasks())">
+          <span>{{ showAllTasks() ? 'See less' : 'See more (' + (tasks().length - previewCount) + ')' }}</span>
+        </button>
+      </footer>
+    }
   }
 </section>
