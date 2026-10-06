@@ -21,11 +21,20 @@
         <strong>{{ member.displayName || member.userName }}</strong>
         <small>{{ member.userName }}</small>
       </div>
+      @if (member.pending) {
+        <span class="badge">Invited</span>
+      }
       <span class="badge">{{ member.role }}</span>
       @if (isOwner()) {
-        <button class="transparent" type="button" [disabled]="removingUserId() === member.userId" (click)="removeMember(member)">
-          <span>{{ removingUserId() === member.userId ? 'Removing...' : 'Remove' }}</span>
-        </button>
+        @if (member.pending) {
+          <button class="transparent" type="button" [disabled]="removingUserId() === member.userId" (click)="cancelInvite(member)">
+            <span>{{ removingUserId() === member.userId ? 'Cancelling...' : 'Cancel invite' }}</span>
+          </button>
+        } @else {
+          <button class="transparent" type="button" [disabled]="removingUserId() === member.userId" (click)="removeMember(member)">
+            <span>{{ removingUserId() === member.userId ? 'Removing...' : 'Remove' }}</span>
+          </button>
+        }
       }
     </article>
   }

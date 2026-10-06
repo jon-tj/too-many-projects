@@ -22,6 +22,10 @@ export class SettingsPage implements OnInit {
     currentPassword: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
   });
+  protected readonly deleteForm = this.formBuilder.nonNullable.group({
+    password: ['', Validators.required],
+  });
+  protected readonly deleteError = signal('');
 
   constructor(private readonly api: WorkspaceApi) {}
 
@@ -44,6 +48,20 @@ export class SettingsPage implements OnInit {
       },
       error: (response: HttpErrorResponse) => {
         this.error.set(response.error?.error ?? 'Could not update the password. Please try again.');
+        this.busy.set(false);
+      },
+    });
+  }
+
+  protected deleteAccount(): void {
+    if (this.deleteForm.invalid || this.busy()) return;
+    if (!confirm('Delete your account permanently? This cannot be undone.')) return;
+    this.busy.set(true);
+    this.deleteError.set('');
+    this.api.deleteAccount(this.deleteForm.getRawValue().password).subscribe({
+      next: () => this.auth.logout(),
+      error: (response: HttpErrorResponse) => {
+        this.deleteError.set(response.error?.error ?? 'Could not delete the account. Please try again.');
         this.busy.set(false);
       },
     });

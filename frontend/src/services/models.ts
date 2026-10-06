@@ -45,6 +45,8 @@ export interface ProjectMember {
   userName: string;
   displayName: string;
   role: string;
+  /** Invited but not signed in yet. */
+  pending: boolean;
 }
 
 export const CANVAS_COLORS = ['white', 'yellow', 'rose', 'blue', 'green', 'lavender'] as const;

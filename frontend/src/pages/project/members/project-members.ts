@@ -101,6 +101,27 @@ export class ProjectMembers {
     });
   }
 
+  /** The backend deletes the account only when this was the invited user's one project. */
+  protected cancelInvite(member: ProjectMember): void {
+    const name = member.displayName || member.userName;
+    if (!confirm(`Cancel ${name}'s invite? If this is the only project they were invited to, their account is deleted too.`))
+      return;
+
+    this.removalError.set('');
+    this.removingUserId.set(member.userId);
+    this.api.cancelInvite(this.projectId(), member.userId).subscribe({
+      next: () => {
+        this.members.update((members) => members.filter((item) => item.userId !== member.userId));
+        this.project.reload();
+        this.removingUserId.set(null);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.removalError.set(error.error?.error ?? 'Could not cancel the invite. Please try again.');
+        this.removingUserId.set(null);
+      },
+    });
+  }
+
   private added(member: ProjectMember): void {
     this.members.update((members) => [...members, member]);
     this.project.reload();

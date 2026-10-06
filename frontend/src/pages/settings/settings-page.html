@@ -40,3 +40,22 @@
     </footer>
   </form>
 </section>
+<section class="settings-section">
+  <h2>Delete account</h2>
+  <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()">
+    <p>
+      Permanently deletes your account. Your tasks become unassigned, and projects where you are the only member are
+      deleted. Projects you created that other people are still in must be deleted first.
+    </p>
+    <label>
+      Confirm with your password
+      <input type="password" formControlName="password" autocomplete="current-password" />
+    </label>
+    @if (deleteError()) {
+      <p class="error" role="alert">{{ deleteError() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="deleteForm.invalid || busy()">Delete account</button>
+    </footer>
+  </form>
+</section>

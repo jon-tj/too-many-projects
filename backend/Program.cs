@@ -1,3 +1,4 @@
+using Accounts;
 using Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.BearerToken;
@@ -36,6 +37,7 @@ if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
     builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
 else
     builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
+builder.Services.AddScoped<UserRemoval>();
 builder.Services.AddControllers();
 
 // Add services to the container.

@@ -61,6 +61,15 @@ export class WorkspaceApi {
     return this.http.delete<void>(`/api/projects/${projectId}/members/${userId}`);
   }
 
+  /** Cancels an invite; the account is deleted too when this was the user's only project. */
+  cancelInvite(projectId: number, userId: string): Observable<{ userDeleted: boolean }> {
+    return this.http.delete<{ userDeleted: boolean }>(`/api/projects/${projectId}/members/${userId}/invite`);
+  }
+
+  deleteAccount(password: string): Observable<void> {
+    return this.http.post<void>('/api/account/delete', { password });
+  }
+
   addNewUserMember(
     projectId: number,
     userName: string,

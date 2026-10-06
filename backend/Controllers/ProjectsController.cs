@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Accounts;
 using Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,7 @@ public sealed class ProjectsController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IEmailService emailService,
+    UserRemoval userRemoval,
     ILogger<ProjectsController> logger) : ControllerBase
 {
     private static readonly string[] MemberRoles = ["Owner", "Developer", "External"];
@@ -64,7 +66,8 @@ public sealed class ProjectsController(
                 member.UserId,
                 member.User.UserName ?? string.Empty,
                 member.User.DisplayName,
-                member.Role))
+                member.Role,
+                member.User.MustChangePassword))
             .ToListAsync(cancellationToken);
 
         return Ok(members);
@@ -114,7 +117,7 @@ public sealed class ProjectsController(
             await TrySendEmail(MemberEmails.ExistingUser(
                 user.Email, user.DisplayName, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
         }
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role));
+        return Ok(new ProjectMemberResponse(user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword));
     }
 
     [HttpDelete("{id:long}/members/{userId}")]
@@ -135,18 +138,38 @@ public sealed class ProjectsController(
         if (userId == projectOwnerId)
             return Conflict(new { error = "The project creator cannot be removed." });
 
-        var unfinishedTasks = await db.ProjectTasks
-            .Where(task => task.ProjectId == id && task.AssigneeUserId == userId
-                && (task.Status == "todo" || task.Status == "doing"))
-            .ToListAsync(cancellationToken);
-        foreach (var task in unfinishedTasks)
-            task.AssigneeUserId = null;
-
-        db.CanvasPermissions.RemoveRange(db.CanvasPermissions.Where(
-            permission => permission.Canvas.ProjectId == id && permission.UserId == userId));
-        db.ProjectMembers.Remove(member);
-        await db.SaveChangesAsync(cancellationToken);
+        await RemoveMembership(member, cancellationToken);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Cancels the invite of a user who has not signed in yet. If this project is their only one, the
+    /// account is deleted too; otherwise only this membership goes, so other projects' invites are untouched.
+    /// </summary>
+    [HttpDelete("{id:long}/members/{userId}/invite")]
+    public async Task<ActionResult<CancelInviteResponse>> CancelInvite(
+        long id, string userId, CancellationToken cancellationToken)
+    {
+        if (!await IsProjectOwner(id, cancellationToken)) return Forbid();
+
+        var member = await db.ProjectMembers.Include(member => member.User).SingleOrDefaultAsync(
+            member => member.ProjectId == id && member.UserId == userId, cancellationToken);
+        if (member is null) return NotFound();
+        if (!member.User.MustChangePassword)
+            return Conflict(new { error = "This user has already signed in, so they can only be removed from the project." });
+
+        var inOtherProjects = await db.ProjectMembers.AnyAsync(
+            other => other.UserId == userId && other.ProjectId != id, cancellationToken);
+        if (inOtherProjects)
+        {
+            await RemoveMembership(member, cancellationToken);
+            return Ok(new CancelInviteResponse(UserDeleted: false));
+        }
+
+        var result = await userRemoval.DeleteAsync(member.User, cancellationToken);
+        if (!result.Succeeded)
+            return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
+        return Ok(new CancelInviteResponse(UserDeleted: true));
     }
 
     [HttpPost("{id:long}/members/new-user")]
@@ -187,7 +210,7 @@ public sealed class ProjectsController(
                 new { error = "The invitation email could not be sent, so the user was not created. Please try again." });
         }
 
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role));
+        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true));
     }
 
     [HttpPost]
@@ -270,6 +293,22 @@ public sealed class ProjectsController(
         }
     }
 
+    /// <summary>Removes one membership: unfinished tasks in the project are unassigned and canvas overrides dropped.</summary>
+    private async Task RemoveMembership(ProjectMember member, CancellationToken cancellationToken)
+    {
+        var unfinishedTasks = await db.ProjectTasks
+            .Where(task => task.ProjectId == member.ProjectId && task.AssigneeUserId == member.UserId
+                && (task.Status == "todo" || task.Status == "doing"))
+            .ToListAsync(cancellationToken);
+        foreach (var task in unfinishedTasks)
+            task.AssigneeUserId = null;
+
+        db.CanvasPermissions.RemoveRange(db.CanvasPermissions.Where(
+            permission => permission.Canvas.ProjectId == member.ProjectId && permission.UserId == member.UserId));
+        db.ProjectMembers.Remove(member);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     private Task<bool> IsProjectOwner(long projectId, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -293,7 +332,8 @@ public sealed record ProjectResponse(
     string? Icon, string? IconImage);
 
 /// <summary>A member of a project visible to project participants.</summary>
-public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role);
+/// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
+public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role, bool Pending);
 
 /// <summary>Data required to create a project.</summary>
 public sealed record ProjectRequest
@@ -347,3 +387,6 @@ public sealed record UpdateProjectRequest
     [StringLength(200_000)]
     public string? IconImage { get; init; }
 }
+
+/// <summary>Whether cancelling the invite also deleted the account (it was the user's only project).</summary>
+public sealed record CancelInviteResponse(bool UserDeleted);
