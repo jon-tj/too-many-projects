@@ -80,8 +80,13 @@ export interface CanvasPin extends CanvasItemBase {
   label: string;
   color: CanvasColor;
   taskId: number | null;
-  /** The zoom the pin was dropped at, so the spot can later be shown as it looked. */
+  /** The zoom the pin was dropped at; used for pins saved before `area` existed. */
   zoom: number;
+  /**
+   * The canvas area (in canvas units) that was visible when the pin was dropped. Showing the pin fits this
+   * whole area into the current window, so smaller windows such as previews still show everything.
+   */
+  area?: { width: number; height: number };
 }
 export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp | CanvasPin;
 export interface CanvasDocument { view: CanvasView; items: CanvasItem[]; }

@@ -370,7 +370,7 @@ export class ProjectCanvas implements OnDestroy {
     const pin = this.newPin(middle, this.taskById().get(taskId)?.title ?? 'Task', taskId);
     const existing = this.items().find((item): item is CanvasPin => item.type === 'pin' && item.taskId === taskId);
     if (existing) {
-      Object.assign(existing, { x: pin.x, y: pin.y, label: pin.label, zoom: pin.zoom });
+      Object.assign(existing, { x: pin.x, y: pin.y, label: pin.label, zoom: pin.zoom, area: pin.area });
       this.touch();
       this.save();
     } else {
@@ -490,7 +490,15 @@ export class ProjectCanvas implements OnDestroy {
       color: 'rose',
       taskId,
       zoom: this.view().zoom,
+      area: this.visibleArea(),
     };
+  }
+
+  /** The part of the canvas currently on screen, in canvas units. */
+  private visibleArea(): { width: number; height: number } {
+    const rect = this.viewport().nativeElement.getBoundingClientRect();
+    const { zoom } = this.view();
+    return { width: rect.width / zoom, height: rect.height / zoom };
   }
 
   /** Pins are numbered 1, 2, 3… per canvas so share links stay short (?focusPin=3). */
@@ -568,12 +576,15 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   /** Puts the task's pin tip in the middle of the viewport at the zoom it was dropped at, without saving. */
+  /** Centres the pin's tip and zooms so the area visible when it was dropped fits this window. */
   private centerOnPin(pinId: string): void {
     const pin = this.items().find((item): item is CanvasPin => item.type === 'pin' && item.id === pinId);
     if (!pin) return;
     const rect = this.viewport().nativeElement.getBoundingClientRect();
+    const fitted = pin.area ? Math.min(rect.width / pin.area.width, rect.height / pin.area.height) : pin.zoom;
+    const zoom = Math.min(4, Math.max(0.15, fitted));
     const tip = { x: pin.x + pin.w / 2, y: pin.y + pin.h };
-    this.view.set({ x: rect.width / 2 - tip.x * pin.zoom, y: rect.height / 2 - tip.y * pin.zoom, zoom: pin.zoom });
+    this.view.set({ x: rect.width / 2 - tip.x * zoom, y: rect.height / 2 - tip.y * zoom, zoom });
   }
 
   private save(): void {
