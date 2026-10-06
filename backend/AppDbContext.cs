@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
 	public DbSet<Canvas> Canvases => Set<Canvas>();
 	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
+	public DbSet<CanvasImage> CanvasImages => Set<CanvasImage>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

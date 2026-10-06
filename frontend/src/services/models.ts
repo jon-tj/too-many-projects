@@ -88,7 +88,9 @@ export interface CanvasPin extends CanvasItemBase {
    */
   area?: { width: number; height: number };
 }
-export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp | CanvasPin;
+/** A pasted image; the file itself is stored separately and fetched by imageId. */
+export interface CanvasImageItem extends CanvasItemBase { type: 'image'; h: number; imageId: number; }
+export type CanvasItem = CanvasNote | CanvasList | CanvasShape | CanvasStamp | CanvasPin | CanvasImageItem;
 export interface CanvasDocument { view: CanvasView; items: CanvasItem[]; }
 
 export interface CanvasSummary {

@@ -11,6 +11,24 @@
   border-radius: 4px;
 }
 
+:host(.zen-mode) {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  overflow: auto;
+  background: var(--primary-surface);
+}
+
+:host(.zen-mode) .viewport {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .viewport.drawing {
   cursor: crosshair;
 }
@@ -272,4 +290,18 @@ h2 {
 .item.locked {
   outline: 2px dashed var(--secondary-surface);
   outline-offset: 2px;
+}
+
+/* Images fill their box; a soft placeholder shows while one is still loading. */
+.image > .face img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.image > .face:empty {
+  background: var(--primary-active-surface);
+  border-radius: 4px;
 }

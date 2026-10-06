@@ -142,6 +142,17 @@ export class WorkspaceApi {
     return this.http.delete<void>(`/api/projects/${projectId}/canvases/${canvasId}`);
   }
 
+  uploadCanvasImage(projectId: number, canvasId: number, image: Blob): Observable<{ id: number }> {
+    const form = new FormData();
+    form.append('file', image, 'pasted-image');
+    return this.http.post<{ id: number }>(`/api/projects/${projectId}/canvases/${canvasId}/images`, form);
+  }
+
+  /** Fetched with the sign-in token, which a plain <img src> could not send. */
+  canvasImage(projectId: number, canvasId: number, imageId: number): Observable<Blob> {
+    return this.http.get(`/api/projects/${projectId}/canvases/${canvasId}/images/${imageId}`, { responseType: 'blob' });
+  }
+
   saveCanvas(projectId: number, canvasId: number, canvas: CanvasDocument): Observable<void> {
     return this.http.put<void>(`/api/projects/${projectId}/canvases/${canvasId}/content`, { canvas });
   }

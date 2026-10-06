@@ -50,7 +50,9 @@
         [style.top.px]="item.y"
         [style.width.px]="item.w"
         [style.height.px]="
-          item.type === 'shape' || item.type === 'stamp' || item.type === 'pin' ? item.h : null
+          item.type === 'shape' || item.type === 'stamp' || item.type === 'pin' || item.type === 'image'
+            ? item.h
+            : null
         "
       >
         @if (item.type === 'note') {
@@ -106,6 +108,12 @@
           <div class="face" [style.font-size.px]="item.w * 0.82" (pointerdown)="drag($event, item)">
             {{ item.emoji }}
           </div>
+        } @else if (item.type === 'image') {
+          <div class="face" (pointerdown)="drag($event, item)">
+            @if (imageUrls().get(item.imageId); as url) {
+              <img [src]="url" alt="" draggable="false" />
+            }
+          </div>
         } @else if (item.type === 'pin') {
           <div class="face" (pointerdown)="drag($event, item)">
             <app-icon name="location_on" [size]="item.w" />
@@ -130,7 +138,7 @@
             [style.translate]="lineAnchor ? '-50% -100%' : null"
             (pointerdown)="$event.stopPropagation()"
           >
-            @if (editable() && item.type === 'shape') {
+            @if (editable() && (item.type === 'shape' || item.type === 'image')) {
               <button
                 class="transparent"
                 type="button"
@@ -146,7 +154,7 @@
               </button>
             }
             <!-- Linked pins use their task's status colour, so they get no colour choice. -->
-            @if (editable() && item.type !== 'stamp' && colorOf(item) !== null) {
+            @if (editable() && item.type !== 'stamp' && item.type !== 'image' && colorOf(item) !== null) {
               @for (color of colors; track color) {
                 <button
                   class="transparent"
@@ -200,6 +208,9 @@
         </button>
       }
       <button class="transparent" type="button" (click)="cancelPin()"><span>Cancel</span></button>
+      <button class="transparent" type="button" [title]="zenMode() ? 'Exit fullscreen' : 'Enter fullscreen'" (click)="toggleZenMode()">
+        <app-icon [name]="zenMode() ? 'fullscreen_exit' : 'fullscreen'" />
+      </button>
     </div>
   } @else {
     <p class="hint">{{ hint() }}</p>
@@ -295,6 +306,9 @@
       </button>
       <button class="transparent" type="button" title="Reset view" (click)="resetView()">
         <app-icon name="center_focus_strong" />
+      </button>
+      <button class="transparent" type="button" [title]="zenMode() ? 'Exit fullscreen' : 'Enter fullscreen'" (click)="toggleZenMode()">
+        <app-icon [name]="zenMode() ? 'fullscreen_exit' : 'fullscreen'" />
       </button>
     </div>
   }

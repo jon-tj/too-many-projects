@@ -131,6 +131,44 @@ public sealed class CanvasesController(AppDbContext db, CanvasAccessService acce
         return NoContent();
     }
 
+    private const int MaxImageBytes = 5 * 1024 * 1024;
+
+    /// <summary>Stores a pasted image; the canvas item then refers to it by the returned id.</summary>
+    [HttpPost("{canvasId:int}/images")]
+    [RequestSizeLimit(MaxImageBytes + 64 * 1024)]
+    public async Task<ActionResult<CanvasImageResponse>> UploadImage(
+        long projectId, int canvasId, IFormFile file, CancellationToken cancellationToken)
+    {
+        var access = await GetAccess(projectId, canvasId, cancellationToken);
+        if (access is null) return NotFound();
+        if (!access.CanWrite) return Forbid();
+        if (!file.ContentType.StartsWith("image/", StringComparison.Ordinal))
+            return BadRequest(new { error = "Only images can be added to a canvas." });
+        if (file.Length > MaxImageBytes)
+            return BadRequest(new { error = "Images can be at most 5 MB." });
+
+        using var data = new MemoryStream();
+        await file.CopyToAsync(data, cancellationToken);
+        var image = new CanvasImage { CanvasId = canvasId, ContentType = file.ContentType, Data = data.ToArray() };
+        db.CanvasImages.Add(image);
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new CanvasImageResponse(image.Id));
+    }
+
+    [HttpGet("{canvasId:int}/images/{imageId:int}")]
+    public async Task<IActionResult> GetImage(long projectId, int canvasId, int imageId, CancellationToken cancellationToken)
+    {
+        if (await GetAccess(projectId, canvasId, cancellationToken) is null) return NotFound();
+
+        var image = await db.CanvasImages.AsNoTracking().SingleOrDefaultAsync(
+            image => image.Id == imageId && image.CanvasId == canvasId, cancellationToken);
+        if (image is null) return NotFound();
+
+        // An image never changes after upload, so browsers may keep it.
+        Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+        return File(image.Data, image.ContentType);
+    }
+
     [HttpGet("{canvasId:int}/permissions")]
     public async Task<ActionResult<IReadOnlyList<CanvasPermissionResponse>>> GetPermissions(
         long projectId, int canvasId, CancellationToken cancellationToken)
@@ -236,6 +274,9 @@ public sealed record CanvasNameRequest
     [Required, StringLength(120, MinimumLength = 1)]
     public required string Name { get; init; }
 }
+
+/// <summary>The id of an uploaded canvas image.</summary>
+public sealed record CanvasImageResponse(int Id);
 
 /// <summary>Updated canvas document.</summary>
 public sealed record SaveCanvasRequest(JsonElement Canvas);

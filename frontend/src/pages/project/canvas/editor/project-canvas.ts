@@ -20,6 +20,7 @@ import {
   CANVAS_COLORS,
   CanvasColor,
   CanvasDetail,
+  CanvasImageItem,
   CanvasItem,
   CanvasList,
   CanvasNote,
@@ -58,13 +59,30 @@ type Gesture = { move: (event: PointerEvent) => void; tap?: () => void; end?: ()
 /** Someone else's lock stops counting this long after we last heard from them. */
 const LOCK_TIMEOUT_MS = 60_000;
 const PIN_SIZE = 32;
+/** Pasted images are shrunk to this on their longest side before upload, and shown at most this wide. */
+const IMAGE_MAX_PIXELS = 2000;
+const IMAGE_MAX_WIDTH = 480;
 
 const isLine = (item: CanvasItem) => item.type === 'shape' && (item.shape === 'line' || item.shape === 'arrow');
+
+/** Shrinks an image to at most IMAGE_MAX_PIXELS on its longest side (WebP, or PNG where WebP is unsupported). */
+async function shrinkImage(file: File): Promise<{ blob: Blob; width: number; height: number }> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, IMAGE_MAX_PIXELS / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', 0.85));
+  if (!blob) throw new Error('The image could not be encoded.');
+  return { blob, width: canvas.width, height: canvas.height };
+}
 
 @Component({
   selector: 'app-project-canvas',
   imports: [RouterLink, Icon],
-  host: { '[class.preview]': 'preview()' },
+  host: { '[class.preview]': 'preview()', '[class.zen-mode]': 'zenMode()' },
   templateUrl: './project-canvas.html',
   styleUrl: './project-canvas.css',
 })
@@ -77,6 +95,7 @@ export class ProjectCanvas implements OnDestroy {
   readonly focusPin = input<string | null | undefined>(null);
   /** Read-only, non-interactive view without any controls, e.g. on the task page. */
   readonly preview = input(false, { transform: booleanAttribute });
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly api = inject(WorkspaceApi);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -96,6 +115,7 @@ export class ProjectCanvas implements OnDestroy {
   protected readonly editable = computed(() => this.canWrite() && this.pinTask() === null && !this.preview());
   /** A viewing option only; it is not saved. */
   protected readonly showPins = signal(true);
+  protected readonly zenMode = signal(false);
   /** Project tasks, so linked pins show the current title and status colour. */
   private readonly tasks = rxResource({
     params: () => this.projectId(),
@@ -106,7 +126,7 @@ export class ProjectCanvas implements OnDestroy {
   protected readonly hint = computed(() => {
     if (this.pinTask() !== null) return 'Pan and zoom so the spot is in the middle, then drop the pin';
     const tool = this.tool();
-    if (!tool) return 'Double-click to add a note · drag to pan · Ctrl+scroll to zoom';
+    if (!tool) return 'Double-click to add a note · paste an image · drag to pan · Ctrl+scroll to zoom';
     const verb = tool.type === 'shape' ? 'Drag to draw' : 'Click to place';
     return `${verb} ${tool.label.toLowerCase()} · Esc to stop`;
   });
@@ -120,6 +140,9 @@ export class ProjectCanvas implements OnDestroy {
   /** Ticks so expired locks stop showing even when nothing else changes. */
   private readonly now = signal(Date.now());
   private clock?: ReturnType<typeof setInterval>;
+  /** Object URLs of loaded images by image id; images are fetched with auth, then shown from memory. */
+  protected readonly imageUrls = signal(new Map<number, string>());
+  private readonly loadingImages = new Set<number>();
   /** The note or list whose text you are writing in; it stays locked for others meanwhile. */
   private editingItemId: string | null = null;
   private readonly account = rxResource({
@@ -143,6 +166,7 @@ export class ProjectCanvas implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.imageUrls().forEach((url) => URL.revokeObjectURL(url));
     this.flush();
     this.live?.stop();
     clearInterval(this.clock);
@@ -251,6 +275,23 @@ export class ProjectCanvas implements OnDestroy {
     this.menu.set(null);
   }
 
+  @HostListener('document:fullscreenchange')
+  protected onFullscreenChange(): void {
+    this.zenMode.set(document.fullscreenElement === this.host.nativeElement);
+  }
+
+  protected async toggleZenMode(): Promise<void> {
+    try {
+      if (document.fullscreenElement === this.host.nativeElement) {
+        await document.exitFullscreen();
+      } else {
+        await this.host.nativeElement.requestFullscreen();
+      }
+    } catch {
+      this.error.set('Fullscreen mode is unavailable in this browser.');
+    }
+  }
+
   // ---- items ----
 
   protected addNote(point = this.center()): void {
@@ -339,6 +380,7 @@ export class ProjectCanvas implements OnDestroy {
       (move) => {
         item.w = Math.max(40, start.w + (move.clientX - start.x) / start.zoom);
         if (item.type === 'stamp' || item.type === 'pin') item.h = item.w;
+      else if (item.type === 'image') item.h = item.w * (start.h / start.w);
         else if (item.type === 'shape' && !isLine(item)) item.h = Math.max(40, start.h + (move.clientY - start.y) / start.zoom);
         this.touch();
         this.send({ upsert: [size()] });
@@ -386,7 +428,7 @@ export class ProjectCanvas implements OnDestroy {
 
   /** Linked pins take their task's status colour instead, see statusOf. */
   protected colorOf(item: CanvasItem): CanvasColor | null {
-    if (item.type === 'stamp' || (item.type === 'pin' && item.taskId !== null)) return null;
+    if (item.type === 'stamp' || item.type === 'image' || (item.type === 'pin' && item.taskId !== null)) return null;
     return item.color;
   }
 
@@ -422,6 +464,62 @@ export class ProjectCanvas implements OnDestroy {
     this.touch();
     this.send({ upsert: [{ id: pin.id, label }] });
     this.save();
+  }
+
+  // ---- images ----
+
+  /** Pasting an image (outside a text box) uploads it and places it in the middle of the view. */
+  @HostListener('document:paste', ['$event'])
+  protected onPaste(event: ClipboardEvent): void {
+    if (!this.editable()) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('textarea, input, [contenteditable]')) return;
+    const file = [...(event.clipboardData?.items ?? [])]
+      .find((entry) => entry.kind === 'file' && entry.type.startsWith('image/'))
+      ?.getAsFile();
+    if (!file) return;
+    event.preventDefault();
+    void this.pasteImage(file);
+  }
+
+  private async pasteImage(file: File): Promise<void> {
+    try {
+      const { blob, width, height } = await shrinkImage(file);
+      const { projectId, canvasId } = this.loaded;
+      this.api.uploadCanvasImage(projectId, canvasId, blob).subscribe({
+        next: ({ id: imageId }) => {
+          const w = Math.min(width, IMAGE_MAX_WIDTH);
+          const h = w * (height / width);
+          const middle = this.middle();
+          this.add({ id: crypto.randomUUID(), type: 'image', imageId, x: middle.x - w / 2, y: middle.y - h / 2, w, h });
+        },
+        error: () => this.error.set('The image could not be uploaded.'),
+      });
+    } catch {
+      this.error.set('That image could not be read.');
+    }
+  }
+
+  /** Fetches images not loaded yet (once each) and keeps them as object URLs. */
+  private loadImages(): void {
+    const { projectId, canvasId } = this.loaded;
+    for (const item of this.items()) {
+      if (item.type !== 'image' || this.imageUrls().has(item.imageId) || this.loadingImages.has(item.imageId)) continue;
+      const imageId = item.imageId;
+      this.loadingImages.add(imageId);
+      this.api.canvasImage(projectId, canvasId, imageId).subscribe({
+        next: (blob) => this.imageUrls.update((urls) => new Map(urls).set(imageId, URL.createObjectURL(blob))),
+        complete: () => this.loadingImages.delete(imageId),
+        error: () => this.loadingImages.delete(imageId),
+      });
+    }
+  }
+
+  /** The middle of the view, in canvas units. */
+  private middle(): { x: number; y: number } {
+    const rect = this.viewport().nativeElement.getBoundingClientRect();
+    const { x, y, zoom } = this.view();
+    return { x: (rect.width / 2 - x) / zoom, y: (rect.height / 2 - y) / zoom };
   }
 
   // ---- pin mode ----
@@ -631,6 +729,7 @@ export class ProjectCanvas implements OnDestroy {
 
   private add(item: CanvasItem): void {
     this.items.update((items) => [...items, item]);
+    this.loadImages();
     this.send({ upsert: [item] });
     this.save();
   }
@@ -666,6 +765,7 @@ export class ProjectCanvas implements OnDestroy {
       }
       return next;
     });
+    this.loadImages();
     // Hearing from someone keeps their lock fresh.
     this.locks.update((locks) => locks.map((lock) => (lock.userId === userId ? { ...lock, seen: Date.now() } : lock)));
   }
@@ -760,6 +860,7 @@ export class ProjectCanvas implements OnDestroy {
         // Items saved by the previous canvas version have no width and are dropped.
         this.items.set((canvas.items ?? []).filter((item) => typeof item.w === 'number'));
         if (this.numberOldPins()) this.save();
+        this.loadImages();
         const focusPin = this.focusPin();
         if (focusPin) this.centerOnPin(focusPin);
       },
