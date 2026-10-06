@@ -37,6 +37,12 @@ label {
     font-weight: 600;
 }
 
+label:has(> input[type='checkbox']) {
+    flex-direction: row;
+    align-items: center;
+    font-weight: 400;
+}
+
 input:not([type='checkbox'], [type='radio']),
 textarea,
 select {

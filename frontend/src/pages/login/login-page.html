@@ -1,4 +1,5 @@
 <aside class="brand-panel" aria-label="About Too Many Projects">
+  <img src="logo.png" alt="" />
   <h1>Make room<br />for the work.</h1>
 </aside>
 
@@ -17,6 +18,10 @@
         autocomplete="current-password"
         placeholder="Enter your password"
       />
+    </label>
+    <label>
+      <input type="checkbox" formControlName="remember" />
+      Remember me
     </label>
     @if (error()) {
       <p role="alert">{{ error() }}</p>

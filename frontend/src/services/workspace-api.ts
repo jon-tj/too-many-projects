@@ -34,12 +34,11 @@ export class WorkspaceApi {
     return this.http.get<Project>(`/api/projects/${id}`);
   }
 
-  updateProject(id: number, name: string, description: string): Observable<void> {
-    return this.http.put<void>(`/api/projects/${id}`, { name, description });
-  }
-
-  setProjectIcon(id: number, icon: string | null, iconImage: string | null): Observable<void> {
-    return this.http.put<void>(`/api/projects/${id}/icon`, { icon, iconImage });
+  updateProject(
+    id: number,
+    changes: Pick<Project, 'name' | 'description' | 'icon' | 'iconImage'>,
+  ): Observable<void> {
+    return this.http.put<void>(`/api/projects/${id}`, changes);
   }
 
   deleteProject(id: number): Observable<void> {

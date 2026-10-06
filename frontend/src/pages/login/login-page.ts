@@ -17,6 +17,7 @@ export class LoginPage {
   protected readonly form = this.formBuilder.nonNullable.group({
     username: ['', Validators.required],
     password: ['', Validators.required],
+    remember: [false],
   });
 
   constructor(
@@ -30,8 +31,8 @@ export class LoginPage {
     if (this.form.invalid || this.busy()) return;
     this.busy.set(true);
     this.error.set('');
-    const { username, password } = this.form.getRawValue();
-    this.auth.login(username.trim(), password).subscribe({
+    const { username, password, remember } = this.form.getRawValue();
+    this.auth.login(username.trim(), password, remember).subscribe({
       next: () => void this.router.navigateByUrl('/'),
       error: (error: HttpErrorResponse) => {
         this.error.set(error.status === 401

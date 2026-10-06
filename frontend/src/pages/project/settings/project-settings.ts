@@ -45,21 +45,26 @@ export class ProjectSettings {
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
     description: ['', Validators.maxLength(1000)],
+    icon: [null as string | null],
+    iconImage: [null as string | null],
   });
 
   constructor() {
     effect(() => {
       const project = this.project.value();
-      if (project) this.form.reset({ name: project.name, description: project.description });
+      if (project) {
+        const { name, description, icon, iconImage } = project;
+        this.form.reset({ name, description, icon, iconImage });
+      }
     });
   }
 
   protected save(): void {
     const project = this.project.value();
     if (!project || this.form.invalid) return;
-    const { name, description } = this.form.getRawValue();
+    const { name, description, icon, iconImage } = this.form.getRawValue();
     this.busy.set(true);
-    this.api.updateProject(project.id, name.trim(), description.trim()).subscribe({
+    this.api.updateProject(project.id, { name: name.trim(), description: description.trim(), icon, iconImage }).subscribe({
       next: () => {
         this.shell.refreshProjects();
         this.busy.set(false);
@@ -90,16 +95,10 @@ export class ProjectSettings {
     });
   }
 
+  /** Only changes the form; nothing is saved until "Save changes". */
   protected setIcon(icon: string | null, iconImage: string | null): void {
-    const project = this.project.value();
-    if (!project) return;
-    this.api.setProjectIcon(project.id, icon, iconImage).subscribe({
-      next: () => {
-        this.project.reload();
-        this.shell.refreshProjects();
-      },
-      error: () => this.message.set('Could not update the icon. Please try again.'),
-    });
+    this.form.patchValue({ icon, iconImage });
+    this.form.markAsDirty();
   }
 
   protected async upload(event: Event): Promise<void> {

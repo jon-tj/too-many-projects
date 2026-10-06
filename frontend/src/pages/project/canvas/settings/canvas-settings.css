@@ -36,10 +36,6 @@ small {
   color: var(--secondary-surface);
 }
 
-article label {
-  flex-direction: row;
-  align-items: center;
-}
 
 section {
   margin-top: 32px;

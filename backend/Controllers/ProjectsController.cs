@@ -188,20 +188,7 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
 
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(
-        long id, ProjectRequest request, CancellationToken cancellationToken)
-    {
-        var project = await GetMemberProject(id, cancellationToken);
-        if (project is null) return NotFound();
-
-        project.Name = request.Name.Trim();
-        project.Description = request.Description?.Trim() ?? string.Empty;
-        await db.SaveChangesAsync(cancellationToken);
-        return NoContent();
-    }
-
-    [HttpPut("{id:long}/icon")]
-    public async Task<IActionResult> SetIcon(
-        long id, SetProjectIconRequest request, CancellationToken cancellationToken)
+        long id, UpdateProjectRequest request, CancellationToken cancellationToken)
     {
         if (request.Icon is not null && request.IconImage is not null)
             return BadRequest(new { error = "Choose either an icon or an image." });
@@ -211,6 +198,8 @@ public sealed class ProjectsController(AppDbContext db, UserManager<ApplicationU
         var project = await GetMemberProject(id, cancellationToken);
         if (project is null) return NotFound();
 
+        project.Name = request.Name.Trim();
+        project.Description = request.Description?.Trim() ?? string.Empty;
         project.Icon = request.Icon;
         project.IconImage = request.IconImage;
         await db.SaveChangesAsync(cancellationToken);
@@ -254,7 +243,7 @@ public sealed record ProjectResponse(
 /// <summary>A member of a project visible to project participants.</summary>
 public sealed record ProjectMemberResponse(string UserId, string UserName, string DisplayName, string Role);
 
-/// <summary>Data required to create or update a project.</summary>
+/// <summary>Data required to create a project.</summary>
 public sealed record ProjectRequest
 {
     [Required, StringLength(120, MinimumLength = 1)]
@@ -293,9 +282,15 @@ public sealed record NewUserMemberRequest
 /// <summary>The added member with the generated password, shown once to the project owner.</summary>
 public sealed record NewUserMemberResponse(ProjectMemberResponse Member, string Password);
 
-/// <summary>Project icon: a Material icon name, a small image data URL, or neither for the default.</summary>
-public sealed record SetProjectIconRequest
+/// <summary>Editable project details. Icon is a Material icon name, IconImage a small image data URL; neither means the default icon.</summary>
+public sealed record UpdateProjectRequest
 {
+    [Required, StringLength(120, MinimumLength = 1)]
+    public required string Name { get; init; }
+
+    [StringLength(1000)]
+    public string? Description { get; init; }
+
     [RegularExpression("^[a-z0-9_]{1,40}$")]
     public string? Icon { get; init; }
 

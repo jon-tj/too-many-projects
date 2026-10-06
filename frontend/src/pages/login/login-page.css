@@ -13,8 +13,16 @@
 }
 
 .brand-panel {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
   color: var(--secondary-text);
   background: var(--primary-text);
+}
+
+img {
+  width: 64px;
 }
 
 .login-panel {

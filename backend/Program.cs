@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
 using Model;
 
@@ -20,6 +21,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlite($"Data Source={localDatabasePath}");
     }
 });
+// "Remember me" keeps the refresh token in the browser; each refresh issues a new one, valid for 15 days.
+builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, options =>
+    options.RefreshTokenExpiration = TimeSpan.FromDays(15));
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
 builder.Services.AddAuthorization();

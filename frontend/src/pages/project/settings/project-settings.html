@@ -7,20 +7,9 @@
     Description
     <textarea formControlName="description" rows="4"></textarea>
   </label>
-  @if (message()) {
-    <p role="status">{{ message() }}</p>
-  }
-  <footer>
-    <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
-      Save changes
-    </button>
-  </footer>
-</form>
-
-@if (project.value(); as current) {
-  <section>
-    <h2>Icon</h2>
-    <app-project-icon [project]="current" />
+  <fieldset>
+    <legend>Icon</legend>
+    <app-project-icon [project]="{ icon: form.controls.icon.value, iconImage: form.controls.iconImage.value }" />
     <label>
       Upload an image
       <input type="file" accept="image/*" (change)="upload($event)" />
@@ -32,7 +21,7 @@
           class="transparent"
           type="button"
           [title]="icon"
-          [class.active]="!current.iconImage && current.icon === icon"
+          [class.active]="!form.controls.iconImage.value && form.controls.icon.value === icon"
           (click)="setIcon(icon, null)"
         >
           <app-icon [name]="icon" />
@@ -42,13 +31,22 @@
     <button
       class="transparent"
       type="button"
-      [disabled]="!current.icon && !current.iconImage"
+      [disabled]="!form.controls.icon.value && !form.controls.iconImage.value"
       (click)="setIcon(null, null)"
     >
       <span>Use default</span>
     </button>
-  </section>
-}
+  </fieldset>
+
+  @if (message()) {
+    <p role="status">{{ message() }}</p>
+  }
+  <footer>
+    <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
+      Save changes
+    </button>
+  </footer>
+</form>
 
 <section>
   <h2>Delete project</h2>

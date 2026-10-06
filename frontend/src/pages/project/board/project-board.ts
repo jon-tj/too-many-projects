@@ -1,7 +1,6 @@
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { map, of, switchMap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { Modal } from '../../../components/modal/modal';
@@ -43,6 +42,7 @@ export class ProjectBoard {
   );
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
+  protected readonly copiedId = signal<number | null>(null);
   protected readonly form = inject(FormBuilder).nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(180)]],
     description: [''],
@@ -62,24 +62,18 @@ export class ProjectBoard {
     });
   }
 
-  /** Duplicates a task into the same column, keeping its assignee and due date. */
+  /** Copies the task as plain text, e.g. to paste into an AI assistant. */
   protected copyTask(task: ProjectTask): void {
-    this.api
-      .createTask(this.projectId(), task.title, task.description)
-      .pipe(
-        switchMap((created) => {
-          const copy = { ...created, status: task.status, assigneeUserId: task.assigneeUserId, dueAt: task.dueAt };
-          const unchanged = copy.status === created.status && !copy.assigneeUserId && !copy.dueAt;
-          return unchanged ? of(copy) : this.api.updateTask(copy).pipe(map(() => copy));
-        }),
-      )
-      .subscribe({
-        next: (copy) => {
-          this.tasks.update((tasks) => [copy, ...tasks]);
-          this.taskError.set('');
-        },
-        error: () => this.taskError.set('Could not copy the task. Please try again.'),
-      });
+    const text = task.description ? `${task.title}
+
+${task.description}` : task.title;
+    navigator.clipboard.writeText(text).then(
+      () => {
+        this.copiedId.set(task.id);
+        setTimeout(() => this.copiedId.update((id) => (id === task.id ? null : id)), 1500);
+      },
+      () => this.taskError.set('Could not copy the task to the clipboard.'),
+    );
   }
 
   protected assigneeName(task: ProjectTask): string {

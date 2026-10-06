@@ -41,8 +41,8 @@
                 @if (task.status === 'done') {
                   <span class="done-check"><app-icon name="check" /></span>
                 }
-                <button class="transparent" type="button" title="Copy task" (click)="copyTask(task)">
-                  <app-icon name="content_copy" />
+                <button class="transparent" type="button" title="Copy title and description" (click)="copyTask(task)">
+                  <app-icon [name]="copiedId() === task.id ? 'check' : 'content_copy'" />
                 </button>
               </div>
             </footer>

@@ -14,7 +14,6 @@ h1 app-project-icon {
   width: 36px;
   height: 36px;
   color: var(--secondary-surface);
-  background: var(--border);
   border-radius: 6px;
 }
 
