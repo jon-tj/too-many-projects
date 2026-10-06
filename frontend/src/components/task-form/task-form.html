@@ -1,0 +1,45 @@
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <label>
+    Title
+    <input formControlName="title" autofocus />
+  </label>
+  <label>
+    Description
+    <textarea formControlName="description" rows="4" placeholder="A little context (optional)"></textarea>
+  </label>
+  @if (task()) {
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="todo">To do</option>
+        <option value="doing">Doing</option>
+        <option value="done">Done</option>
+      </select>
+    </label>
+  }
+  <div>
+    <label>
+      Assignee
+      <select formControlName="assigneeUserId">
+        <option [ngValue]="null">Unassigned</option>
+        @for (member of members(); track member.userId) {
+          <option [ngValue]="member.userId">{{ member.displayName || member.userName }}</option>
+        }
+      </select>
+    </label>
+    <button class="transparent" type="button" [disabled]="assignedToMe()" (click)="assignToMe()">
+      <span>Assign to me</span>
+    </button>
+  </div>
+  <div>
+    <label>
+      Due date
+      <input type="date" formControlName="dueAt" />
+    </label>
+    <button class="transparent" type="button" (click)="dueIn(0)"><span>Today</span></button>
+    <button class="transparent" type="button" (click)="dueIn(7)"><span>+7 days</span></button>
+  </div>
+  <footer>
+    <ng-content />
+  </footer>
+</form>

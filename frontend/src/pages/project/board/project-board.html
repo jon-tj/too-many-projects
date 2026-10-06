@@ -67,17 +67,15 @@
 </footer>
 
 <app-modal heading="New task" [(open)]="addingTask">
-  <form [formGroup]="form" (ngSubmit)="createTask()">
-    <label>
-      Title
-      <input formControlName="title" autofocus />
-    </label>
-    <label>
-      Description
-      <textarea formControlName="description" rows="4" placeholder="A little context (optional)"></textarea>
-    </label>
-    <footer>
-      <button class="primary" type="submit" [disabled]="form.invalid">Add task</button>
-    </footer>
-  </form>
+  <!-- Created on open, so every new task starts with an empty form. -->
+  @if (addingTask()) {
+    <app-task-form
+      #taskForm
+      [members]="members.value()"
+      [currentUserId]="account.value()?.id ?? null"
+      (save)="createTask($event)"
+    >
+      <button class="primary" type="submit" [disabled]="taskForm.form.invalid">Add task</button>
+    </app-task-form>
+  }
 </app-modal>

@@ -90,8 +90,12 @@ export class WorkspaceApi {
     return this.http.get<ProjectTask[]>(`/api/tasks/by-project/${projectId}`);
   }
 
-  createTask(projectId: number, title: string, description: string): Observable<ProjectTask> {
-    return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, { title, description });
+  createTask(
+    projectId: number,
+    task: Pick<ProjectTask, 'title' | 'description' | 'assigneeUserId' | 'dueAt'>,
+  ): Observable<ProjectTask> {
+    const { title, description, assigneeUserId, dueAt } = task;
+    return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, { title, description, assigneeUserId, dueAt });
   }
 
   task(id: number): Observable<ProjectTask> {

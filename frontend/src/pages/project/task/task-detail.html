@@ -3,54 +3,20 @@
 } @else if (task.error()) {
   <p role="alert">This task could not be found.</p>
 } @else if (task.value(); as current) {
-  <form [formGroup]="form" (ngSubmit)="save()">
-    <label>
-      Title
-      <input formControlName="title" />
-    </label>
-    <label>
-      Description
-      <textarea formControlName="description" rows="6"></textarea>
-    </label>
-    <label>
-      Status
-      <select formControlName="status">
-        <option value="todo">To do</option>
-        <option value="doing">Doing</option>
-        <option value="done">Done</option>
-      </select>
-    </label>
-    <div>
-      <label>
-        Assignee
-        <select formControlName="assigneeUserId">
-          <option [ngValue]="null">Unassigned</option>
-          @for (member of members.value(); track member.userId) {
-            <option [ngValue]="member.userId">{{ member.displayName || member.userName }}</option>
-          }
-        </select>
-      </label>
-      <button class="transparent" type="button" [disabled]="assignedToMe()" (click)="assignToMe()">
-        <span>Assign to me</span>
-      </button>
-    </div>
-    <div>
-      <label>
-        Due date
-        <input type="date" formControlName="dueAt" />
-      </label>
-      <button class="transparent" type="button" (click)="dueIn(0)"><span>Today</span></button>
-      <button class="transparent" type="button" (click)="dueIn(7)"><span>+7 days</span></button>
-    </div>
-    @if (message()) {
-      <p role="status">{{ message() }}</p>
-    }
-    <footer>
-      <button class="primary" type="submit" [disabled]="form.invalid || form.pristine || busy()">
-        Save changes
-      </button>
-      <button class="transparent" type="button" (click)="backToBoard()">Cancel</button>
-      <button class="transparent" type="button" [disabled]="busy()" (click)="deleteTask()">Delete task</button>
-    </footer>
-  </form>
+  @if (message()) {
+    <p role="alert">{{ message() }}</p>
+  }
+  <app-task-form
+    #taskForm
+    [task]="current"
+    [members]="members.value()"
+    [currentUserId]="account.value()?.id ?? null"
+    (save)="save($event)"
+  >
+    <button class="primary" type="submit" [disabled]="taskForm.form.invalid || taskForm.form.pristine || busy()">
+      Save changes
+    </button>
+    <button class="transparent" type="button" (click)="backToBoard()">Cancel</button>
+    <button class="transparent" type="button" [disabled]="busy()" (click)="deleteTask()">Delete task</button>
+  </app-task-form>
 }

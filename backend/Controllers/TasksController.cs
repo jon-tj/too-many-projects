@@ -67,6 +67,10 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             project => project.Id == projectId && project.Members.Any(member => member.UserId == userId),
             cancellationToken);
         if (project is null) return NotFound();
+        if (request.AssigneeUserId is not null && !await db.ProjectMembers.AnyAsync(
+                member => member.ProjectId == projectId && member.UserId == request.AssigneeUserId,
+                cancellationToken))
+            return BadRequest(new { error = "The assignee must be a member of the project." });
 
         var task = new ProjectTask
         {
@@ -74,6 +78,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             Title = request.Title.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             CreatedByUserId = userId,
+            AssigneeUserId = request.AssigneeUserId,
             DueAt = request.DueAt
         };
         db.ProjectTasks.Add(task);
@@ -157,6 +162,8 @@ public sealed record CreateTaskRequest
 
     [StringLength(2000)]
     public string? Description { get; init; }
+
+    public string? AssigneeUserId { get; init; }
 
     public DateTimeOffset? DueAt { get; init; }
 }

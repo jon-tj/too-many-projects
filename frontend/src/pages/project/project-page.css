@@ -8,6 +8,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: 0;
 }
 
 h1 app-project-icon {

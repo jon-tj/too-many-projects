@@ -113,8 +113,6 @@
   min-height: 86px;
   place-items: center;
   margin-top: 10px;
-  color: var(--border);
-  border: 1px dashed var(--border);
   border-radius: 4px;
   font-size: 10px;
 }
