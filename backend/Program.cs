@@ -1,3 +1,4 @@
+using Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
@@ -27,6 +28,14 @@ builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, o
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
 builder.Services.AddAuthorization();
+
+// Email: Resend when an API key is configured (appsettings.json locally, Resend__ApiKey on Render), otherwise log only.
+var resendSettings = builder.Configuration.GetSection(ResendOptions.Section);
+builder.Services.Configure<ResendOptions>(resendSettings);
+if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
+    builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
+else
+    builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
 builder.Services.AddControllers();
 
 // Add services to the container.

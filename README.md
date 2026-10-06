@@ -20,14 +20,19 @@ The API runs at `http://localhost:5081` and Angular runs at `http://localhost:42
 
 On first startup, Identity seeds a development account with username `jon`, email `piehunter123@gmail.com`, and password `Passw0rd!`. Identity hashes and salts the password. Change or remove these seed credentials before deploying to a shared or production environment.
 
-To use Supabase PostgreSQL instead, set the connection string in the backend terminal before running it. You may need to use session pooler for this to work if you are struggling with connecting.
+### Local settings and secrets
+
+`backend/appsettings.json` holds local secrets and is not tracked by git. Create it from the template the first time:
 
 ```powershell
-$env:ConnectionStrings__Supabase = "Host=<pooler-host>;Port=5432;Database=postgres;Username=<pooler-user>;Password=<database-password>;SSL Mode=Require"
-dotnet run --project backend/backend.csproj
+Copy-Item backend/appsettings.example.json backend/appsettings.json
 ```
 
-Use the **Session pooler** connection string from Supabase Project Settings > Database. Keep the password private and do not commit it. When this variable is set, Supabase replaces the local SQLite database. The application applies the checked-in EF Core migrations on startup.
+- `ConnectionStrings:Supabase`: to use Supabase PostgreSQL instead of SQLite, paste the **Session pooler** connection string from Supabase Project Settings > Database, e.g. `Host=<pooler-host>;Port=5432;Database=postgres;Username=<pooler-user>;Password=<database-password>;SSL Mode=Require`. Leave it empty to use the local SQLite database. The application applies the checked-in EF Core migrations on startup.
+- `Resend:ApiKey`: your Resend API key. When it is empty, emails are written to the log instead of being sent.
+- `Resend:From`: the sender. `onboarding@resend.dev` works for testing but can only deliver to the email address of your Resend account; use an address on a domain you have verified in Resend for real recipients.
+
+Environment variables override these values, e.g. `$env:ConnectionStrings__Supabase = "..."`.
 
 ## Deploy to Render
 
@@ -36,5 +41,7 @@ Create a Render **Web Service** from this repository and select **Docker** as th
 In the Render service environment, add:
 
 - `ConnectionStrings__Supabase`: the Supabase **Session pooler** connection string, including `SSL Mode=Require`. Configure this for persistent hosted data; otherwise the service falls back to SQLite, whose local container file is not persistent across Render deployments.
+- `Resend__ApiKey`: your Resend API key.
+- `Resend__From`: the sender address, on a domain verified in Resend.
 
-Render supplies `PORT` automatically. Do not put Supabase credentials in the Dockerfile or source control.
+Render supplies `PORT` automatically. Do not put credentials in the Dockerfile or source control; `backend/appsettings.json` is excluded from both git and the Docker build.

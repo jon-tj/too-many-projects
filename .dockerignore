@@ -4,3 +4,4 @@
 **/dist
 **/.angular
 .git
+backend/appsettings.json
