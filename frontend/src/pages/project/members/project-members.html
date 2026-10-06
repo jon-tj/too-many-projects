@@ -35,15 +35,9 @@
   @if (created(); as user) {
     <section>
       <p>
-        <strong>{{ user.userName }}</strong> was created and added.
-        @if (user.emailSent) {
-          We emailed their username and temporary password to {{ user.email }}.
-        } @else {
-          The email to {{ user.email }} could not be sent, so share this temporary password with them.
-        }
-        It will not be shown again:
+        <strong>{{ user.userName }}</strong> was created and added. Their username and a temporary password were emailed
+        to {{ user.email }}.
       </p>
-      <strong>{{ user.password }}</strong>
       <footer>
         <button class="primary" type="button" (click)="adding.set(false)">Done</button>
       </footer>

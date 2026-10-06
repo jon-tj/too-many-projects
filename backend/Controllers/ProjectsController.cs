@@ -150,7 +150,7 @@ public sealed class ProjectsController(
     }
 
     [HttpPost("{id:long}/members/new-user")]
-    public async Task<ActionResult<NewUserMemberResponse>> AddNewUserMember(
+    public async Task<ActionResult<ProjectMemberResponse>> AddNewUserMember(
         long id, NewUserMemberRequest request, CancellationToken cancellationToken)
     {
         if (!MemberRoles.Contains(request.Role)) return BadRequest(new { error = "Role must be Owner, Developer, or External." });
@@ -175,12 +175,19 @@ public sealed class ProjectsController(
 
         db.ProjectMembers.Add(new ProjectMember { ProjectId = id, UserId = user.Id, Role = request.Role });
         await db.SaveChangesAsync(cancellationToken);
+        // The temporary password only ever leaves the server in this email. If it cannot be sent, nobody
+        // could sign in as the new user, so the user (and, by cascade, the membership) is removed again.
         var (projectName, inviterName) = await GetInvitationDetails(id, cancellationToken);
         var emailSent = await TrySendEmail(MemberEmails.NewUser(
             user.Email, user.UserName, password, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
+        if (!emailSent)
+        {
+            await userManager.DeleteAsync(user);
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { error = "The invitation email could not be sent, so the user was not created. Please try again." });
+        }
 
-        var member = new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role);
-        return Ok(new NewUserMemberResponse(member, password, emailSent));
+        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role));
     }
 
     [HttpPost]
@@ -324,9 +331,6 @@ public sealed record NewUserMemberRequest
     public required string Role { get; init; }
 }
 
-/// <summary>The added member with the generated password, shown once to the project owner.</summary>
-/// <remarks>The password is still returned so it can be shown if the email does not arrive.</remarks>
-public sealed record NewUserMemberResponse(ProjectMemberResponse Member, string Password, bool EmailSent);
 
 /// <summary>Editable project details. Icon is a Material icon name, IconImage a small image data URL; neither means the default icon.</summary>
 public sealed record UpdateProjectRequest

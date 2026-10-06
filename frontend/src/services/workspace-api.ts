@@ -66,8 +66,8 @@ export class WorkspaceApi {
     userName: string,
     email: string,
     role: ProjectRole,
-  ): Observable<{ member: ProjectMember; password: string; emailSent: boolean }> {
-    return this.http.post<{ member: ProjectMember; password: string; emailSent: boolean }>(
+  ): Observable<ProjectMember> {
+    return this.http.post<ProjectMember>(
       `/api/projects/${projectId}/members/new-user`,
       { userName, email, role },
     );
