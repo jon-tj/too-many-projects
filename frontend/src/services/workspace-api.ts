@@ -94,6 +94,10 @@ export class WorkspaceApi {
     return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt });
   }
 
+  deleteTask(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/tasks/${id}`);
+  }
+
   setTaskStatus(taskId: number, status: string): Observable<void> {
     return this.http.patch<void>(`/api/tasks/${taskId}/status`, { status });
   }

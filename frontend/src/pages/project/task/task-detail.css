@@ -1,3 +1,14 @@
 form {
   max-width: 560px;
 }
+
+/* A field with buttons beside it */
+form > div {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+form > div > label {
+  flex: 1;
+}

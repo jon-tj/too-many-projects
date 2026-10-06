@@ -110,6 +110,20 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var task = await db.ProjectTasks.SingleOrDefaultAsync(
+            task => task.Id == id && task.Project.Members.Any(member => member.UserId == userId),
+            cancellationToken);
+        if (task is null) return NotFound();
+
+        db.ProjectTasks.Remove(task);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpPatch("{id:long}/status")]
     public async Task<IActionResult> SetStatus(
         long id, SetTaskStatusRequest request, CancellationToken cancellationToken)
