@@ -806,6 +806,8 @@ export class ProjectCanvas implements OnDestroy {
 
   private setPeople(people: CanvasPresence[]): void {
     const now = Date.now();
+    // Refresh the clock too: comparing new end times with a tick up to 0.5s old would show 11s for a 10s timer.
+    this.now.set(now);
     this.people.set(
       people.map((person) => ({
         ...person,
