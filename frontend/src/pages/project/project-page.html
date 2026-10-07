@@ -1,9 +1,25 @@
-<h1>
-  @if (project.value(); as current) {
-    <app-project-icon [project]="current" />
-  }
-  {{ project.value()?.name ?? 'Loading project' }}
-</h1>
+<header>
+  <h1>
+    @if (project.value(); as current) {
+      <app-project-icon [project]="current" />
+    }
+    {{ project.value()?.name ?? 'Loading project' }}
+  </h1>
+  <nav aria-label="Project links">
+    @if (project.value()?.websiteUrl; as websiteUrl) {
+      <a [href]="websiteUrl" target="_blank" rel="noopener noreferrer">
+        <app-icon name="language" />
+        <span>Website</span>
+      </a>
+    }
+    @if (project.value()?.gitHubUrl; as gitHubUrl) {
+      <a [href]="gitHubUrl" target="_blank" rel="noopener noreferrer">
+        <app-icon name="code" />
+        <span>GitHub</span>
+      </a>
+    }
+  </nav>
+</header>
 @if (project.value()?.description; as description) {
   <p>{{ description }}</p>
 }

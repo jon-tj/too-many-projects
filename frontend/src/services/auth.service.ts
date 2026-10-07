@@ -66,6 +66,17 @@ export class AuthService {
       );
   }
 
+  /** Changing the username also invalidates the refresh token, so this signs in again with the new name. */
+  changeUserName(userName: string, password: string): Observable<TokenResponse> {
+    const remember = this.isRemembered();
+    return this.http
+      .put('/api/account/username', { userName, password })
+      .pipe(
+        switchMap(() => this.login(userName, password, remember)),
+        tap(() => (this.signInPassword = null)),
+      );
+  }
+
   /** Whether the current sign-in was made with "Remember me". */
   isRemembered(): boolean {
     return !!localStorage.getItem(REFRESH_TOKEN);

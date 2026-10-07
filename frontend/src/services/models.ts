@@ -10,6 +10,10 @@ export interface Project {
   /** Your role in the project. */
   myRole: string;
   billingEnabled: boolean;
+  /** The project's GitHub repository (https://github.com/...), or null. */
+  gitHubUrl: string | null;
+  /** The project's website (http(s)://...), or null. */
+  websiteUrl: string | null;
 }
 
 export interface ProjectTask {

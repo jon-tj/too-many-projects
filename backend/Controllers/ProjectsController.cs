@@ -32,7 +32,7 @@ public sealed class ProjectsController(
                 project.Id, project.Name, project.Description, project.CreatedAt,
                 project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
-                project.BillingEnabled))
+                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
             .ToListAsync(cancellationToken);
 
         return Ok(projects);
@@ -48,7 +48,7 @@ public sealed class ProjectsController(
                 project.Id, project.Name, project.Description, project.CreatedAt,
                 project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
-                project.BillingEnabled))
+                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
             .SingleOrDefaultAsync(cancellationToken);
 
         return project is null ? NotFound() : Ok(project);
@@ -236,7 +236,7 @@ public sealed class ProjectsController(
         await db.SaveChangesAsync(cancellationToken);
 
         var response = new ProjectResponse(
-            project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false);
+            project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false, null, null);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
     }
 
@@ -256,6 +256,8 @@ public sealed class ProjectsController(
         project.Description = request.Description?.Trim() ?? string.Empty;
         project.Icon = request.Icon;
         project.IconImage = request.IconImage;
+        project.GitHubUrl = string.IsNullOrWhiteSpace(request.GitHubUrl) ? null : request.GitHubUrl.Trim();
+        project.WebsiteUrl = string.IsNullOrWhiteSpace(request.WebsiteUrl) ? null : request.WebsiteUrl.Trim();
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -404,7 +406,8 @@ public sealed class ProjectsController(
 /// <param name="MyRole">The caller's role in the project.</param>
 public sealed record ProjectResponse(
     long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
-    string? Icon, string? IconImage, string MyRole, bool BillingEnabled);
+    string? Icon, string? IconImage, string MyRole, bool BillingEnabled, string? GitHubUrl,
+    string? WebsiteUrl);
 
 /// <summary>A member of a project visible to project participants.</summary>
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
@@ -462,6 +465,14 @@ public sealed record UpdateProjectRequest
 
     [StringLength(200_000)]
     public string? IconImage { get; init; }
+
+    /// <summary>Only GitHub links, so the header link cannot point somewhere unexpected.</summary>
+    [StringLength(300), RegularExpression(@"^\s*https://github\.com/\S*\s*$", ErrorMessage = "The GitHub link must start with https://github.com/.")]
+    public string? GitHubUrl { get; init; }
+
+    /// <summary>Any web address, but only http(s), so the link cannot run script.</summary>
+    [StringLength(300), RegularExpression(@"^\s*https?://\S+\s*$", ErrorMessage = "The website must start with https:// or http://.")]
+    public string? WebsiteUrl { get; init; }
 }
 
 /// <summary>Whether cancelling the invite also deleted the account (it was the user's only project).</summary>

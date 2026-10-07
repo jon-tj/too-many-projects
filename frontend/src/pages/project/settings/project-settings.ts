@@ -51,6 +51,8 @@ export class ProjectSettings {
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
     description: ['', Validators.maxLength(1000)],
+    gitHubUrl: ['', [Validators.maxLength(300), Validators.pattern(/^\s*https:\/\/github\.com\/\S*\s*$/)]],
+    websiteUrl: ['', [Validators.maxLength(300), Validators.pattern(/^\s*https?:\/\/\S+\s*$/)]],
     icon: [null as string | null],
     iconImage: [null as string | null],
   });
@@ -73,7 +75,7 @@ export class ProjectSettings {
       const project = this.project.value();
       if (project) {
         const { name, description, icon, iconImage } = project;
-        this.form.reset({ name, description, icon, iconImage });
+        this.form.reset({ name, description, icon, iconImage, gitHubUrl: project.gitHubUrl ?? '', websiteUrl: project.websiteUrl ?? '' });
       }
     });
   }
@@ -83,7 +85,9 @@ export class ProjectSettings {
     if (!project || this.form.invalid) return;
     const { name, description, icon, iconImage } = this.form.getRawValue();
     this.busy.set(true);
-    this.api.updateProject(project.id, { name: name.trim(), description: description.trim(), icon, iconImage }).subscribe({
+    const gitHubUrl = this.form.getRawValue().gitHubUrl.trim() || null;
+    const websiteUrl = this.form.getRawValue().websiteUrl.trim() || null;
+    this.api.updateProject(project.id, { name: name.trim(), description: description.trim(), icon, iconImage, gitHubUrl, websiteUrl }).subscribe({
       next: () => {
         this.shell.refreshProjects();
         this.busy.set(false);

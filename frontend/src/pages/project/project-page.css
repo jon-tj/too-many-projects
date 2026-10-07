@@ -4,6 +4,38 @@
   flex-direction: column;
 }
 
+/* Title on the left, project links at the top right. */
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* The project links: a plain row, without the tab bar's styling below. */
+header nav {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+header a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--secondary-surface);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+header a:hover {
+  text-decoration: underline;
+}
+
 h1 {
   display: flex;
   align-items: center;

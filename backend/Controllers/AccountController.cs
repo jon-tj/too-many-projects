@@ -20,6 +20,21 @@ public sealed class AccountController(UserManager<ApplicationUser> users, UserRe
                 user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage));
     }
 
+    /// <summary>Changes the sign-in username after confirming the password. Identity rejects names already taken.</summary>
+    [HttpPut("username")]
+    public async Task<IActionResult> ChangeUserName(ChangeUserNameRequest request)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        if (!await users.CheckPasswordAsync(user, request.Password))
+            return BadRequest(new { error = "Incorrect password." });
+
+        var result = await users.SetUserNameAsync(user, request.UserName.Trim());
+        if (!result.Succeeded)
+            return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
+        return NoContent();
+    }
+
     [HttpPost("password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
@@ -100,6 +115,16 @@ public sealed record ChangePasswordRequest
 /// <summary>The current password, to confirm deleting the account.</summary>
 public sealed record DeleteAccountRequest
 {
+    [Required]
+    public required string Password { get; init; }
+}
+
+/// <summary>A new username, confirmed with the current password.</summary>
+public sealed record ChangeUserNameRequest
+{
+    [Required, StringLength(64, MinimumLength = 2)]
+    public required string UserName { get; init; }
+
     [Required]
     public required string Password { get; init; }
 }

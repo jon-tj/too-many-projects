@@ -36,6 +36,27 @@
   </form>
 </section>
 <section class="settings-section">
+  <h2>Change username</h2>
+  <form [formGroup]="userNameForm" (ngSubmit)="changeUserName()">
+    <label>
+      New username
+      <input formControlName="userName" autocomplete="username" />
+    </label>
+    <label>
+      Confirm with your password
+      <input type="password" formControlName="password" autocomplete="current-password" />
+    </label>
+    @if (userNameMessage()) {
+      <p class="success" role="status">{{ userNameMessage() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="userNameForm.invalid || userNameForm.pristine || busy()">
+        Change username
+      </button>
+    </footer>
+  </form>
+</section>
+<section class="settings-section">
   <h2>Change password</h2>
   <form [formGroup]="form" (ngSubmit)="changePassword()">
     <label>

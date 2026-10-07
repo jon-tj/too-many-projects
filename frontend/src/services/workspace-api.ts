@@ -44,7 +44,7 @@ export class WorkspaceApi {
 
   updateProject(
     id: number,
-    changes: Pick<Project, 'name' | 'description' | 'icon' | 'iconImage'>,
+    changes: Pick<Project, 'name' | 'description' | 'icon' | 'iconImage' | 'gitHubUrl' | 'websiteUrl'>,
   ): Observable<void> {
     return this.http.put<void>(`/api/projects/${id}`, changes);
   }

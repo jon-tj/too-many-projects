@@ -7,6 +7,20 @@
     Description
     <textarea formControlName="description" rows="4"></textarea>
   </label>
+  <label>
+    GitHub repository
+    <input type="url" formControlName="gitHubUrl" placeholder="https://github.com/owner/repository" />
+  </label>
+  @if (form.controls.gitHubUrl.invalid) {
+    <p role="alert">The GitHub link must start with https://github.com/.</p>
+  }
+  <label>
+    Website
+    <input type="url" formControlName="websiteUrl" placeholder="https://example.com" />
+  </label>
+  @if (form.controls.websiteUrl.invalid) {
+    <p role="alert">The website must start with https:// or http://.</p>
+  }
   <fieldset>
     <legend>Icon</legend>
     <app-project-icon [project]="{ icon: values().icon, iconImage: values().iconImage }" />

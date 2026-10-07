@@ -33,11 +33,41 @@ export class SettingsPage implements OnInit {
     password: ['', Validators.required],
   });
   protected readonly deleteError = signal('');
+  protected readonly userNameForm = this.formBuilder.nonNullable.group({
+    userName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(64)]],
+    password: ['', Validators.required],
+  });
+  protected readonly userNameMessage = signal('');
 
   constructor(private readonly api: WorkspaceApi) {}
 
   ngOnInit(): void {
-    this.api.currentAccount().subscribe({ next: (account) => this.account.set(account) });
+    this.api.currentAccount().subscribe({
+      next: (account) => {
+        this.account.set(account);
+        this.userNameForm.reset({ userName: account.userName, password: '' });
+      },
+    });
+  }
+
+  protected changeUserName(): void {
+    if (this.userNameForm.invalid || this.busy()) return;
+    const userName = this.userNameForm.getRawValue().userName.trim();
+    this.busy.set(true);
+    this.userNameMessage.set('');
+    this.auth.changeUserName(userName, this.userNameForm.getRawValue().password).subscribe({
+      next: () => {
+        this.account.update((account) => (account ? { ...account, userName } : account));
+        this.userNameForm.reset({ userName, password: '' });
+        this.userNameMessage.set('Username updated. Use it the next time you sign in.');
+        this.shell.refreshAccount();
+        this.busy.set(false);
+      },
+      error: (response: HttpErrorResponse) => {
+        this.userNameMessage.set(response.error?.error ?? 'Could not change the username. Please try again.');
+        this.busy.set(false);
+      },
+    });
   }
 
   protected changePassword(): void {

@@ -11,6 +11,10 @@ public sealed class Project
     public string? Icon { get; set; }
     /// <summary>Small image as a data URL; takes precedence over <see cref="Icon"/>.</summary>
     public string? IconImage { get; set; }
+    /// <summary>The project's GitHub repository (https://github.com/...); null when not set.</summary>
+    public string? GitHubUrl { get; set; }
+    /// <summary>The project's website (http(s)://...); null when not set.</summary>
+    public string? WebsiteUrl { get; set; }
     public bool BillingEnabled { get; set; }
     public string BillingClientName { get; set; } = string.Empty;
     /// <summary>Our side's point of contact for the client.</summary>
