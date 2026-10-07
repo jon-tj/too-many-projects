@@ -15,7 +15,14 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProjectPage } from '../project-page';
-import { OverviewPoint, OverviewRange, ProjectOverview as Overview } from '../../../services/models';
+import {
+  BILL_STATUSES,
+  BillStatus,
+  BillSummary,
+  OverviewPoint,
+  OverviewRange,
+  ProjectOverview as Overview,
+} from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const RANGES: { value: OverviewRange; label: string }[] = [
@@ -111,9 +118,52 @@ export class ProjectOverview implements OnDestroy {
     this.resize.disconnect();
   }
 
-  /** Opens the printable report in a new tab. */
+  protected readonly billStatuses = BILL_STATUSES;
+  protected readonly bills = rxResource({
+    params: () => {
+      const project = this.project.value();
+      return project?.billingEnabled && project.myRole === 'Owner' ? project.id : undefined;
+    },
+    stream: ({ params }) => this.api.bills(params),
+    defaultValue: [],
+  });
+  protected readonly billError = signal('');
+
+  /** Opens the live report preview in a new tab; it can be finalized as a bill there. */
   protected openReport(month: string): void {
-    window.open(this.router.serializeUrl(this.router.createUrlTree(['/report', this.projectId(), month])), '_blank');
+    this.openTab(['/report', this.projectId(), month]);
+  }
+
+  protected openBill(bill: BillSummary): void {
+    this.openTab(['/bill', this.projectId(), bill.id]);
+  }
+
+  /** Partially paid asks for the amount received; overdue amounts on the previews update afterwards. */
+  protected setBillStatus(bill: BillSummary, status: BillStatus, select: HTMLSelectElement): void {
+    let amountPaid: number | undefined;
+    if (status === 'partiallyPaid') {
+      const answer = prompt(`How much of ${bill.amount.toFixed(2)} was paid?`, bill.amountPaid ? String(bill.amountPaid) : '');
+      amountPaid = answer ? Number(answer.replace(',', '.')) : NaN;
+      if (!Number.isFinite(amountPaid)) {
+        select.value = bill.status;
+        return;
+      }
+    }
+    this.api.setBillStatus(this.projectId(), bill.id, status, amountPaid).subscribe({
+      next: () => {
+        this.billError.set('');
+        this.bills.reload();
+        this.billing.reload();
+      },
+      error: (error) => {
+        select.value = bill.status;
+        this.billError.set(error.error?.error ?? 'Could not change the bill status.');
+      },
+    });
+  }
+
+  private openTab(commands: unknown[]): void {
+    window.open(this.router.serializeUrl(this.router.createUrlTree(commands)), '_blank');
   }
 
   protected monthStart(month: string): string {

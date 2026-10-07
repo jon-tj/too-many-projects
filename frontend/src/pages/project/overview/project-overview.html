@@ -123,10 +123,54 @@
             <dd><strong>{{ report.amount | number: '1.2-2' }}</strong></dd>
           </dl>
           <button class="transparent" type="button" (click)="openReport(report.month)">
-            <span>Monthly report</span>
+            <span>Preview report</span>
           </button>
         </article>
       }
     </div>
+
+    <h2>Bills</h2>
+    @if (billError()) {
+      <p role="alert">{{ billError() }}</p>
+    }
+    @if (bills.value().length) {
+      <table class="bills">
+        <thead>
+          <tr>
+            <th scope="col">Month</th>
+            <th scope="col" class="number">Amount</th>
+            <th scope="col" class="number">Outstanding</th>
+            <th scope="col">Status</th>
+            <th scope="col"><span class="visually-hidden">Open</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bill of bills.value(); track bill.id) {
+            <tr>
+              <td>{{ monthStart(bill.month) | date: 'MMMM y' : 'UTC' }}</td>
+              <td class="number">{{ bill.amount | number: '1.2-2' }}</td>
+              <td class="number">{{ bill.overdue ? (bill.overdue | number: '1.2-2') : '—' }}</td>
+              <td>
+                <select
+                  #statusSelect
+                  aria-label="Bill status"
+                  [value]="bill.status"
+                  (change)="setBillStatus(bill, $any(statusSelect.value), statusSelect)"
+                >
+                  @for (status of billStatuses; track status.value) {
+                    <option [value]="status.value">{{ status.label }}</option>
+                  }
+                </select>
+              </td>
+              <td>
+                <button class="transparent" type="button" (click)="openBill(bill)"><span>Open</span></button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p>No bills yet. Preview a month's report and finalize it to create one.</p>
+    }
   </section>
 }

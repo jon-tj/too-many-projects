@@ -1,15 +1,28 @@
-@if (report.isLoading()) {
+@if (loading()) {
   <p>Loading report...</p>
-} @else if (report.error()) {
+} @else if (failed()) {
   <p role="alert">This report could not be loaded. Only project owners can see billing, and billing must be enabled.</p>
-} @else if (report.value(); as r) {
+} @else if (report(); as r) {
   <header>
     <div>
       <h1>{{ r.projectName }}</h1>
-      <p>Billing report · {{ monthStart(r.month) | date: 'MMMM y' : 'UTC' }}</p>
+      <p>
+        {{ isPreview() ? 'Billing report preview' : 'Bill' }} · {{ monthStart(r.month) | date: 'MMMM y' : 'UTC' }}
+        @if (!isPreview()) {
+          · <span class="badge">{{ statusLabel() }}</span>
+        }
+      </p>
     </div>
-    <button class="primary" type="button" (click)="print()"><span>Print or save as PDF</span></button>
+    <div class="actions">
+      @if (isPreview()) {
+        <button class="primary" type="button" (click)="finalize()"><span>Finalize bill</span></button>
+      }
+      <button class="transparent" type="button" (click)="print()"><span>Print or save as PDF</span></button>
+    </div>
   </header>
+  @if (message()) {
+    <p role="alert">{{ message() }}</p>
+  }
 
   <dl>
     <dt>Client</dt>
@@ -60,7 +73,64 @@
     </tfoot>
   </table>
 
-  @if (r.days.length) {
+  @if (r.overdue.length) {
+    <!-- Earlier bills still owed, by month (no year). -->
+    <h2>Overdue</h2>
+    <table>
+      <tbody>
+        @for (bill of r.overdue; track bill.billId) {
+          <tr>
+            <td>{{ monthStart(bill.month) | date: 'MMMM' : 'UTC' }}</td>
+            <td class="number">{{ bill.amount | number: '1.2-2' }}</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Overdue total</th>
+          <td class="number">{{ r.overdueTotal | number: '1.2-2' }}</td>
+        </tr>
+        <tr>
+          <th scope="row">Total including overdue</th>
+          <td class="number">{{ r.totalWithOverdue | number: '1.2-2' }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  }
+
+  @if (carriedOver(r.days); as earlier) {
+    @if (earlier.length) {
+      <!-- Every hour is billed once: work from earlier months that no earlier bill covered is billed here. -->
+      <h2>Worked earlier, not billed before</h2>
+      <p class="note">
+        This work was done before {{ monthStart(r.month) | date: 'MMMM' : 'UTC' }} but was not on an earlier bill. It is
+        included in the totals above: {{ r.carriedOverBillableHours | number: '1.2-2' }} billable hours,
+        {{ r.carriedOverAmount | number: '1.2-2' }}.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Member</th>
+            <th scope="col" class="number">Hours worked</th>
+            <th scope="col" class="number">Billable hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (day of earlier; track day.date + day.userId) {
+            <tr>
+              <td>{{ day.date | date: 'MMM d' : 'UTC' }}</td>
+              <td>{{ day.name }}</td>
+              <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+              <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+
+  @if (thisMonth(r.days).length) {
     <h2>Days</h2>
     <table>
       <thead>
@@ -72,7 +142,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (day of r.days; track day.date + day.userId) {
+        @for (day of thisMonth(r.days); track day.date + day.userId) {
           <tr>
             <td>{{ day.date | date: 'EEE MMM d' : 'UTC' }}</td>
             <td>{{ day.name }}</td>

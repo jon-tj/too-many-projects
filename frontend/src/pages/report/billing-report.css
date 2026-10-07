@@ -20,6 +20,11 @@ header p {
   margin: 4px 0 0;
 }
 
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
 dl {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -55,6 +60,11 @@ tfoot td {
   border-bottom: 0;
 }
 
+.note {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
 /* On paper: plain black on white, no button. */
 @media print {
   :host {
@@ -63,7 +73,7 @@ tfoot td {
     background: #fff;
   }
 
-  header button {
+  .actions {
     display: none;
   }
 }

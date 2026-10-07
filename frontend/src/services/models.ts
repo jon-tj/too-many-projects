@@ -95,6 +95,39 @@ export interface BillingMemberTotal {
   amount: number;
 }
 
+/** An earlier bill still owed: unpaid, or the rest of a partial payment. */
+export interface OverdueBill {
+  billId: number;
+  month: string;
+  amount: number;
+}
+
+/** "due" = open; the others close the bill. */
+export const BILL_STATUSES = [
+  { value: 'due', label: 'Due' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'partiallyPaid', label: 'Partially paid' },
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'canceled', label: 'Canceled' },
+] as const;
+export type BillStatus = (typeof BILL_STATUSES)[number]['value'];
+
+export interface BillSummary {
+  id: number;
+  month: string;
+  createdAt: string;
+  status: BillStatus;
+  amount: number;
+  amountPaid: number;
+  /** Still owed on this bill when unpaid or partially paid, otherwise 0. */
+  overdue: number;
+}
+
+export interface BillDetail {
+  bill: BillSummary;
+  report: BillingReport;
+}
+
 export interface BillingDay {
   date: string;
   userId: string;
@@ -102,6 +135,8 @@ export interface BillingDay {
   fraction: BillableFraction;
   hoursWorked: number;
   billableHours: number;
+  /** Worked before the bill's month but not billed before. */
+  carriedOver: boolean;
 }
 
 /** A month's billing; month is "yyyy-MM". */
@@ -114,6 +149,13 @@ export interface BillingReport {
   hoursWorked: number;
   billableHours: number;
   amount: number;
+  /** Earlier bills still owed; frozen into a bill when it is finalized. */
+  overdue: OverdueBill[];
+  overdueTotal: number;
+  totalWithOverdue: number;
+  /** Work from earlier months that no earlier bill covered; included in the totals above. */
+  carriedOverBillableHours: number;
+  carriedOverAmount: number;
 }
 
 export const CANVAS_COLORS = ['white', 'yellow', 'rose', 'blue', 'green', 'lavender'] as const;

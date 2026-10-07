@@ -13,6 +13,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
 	public DbSet<CanvasImage> CanvasImages => Set<CanvasImage>();
 	public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
+	public DbSet<Bill> Bills => Set<Bill>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

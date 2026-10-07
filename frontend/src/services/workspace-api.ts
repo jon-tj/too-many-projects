@@ -9,6 +9,9 @@ import {
   CanvasSummary,
   Project,
   BillableFraction,
+  BillDetail,
+  BillStatus,
+  BillSummary,
   BillingReport,
   BillingSettings,
   ProjectMember,
@@ -70,6 +73,24 @@ export class WorkspaceApi {
   /** month is "yyyy-MM". */
   billingReport(projectId: number, month: string): Observable<BillingReport> {
     return this.http.get<BillingReport>(`/api/projects/${projectId}/billing/report`, { params: { month } });
+  }
+
+  /** Saves the month's report as a bill with status "due". */
+  finalizeBill(projectId: number, month: string): Observable<BillSummary> {
+    return this.http.post<BillSummary>(`/api/projects/${projectId}/billing/bills`, { month });
+  }
+
+  bills(projectId: number): Observable<BillSummary[]> {
+    return this.http.get<BillSummary[]>(`/api/projects/${projectId}/billing/bills`);
+  }
+
+  bill(projectId: number, billId: number): Observable<BillDetail> {
+    return this.http.get<BillDetail>(`/api/projects/${projectId}/billing/bills/${billId}`);
+  }
+
+  /** amountPaid is only used for partially paid bills. */
+  setBillStatus(projectId: number, billId: number, status: BillStatus, amountPaid?: number): Observable<BillSummary> {
+    return this.http.put<BillSummary>(`/api/projects/${projectId}/billing/bills/${billId}/status`, { status, amountPaid });
   }
 
   deleteProject(id: number): Observable<void> {

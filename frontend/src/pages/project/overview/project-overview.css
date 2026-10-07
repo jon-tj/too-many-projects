@@ -175,3 +175,29 @@ td {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+.bills {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.bills th,
+.bills td {
+  padding: 4px 12px 4px 0;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.bills .number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

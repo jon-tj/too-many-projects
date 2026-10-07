@@ -19,6 +19,7 @@ import { BillingReportPage } from '../pages/report/billing-report';
 
 export const routes: Routes = [
 	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
+	{ path: 'bill/:projectId/:billId', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
 	{
 		path: 'login', component: LoginPage,
 		children: [
