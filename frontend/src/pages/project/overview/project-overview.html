@@ -138,6 +138,7 @@
         <thead>
           <tr>
             <th scope="col">Month</th>
+            <th scope="col">Report created</th>
             <th scope="col" class="number">Amount</th>
             <th scope="col" class="number">Outstanding</th>
             <th scope="col">Status</th>
@@ -148,17 +149,18 @@
           @for (bill of bills.value(); track bill.id) {
             <tr>
               <td>{{ monthStart(bill.month) | date: 'MMMM y' : 'UTC' }}</td>
+              <td>{{ bill.createdAt | date: 'medium' }}</td>
               <td class="number">{{ bill.amount | number: '1.2-2' }}</td>
               <td class="number">{{ bill.overdue ? (bill.overdue | number: '1.2-2') : '—' }}</td>
               <td>
                 <select
                   #statusSelect
                   aria-label="Bill status"
-                  [value]="bill.status"
                   (change)="setBillStatus(bill, $any(statusSelect.value), statusSelect)"
                 >
+                  <!-- Selected per option: a [value] on the select is applied before the options exist. -->
                   @for (status of billStatuses; track status.value) {
-                    <option [value]="status.value">{{ status.label }}</option>
+                    <option [value]="status.value" [selected]="status.value === bill.status">{{ status.label }}</option>
                   }
                 </select>
               </td>

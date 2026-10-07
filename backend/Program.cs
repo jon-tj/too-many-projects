@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Model;
 
-var builder = WebApplication.CreateBuilder(args);
+// `dotnet run --sqlite` uses the local SQLite database even when a Supabase connection string is configured.
+// The flag is removed before configuration reads the arguments, where it would otherwise expect a value.
+var useSqlite = args.Contains("--sqlite");
+var builder = WebApplication.CreateBuilder(args.Where(arg => arg != "--sqlite").ToArray());
 
-var supabaseConnectionString = builder.Configuration.GetConnectionString("Supabase");
+var supabaseConnectionString = useSqlite ? null : builder.Configuration.GetConnectionString("Supabase");
 var localDatabasePath = Path.Combine(builder.Environment.ContentRootPath, "app.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -66,6 +69,9 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+app.Logger.LogInformation(
+    string.IsNullOrWhiteSpace(supabaseConnectionString) ? "Database: local SQLite ({Path})" : "Database: Supabase (Postgres)",
+    localDatabasePath);
 
 await using (var scope = app.Services.CreateAsyncScope())
 {

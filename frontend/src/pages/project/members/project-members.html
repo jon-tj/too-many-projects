@@ -29,11 +29,11 @@
         <select
           aria-label="Billable share of hours"
           title="Billable share of hours"
-          [value]="member.billableFraction"
           (change)="setFraction(member, $any($event.target).value)"
         >
+          <!-- Selected per option: a [value] on the select is applied before the options exist. -->
           @for (fraction of fractions; track fraction) {
-            <option [value]="fraction">{{ fraction }}</option>
+            <option [value]="fraction" [selected]="fraction === member.billableFraction">{{ fraction }}</option>
           }
         </select>
       }

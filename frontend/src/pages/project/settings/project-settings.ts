@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
@@ -53,6 +54,15 @@ export class ProjectSettings {
     icon: [null as string | null],
     iconImage: [null as string | null],
   });
+
+  /**
+   * The forms' values as signals, for the template. Reading control values directly would not update the page when
+   * the forms are reset from loaded data, because only signals and events trigger change detection.
+   */
+  protected readonly values = toSignal(this.form.valueChanges.pipe(map(() => this.form.getRawValue())), {
+    initialValue: this.form.getRawValue(),
+  });
+  protected readonly billingEnabled = toSignal(this.billingForm.controls.enabled.valueChanges, { initialValue: false });
 
   constructor() {
     effect(() => {

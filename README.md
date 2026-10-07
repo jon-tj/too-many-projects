@@ -34,6 +34,14 @@ Copy-Item backend/appsettings.example.json backend/appsettings.json
 
 Environment variables override these values, e.g. `$env:ConnectionStrings__Supabase = "..."`.
 
+To use the local SQLite database even when a Supabase connection string is configured, run the backend with `--sqlite`:
+
+```powershell
+dotnet run --project backend/backend.csproj --sqlite
+```
+
+The startup log says which database is in use.
+
 ## Deploy to Render
 
 Create a Render **Web Service** from this repository and select **Docker** as the runtime. Render will build the root `Dockerfile`; it builds the Angular frontend, publishes the ASP.NET backend, and serves both from one service. The container listens on Render's `PORT` (default `10000`).

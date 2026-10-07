@@ -226,8 +226,9 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
                     Math.Max(0, Math.Round(clamped * Fractions[fraction] - billedBillable, 2)),
                     entry.Key.Day < monthStart);
             })
-            // Under 0.01 h (36 s) left is rounding, not unbilled work.
-            .Where(day => day.HoursWorked >= 0.01m)
+            // Keep days with anything to bill: a few seconds of work still bills the daily minimum. Days with nothing
+            // billable and under 0.01 h (36 s) left are rounding leftovers from earlier bills.
+            .Where(day => day.BillableHours > 0 || day.HoursWorked >= 0.01m)
             .OrderBy(day => day.Date).ThenBy(day => day.Name)
             .ToList();
 

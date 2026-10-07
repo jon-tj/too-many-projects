@@ -9,7 +9,7 @@
   </label>
   <fieldset>
     <legend>Icon</legend>
-    <app-project-icon [project]="{ icon: form.controls.icon.value, iconImage: form.controls.iconImage.value }" />
+    <app-project-icon [project]="{ icon: values().icon, iconImage: values().iconImage }" />
     <label>
       Upload an image
       <input type="file" accept="image/*" (change)="upload($event)" />
@@ -21,7 +21,7 @@
           class="transparent"
           type="button"
           [title]="icon"
-          [class.active]="!form.controls.iconImage.value && form.controls.icon.value === icon"
+          [class.active]="!values().iconImage && values().icon === icon"
           (click)="setIcon(icon, null)"
         >
           <app-icon [name]="icon" />
@@ -31,7 +31,7 @@
     <button
       class="transparent"
       type="button"
-      [disabled]="!form.controls.icon.value && !form.controls.iconImage.value"
+      [disabled]="!values().icon && !values().iconImage"
       (click)="setIcon(null, null)"
     >
       <span>Use default</span>
@@ -56,7 +56,7 @@
         <input type="checkbox" formControlName="enabled" />
         Enable billing
       </label>
-      @if (billingForm.controls.enabled.value) {
+      @if (billingEnabled()) {
         <label>
           Client name
           <input formControlName="clientName" />
