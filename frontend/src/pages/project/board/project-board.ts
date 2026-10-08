@@ -15,6 +15,11 @@ const COLUMNS = [
   { status: 'done', title: 'Done', empty: 'Wins show up here' },
 ] as const;
 
+/** A task as plain text: the title, then the description when there is one. */
+function taskText(task: ProjectTask): string {
+  return task.description ? `${task.title}\n\n${task.description}` : task.title;
+}
+
 /** Special assignee filter values; the '*' prefix keeps them apart from user ids. */
 const ASSIGNEE_FILTER = {
   all: '*all',
@@ -77,6 +82,7 @@ export class ProjectBoard {
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
   protected readonly copiedId = signal<number | null>(null);
+  protected readonly copiedSelection = signal(false);
   /** Ids of the tasks checked on the board, for group actions like assigning. */
   protected readonly selected = signal<ReadonlySet<number>>(new Set());
 
@@ -167,16 +173,26 @@ export class ProjectBoard {
 
   /** Copies the task as plain text, e.g. to paste into an AI assistant. */
   protected copyTask(task: ProjectTask): void {
-    const text = task.description ? `${task.title}
+    this.copyText(taskText(task), 'Could not copy the task to the clipboard.', () => {
+      this.copiedId.set(task.id);
+      setTimeout(() => this.copiedId.update((id) => (id === task.id ? null : id)), 1500);
+    });
+  }
 
-${task.description}` : task.title;
-    navigator.clipboard.writeText(text).then(
-      () => {
-        this.copiedId.set(task.id);
-        setTimeout(() => this.copiedId.update((id) => (id === task.id ? null : id)), 1500);
-      },
-      () => this.taskError.set('Could not copy the task to the clipboard.'),
-    );
+  /** Copies the selected tasks in board order, each under its own heading. */
+  protected copySelected(): void {
+    const ids = this.selected();
+    const tasks = this.columns().flatMap((column) => column.tasks.filter((task) => ids.has(task.id)));
+    if (!tasks.length) return;
+    const text = tasks.map((task) => `## ${taskText(task)}`).join('\n\n');
+    this.copyText(text, 'Could not copy the selected tasks to the clipboard.', () => {
+      this.copiedSelection.set(true);
+      setTimeout(() => this.copiedSelection.set(false), 1500);
+    });
+  }
+
+  private copyText(text: string, error: string, copied: () => void): void {
+    navigator.clipboard.writeText(text).then(copied, () => this.taskError.set(error));
   }
 
   /** Saves straight away like moving a card; rolls back if the server refuses. */

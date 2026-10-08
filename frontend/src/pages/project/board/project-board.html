@@ -43,6 +43,10 @@
         }
         <option value="">Unassigned</option>
       </select>
+      <button class="transparent" type="button" title="Copy titles and descriptions" (click)="copySelected()">
+        <app-icon [name]="copiedSelection() ? 'check' : 'content_copy'" />
+        <span>Copy</span>
+      </button>
       <button class="transparent" type="button" title="Clear selection (Esc)" (click)="clearSelection()">
         <span>Clear</span>
       </button>
