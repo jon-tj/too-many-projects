@@ -31,10 +31,8 @@ export class ProjectMembers {
     stream: ({ params }) => this.api.projectMembers(params),
     defaultValue: [],
   });
-  private readonly account = rxResource({ stream: () => this.api.currentAccount() });
-  protected readonly isOwner = computed(() =>
-    this.members.value().some((member) => member.userId === this.account.value()?.id && member.role === 'Owner'),
-  );
+  /** From the project rather than the member list, so the Add member button shows while members load. */
+  protected readonly isOwner = computed(() => this.project.value()?.myRole === 'Owner');
 
   protected readonly adding = signal(false);
   protected readonly error = signal('');
