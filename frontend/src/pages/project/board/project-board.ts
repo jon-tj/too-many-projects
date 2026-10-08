@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, computed, HostListener, inject, input, numberAttribute, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, input, linkedSignal, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
@@ -43,7 +43,14 @@ export class ProjectBoard {
   });
   protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
   /** Which assignee's tasks to show: a member's user id, or one of the special ASSIGNEE_FILTER values. */
-  protected readonly assigneeFilter = signal<string>(ASSIGNEE_FILTER.all);
+  /** Remembered per project in this browser. */
+  private readonly storedFilter = linkedSignal(() => this.readStoredFilter(this.projectId()));
+  /** Falls back to all when the stored member has left the project. */
+  protected readonly assigneeFilter = computed(() => {
+    const filter = this.storedFilter();
+    if (filter.startsWith('*') || this.members.isLoading()) return filter;
+    return this.members.value().some((member) => member.userId === filter) ? filter : ASSIGNEE_FILTER.all;
+  });
   protected readonly visibleTasks = computed(() => {
     const filter = this.assigneeFilter();
     const me = this.account.value()?.id;
@@ -83,9 +90,22 @@ export class ProjectBoard {
 
   /** Drops hidden tasks from the selection, so group actions only touch what is on screen. */
   protected setAssigneeFilter(filter: string): void {
-    this.assigneeFilter.set(filter);
+    this.storedFilter.set(filter);
+    try {
+      localStorage.setItem(`board-assignee-filter:${this.projectId()}`, filter);
+    } catch {
+      // Storage can be unavailable (e.g. private windows); the filter then lasts until reload.
+    }
     const visible = new Set(this.visibleTasks().map((task) => task.id));
     this.selected.update((ids) => new Set([...ids].filter((id) => visible.has(id))));
+  }
+
+  private readStoredFilter(projectId: number): string {
+    try {
+      return localStorage.getItem(`board-assignee-filter:${projectId}`) || ASSIGNEE_FILTER.all;
+    } catch {
+      return ASSIGNEE_FILTER.all;
+    }
   }
 
   /** Shift-click on a card selects it instead of opening the task. */
