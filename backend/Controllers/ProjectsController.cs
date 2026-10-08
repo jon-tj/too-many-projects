@@ -30,7 +30,7 @@ public sealed class ProjectsController(
             .OrderByDescending(project => project.Id)
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
+                project.Tasks.Count(task => task.Status != "done"), project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
                 project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
             .ToListAsync(cancellationToken);
@@ -46,7 +46,7 @@ public sealed class ProjectsController(
             .Where(project => project.Id == id && project.Members.Any(member => member.UserId == userId))
             .Select(project => new ProjectResponse(
                 project.Id, project.Name, project.Description, project.CreatedAt,
-                project.Tasks.Count, project.Members.Count, project.Icon, project.IconImage,
+                project.Tasks.Count(task => task.Status != "done"), project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
                 project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
             .SingleOrDefaultAsync(cancellationToken);
@@ -403,6 +403,7 @@ public sealed class ProjectsController(
 }
 
 /// <summary>Project summary visible to a member.</summary>
+/// <param name="TaskCount">Tasks that are not done yet.</param>
 /// <param name="MyRole">The caller's role in the project.</param>
 public sealed record ProjectResponse(
     long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
