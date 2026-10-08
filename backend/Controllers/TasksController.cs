@@ -90,6 +90,30 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         return Created($"/api/tasks/{task.Id}", response);
     }
 
+    /// <summary>Assigns several of a project's tasks at once, from the board's selection. A null assignee unassigns them.</summary>
+    [HttpPatch("by-project/{projectId:long}/assignee")]
+    public async Task<IActionResult> AssignMany(
+        long projectId, AssignTasksRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        if (!await db.ProjectMembers.AnyAsync(
+                member => member.ProjectId == projectId && member.UserId == userId, cancellationToken))
+            return NotFound();
+        if (request.AssigneeUserId is not null && !await db.ProjectMembers.AnyAsync(
+                member => member.ProjectId == projectId && member.UserId == request.AssigneeUserId,
+                cancellationToken))
+            return BadRequest(new { error = "The assignee must be a member of the project." });
+
+        var tasks = await db.ProjectTasks
+            .Where(task => task.ProjectId == projectId && request.TaskIds.Contains(task.Id))
+            .ToListAsync(cancellationToken);
+        if (tasks.Count != request.TaskIds.Distinct().Count()) return NotFound();
+
+        foreach (var task in tasks) task.AssigneeUserId = request.AssigneeUserId;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(
         long id, UpdateTaskRequest request, CancellationToken cancellationToken)
@@ -193,6 +217,15 @@ public sealed record CreateTaskRequest
     public int? Units { get; init; }
 
     public DateTimeOffset? DueAt { get; init; }
+}
+
+/// <summary>The tasks to assign and who to assign them to (null to unassign).</summary>
+public sealed record AssignTasksRequest
+{
+    [Required, MinLength(1)]
+    public required long[] TaskIds { get; init; }
+
+    public string? AssigneeUserId { get; init; }
 }
 
 /// <summary>New task workflow status.</summary>

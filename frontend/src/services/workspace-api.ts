@@ -170,6 +170,11 @@ export class WorkspaceApi {
     return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt, units });
   }
 
+  /** Assigns several of the project's tasks at once; null unassigns them. */
+  assignTasks(projectId: number, taskIds: number[], assigneeUserId: string | null): Observable<void> {
+    return this.http.patch<void>(`/api/tasks/by-project/${projectId}/assignee`, { taskIds, assigneeUserId });
+  }
+
   setTaskUnitsDone(taskId: number, done: number): Observable<void> {
     return this.http.patch<void>(`/api/tasks/${taskId}/units`, { done });
   }

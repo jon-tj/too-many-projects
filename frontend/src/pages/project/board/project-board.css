@@ -3,10 +3,55 @@
   flex: 1;
   flex-direction: column;
 }
-:host > footer {
-  position: fixed;
-  right: 32px;
-  bottom: 32px;
+/* Controls row above the board; selection actions sit at its end once tasks are checked. */
+:host > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.selection select {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+/* Always visible but faint, until hovered or checked. */
+.select-box {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--secondary-surface);
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+}
+.select-box:hover,
+.select-box:checked,
+.select-box:indeterminate,
+.task-card:hover .select-box {
+  opacity: 1;
+}
+.select-box:disabled {
+  cursor: default;
+  opacity: 0.15;
+}
+.kanban-column > header .select-box {
+  margin-left: auto;
+}
+/* Above the card's full-size link, so it stays clickable. */
+.task-card > .select-box {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  right: 10px;
 }
 .task-error {
   margin: 10px 0;
@@ -67,8 +112,13 @@
   color: var(--status);
   font-size: 12px;
 }
+.task-card.selected {
+  border-color: var(--secondary-surface);
+  border-left-color: var(--status);
+}
 .task-card h4 {
   margin: 0;
+  padding-right: 18px;
   color: var(--primary-active-text);
   font-size: 12px;
   line-height: 1.45;

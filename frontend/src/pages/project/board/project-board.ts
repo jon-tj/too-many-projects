@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
@@ -44,6 +44,62 @@ export class ProjectBoard {
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
   protected readonly copiedId = signal<number | null>(null);
+  /** Ids of the tasks checked on the board, for group actions like assigning. */
+  protected readonly selected = signal<ReadonlySet<number>>(new Set());
+
+  protected toggleSelected(task: ProjectTask): void {
+    this.selected.update((ids) => {
+      const next = new Set(ids);
+      if (!next.delete(task.id)) next.add(task.id);
+      return next;
+    });
+  }
+
+  /** Shift-click on a card selects it instead of opening the task. */
+  protected cardClick(event: MouseEvent, task: ProjectTask): void {
+    if (!event.shiftKey) return;
+    event.preventDefault();
+    this.toggleSelected(task);
+  }
+
+  protected selectedInColumn(tasks: ProjectTask[]): number {
+    const ids = this.selected();
+    return tasks.filter((task) => ids.has(task.id)).length;
+  }
+
+  /** Selects every task in the column, or clears them when all are already selected. */
+  protected toggleColumn(tasks: ProjectTask[]): void {
+    const selectAll = this.selectedInColumn(tasks) < tasks.length;
+    this.selected.update((ids) => {
+      const next = new Set(ids);
+      for (const task of tasks) {
+        if (selectAll) next.add(task.id);
+        else next.delete(task.id);
+      }
+      return next;
+    });
+  }
+
+  @HostListener('document:keydown.escape')
+  protected clearSelection(): void {
+    this.selected.set(new Set());
+  }
+
+  /** Saves straight away like moving a card; rolls back if the server refuses. */
+  protected assignSelected(assigneeUserId: string | null): void {
+    const ids = this.selected();
+    if (!ids.size) return;
+    const previous = this.tasks.value();
+    this.tasks.update((tasks) => tasks.map((task) => (ids.has(task.id) ? { ...task, assigneeUserId } : task)));
+    this.clearSelection();
+    this.api.assignTasks(this.projectId(), [...ids], assigneeUserId).subscribe({
+      error: () => {
+        this.tasks.set(previous);
+        this.selected.set(ids);
+        this.taskError.set('Could not assign the selected tasks.');
+      },
+    });
+  }
 
   protected createTask(value: TaskFormValue): void {
     this.api.createTask(this.projectId(), value).subscribe({
