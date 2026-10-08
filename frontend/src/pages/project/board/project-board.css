@@ -19,6 +19,7 @@
   color: var(--secondary-surface);
   font-size: 11px;
 }
+:host > header .filter,
 .selection select {
   padding: 7px 10px;
   font-size: 11px;

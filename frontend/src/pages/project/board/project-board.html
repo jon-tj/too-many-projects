@@ -3,6 +3,31 @@
     <app-icon name="add" />
     <span>New task</span>
   </button>
+  <select
+    class="filter"
+    aria-label="Filter by assignee"
+    title="Filter by assignee"
+    (change)="setAssigneeFilter($any($event.target).value)"
+  >
+    <!-- Selected per option: a [value] on the select is applied before the options exist. -->
+    <option [value]="ASSIGNEE_FILTER.all" [selected]="assigneeFilter() === ASSIGNEE_FILTER.all">All</option>
+    <option [value]="ASSIGNEE_FILTER.meOrUnassigned" [selected]="assigneeFilter() === ASSIGNEE_FILTER.meOrUnassigned">
+      Me or unassigned
+    </option>
+    @if (account.value(); as me) {
+      <option [value]="me.id" [selected]="assigneeFilter() === me.id">Me</option>
+    }
+    @for (member of members.value(); track member.userId) {
+      @if (member.userId !== account.value()?.id) {
+        <option [value]="member.userId" [selected]="assigneeFilter() === member.userId">
+          {{ member.displayName || member.userName }}
+        </option>
+      }
+    }
+    <option [value]="ASSIGNEE_FILTER.unassigned" [selected]="assigneeFilter() === ASSIGNEE_FILTER.unassigned">
+      Unassigned
+    </option>
+  </select>
   @if (selected().size) {
     <div class="selection">
       <span>{{ selected().size }} selected</span>

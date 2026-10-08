@@ -15,6 +15,13 @@ const COLUMNS = [
   { status: 'done', title: 'Done', empty: 'Wins show up here' },
 ] as const;
 
+/** Special assignee filter values; the '*' prefix keeps them apart from user ids. */
+const ASSIGNEE_FILTER = {
+  all: '*all',
+  meOrUnassigned: '*me-or-unassigned',
+  unassigned: '*unassigned',
+} as const;
+
 @Component({
   selector: 'app-project-board',
   imports: [TaskForm, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
@@ -35,12 +42,31 @@ export class ProjectBoard {
     defaultValue: [],
   });
   protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
+  /** Which assignee's tasks to show: a member's user id, or one of the special ASSIGNEE_FILTER values. */
+  protected readonly assigneeFilter = signal<string>(ASSIGNEE_FILTER.all);
+  protected readonly visibleTasks = computed(() => {
+    const filter = this.assigneeFilter();
+    const me = this.account.value()?.id;
+    return this.tasks.value().filter((task) => {
+      switch (filter) {
+        case ASSIGNEE_FILTER.all:
+          return true;
+        case ASSIGNEE_FILTER.meOrUnassigned:
+          return !task.assigneeUserId || task.assigneeUserId === me;
+        case ASSIGNEE_FILTER.unassigned:
+          return !task.assigneeUserId;
+        default:
+          return task.assigneeUserId === filter;
+      }
+    });
+  });
   protected readonly columns = computed(() =>
     COLUMNS.map((column) => ({
       ...column,
-      tasks: this.tasks.value().filter((task) => task.status === column.status),
+      tasks: this.visibleTasks().filter((task) => task.status === column.status),
     })),
   );
+  protected readonly ASSIGNEE_FILTER = ASSIGNEE_FILTER;
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
   protected readonly copiedId = signal<number | null>(null);
@@ -53,6 +79,13 @@ export class ProjectBoard {
       if (!next.delete(task.id)) next.add(task.id);
       return next;
     });
+  }
+
+  /** Drops hidden tasks from the selection, so group actions only touch what is on screen. */
+  protected setAssigneeFilter(filter: string): void {
+    this.assigneeFilter.set(filter);
+    const visible = new Set(this.visibleTasks().map((task) => task.id));
+    this.selected.update((ids) => new Set([...ids].filter((id) => visible.has(id))));
   }
 
   /** Shift-click on a card selects it instead of opening the task. */
