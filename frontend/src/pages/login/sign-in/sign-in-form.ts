@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { utmParams } from '../../../services/attribution';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-sign-in-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule],
   templateUrl: './sign-in-form.html',
   styleUrl: './sign-in-form.css',
 })
@@ -16,8 +15,6 @@ export class SignInForm {
   private readonly router = inject(Router);
   protected readonly busy = signal(false);
   protected readonly error = signal('');
-  /** Carried on to the sign-up link, so a campaign visitor who looks here first is still attributed. */
-  protected readonly utm = utmParams(inject(ActivatedRoute).snapshot.queryParams);
   protected readonly form = inject(FormBuilder).nonNullable.group({
     username: ['', Validators.required],
     password: ['', Validators.required],

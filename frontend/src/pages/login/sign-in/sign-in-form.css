@@ -6,13 +6,3 @@ h2,
 p {
   margin: 0;
 }
-
-.switch {
-  color: var(--secondary-surface);
-  font-size: 12px;
-}
-
-.switch a {
-  color: var(--primary-text);
-  font-weight: 600;
-}
