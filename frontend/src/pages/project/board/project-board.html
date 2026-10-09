@@ -89,7 +89,7 @@
         <header>
           <span class="column-marker"></span>
           <h3>{{ column.title }}</h3>
-          <span class="badge">{{ column.tasks.length }}</span>
+          <span class="badge">{{ column.total }}</span>
           <input
             class="select-box"
             type="checkbox"
@@ -181,6 +181,11 @@
           </article>
         } @empty {
           <div class="column-empty">{{ column.empty }}</div>
+        }
+        @if (column.status === 'done' && column.total > DONE_LIMIT) {
+          <button class="transparent show-more" type="button" (click)="showAllDone.set(!showAllDone())">
+            <span>{{ showAllDone() ? 'Show fewer' : 'Show ' + (column.total - column.tasks.length) + ' older' }}</span>
+          </button>
         }
       </section>
     }

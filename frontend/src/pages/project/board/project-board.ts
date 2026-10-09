@@ -10,6 +10,9 @@ import { PRIORITY_RANK, ProjectTask, TaskStatus } from '../../../services/models
 import { celebrateDone } from '../../../services/celebrate';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
+/** Done shows only this many of the most recently completed tasks until "Show older" is clicked. */
+const DONE_LIMIT = 4;
+
 const COLUMNS = [
   { status: 'todo', title: 'To do', empty: 'Nothing queued yet' },
   { status: 'doing', title: 'Doing', empty: 'A clear runway' },
@@ -84,14 +87,21 @@ export class ProjectBoard {
       }
     });
   });
+  /** Whether the done column shows all its tasks rather than only the latest. */
+  protected readonly showAllDone = signal(false);
+  /** `tasks` are the cards shown; `total` counts the column's tasks, including done ones left out. */
   protected readonly columns = computed(() =>
-    COLUMNS.map((column) => ({
-      ...column,
-      // Highest priority first; the sort is stable, so newest first within a priority.
-      tasks: this.visibleTasks()
-        .filter((task) => task.status === column.status)
-        .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]),
-    })),
+    COLUMNS.map((column) => {
+      const all = this.visibleTasks().filter((task) => task.status === column.status);
+      if (column.status !== 'done') {
+        // Highest priority first; the sort is stable, so newest first within a priority.
+        const tasks = all.sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]);
+        return { ...column, tasks, total: tasks.length };
+      }
+      // Most recently completed first; ISO timestamps sort as text.
+      all.sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '') || b.id - a.id);
+      return { ...column, tasks: this.showAllDone() ? all : all.slice(0, DONE_LIMIT), total: all.length };
+    }),
   );
   /**
    * Tasks waiting on a dependency that is not done. Worked out from the loaded tasks rather than the server's flag,
@@ -106,6 +116,7 @@ export class ProjectBoard {
   protected readonly canEnter = (drag: CdkDrag<ProjectTask>, drop: CdkDropList<TaskStatus>): boolean =>
     drop.data === 'todo' || drag.data.status !== 'todo' || !this.blockedIds().has(drag.data.id);
   protected readonly ASSIGNEE_FILTER = ASSIGNEE_FILTER;
+  protected readonly DONE_LIMIT = DONE_LIMIT;
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
   protected readonly copiedId = signal<number | null>(null);
@@ -268,16 +279,17 @@ export class ProjectBoard {
     }
     const assigneeUserId =
       status === 'doing' && !task.assigneeUserId ? (this.account.value()?.id ?? null) : task.assigneeUserId;
-    const setTask = (value: Pick<ProjectTask, 'status' | 'assigneeUserId'>) =>
+    const setTask = (value: Pick<ProjectTask, 'status' | 'assigneeUserId' | 'completedAt'>) =>
       this.tasks.update((tasks) => tasks.map((item) => (item.id === task.id ? { ...item, ...value } : item)));
-    setTask({ status, assigneeUserId });
+    // Completed now, like the server records it, so the card lands at the top of done.
+    setTask({ status, assigneeUserId, completedAt: status === 'done' ? new Date().toISOString() : null });
     this.taskError.set('');
     this.api.setTaskStatus(task.id, status).subscribe({
       next: () => {
         if (status === 'done') void celebrateDone(task.priority, dropPoint);
       },
       error: () => {
-        setTask({ status: task.status, assigneeUserId: task.assigneeUserId });
+        setTask({ status: task.status, assigneeUserId: task.assigneeUserId, completedAt: task.completedAt });
         this.taskError.set('Could not update task status.');
       },
     });

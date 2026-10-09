@@ -27,6 +27,8 @@ export interface ProjectTask {
   assigneeUserId: string | null;
   dueAt: string | null;
   createdAt: string;
+  /** When the task last moved to done; null while it is not done. */
+  completedAt: string | null;
   /** Units of work the task is split into; null when it is not split. */
   units: number | null;
   /** Units completed so far. A done task counts as complete whatever this is. */

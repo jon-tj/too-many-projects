@@ -176,6 +176,11 @@
   color: var(--secondary-surface);
   text-decoration: line-through;
 }
+.show-more {
+  justify-content: center;
+  width: 100%;
+  margin-top: 10px;
+}
 .column-empty {
   display: grid;
   min-height: 86px;

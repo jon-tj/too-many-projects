@@ -17,7 +17,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
 
     private static readonly Expression<Func<ProjectTask, TaskResponse>> ToResponse = task => new TaskResponse(
         task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
-        task.Status, task.Priority, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.Units, task.UnitsDone,
+        task.Status, task.Priority, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.CompletedAt, task.Units, task.UnitsDone,
         task.Dependencies.Select(dependency => dependency.DependsOnTaskId).ToList(),
         task.Dependencies.Any(dependency => dependency.DependsOn.Status != "done"));
 
@@ -313,7 +313,8 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
 /// <summary>Task summary for project and dashboard views.</summary>
 public sealed record TaskResponse(
     long Id, long ProjectId, string ProjectName, string Title, string Description,
-    string Status, string Priority, string? AssigneeUserId, DateTimeOffset? DueAt, DateTimeOffset CreatedAt, int? Units, int UnitsDone,
+    string Status, string Priority, string? AssigneeUserId, DateTimeOffset? DueAt, DateTimeOffset CreatedAt,
+    DateTimeOffset? CompletedAt, int? Units, int UnitsDone,
     IReadOnlyList<long> DependsOn, bool Blocked);
 
 /// <summary>How many units of a task are done.</summary>
