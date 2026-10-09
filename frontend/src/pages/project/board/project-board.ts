@@ -7,6 +7,7 @@ import { Icon } from '../../../components/icon/icon';
 import { Modal } from '../../../components/modal/modal';
 import { TaskForm, TaskFormValue } from '../../../components/task-form/task-form';
 import { PRIORITY_RANK, ProjectTask, TaskStatus } from '../../../services/models';
+import { celebrateDone } from '../../../services/celebrate';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const COLUMNS = [
@@ -252,10 +253,11 @@ export class ProjectBoard {
 
   /** Dropping a card on another column changes its status. Touch drags start after a short hold, so swiping still scrolls. */
   protected drop(event: CdkDragDrop<TaskStatus, TaskStatus, ProjectTask>): void {
-    this.changeStatus(event.item.data, event.container.data);
+    this.changeStatus(event.item.data, event.container.data, event.dropPoint);
   }
 
-  private changeStatus(task: ProjectTask, status: TaskStatus): void {
+  /** Confetti bursts from where the card was dropped when a high or critical task is done. */
+  private changeStatus(task: ProjectTask, status: TaskStatus, dropPoint?: { x: number; y: number }): void {
     if (task.status === status) return;
     if (task.status === 'todo' && this.blockedIds().has(task.id)) {
       this.taskError.set('This task is blocked until all its dependencies are done.');
@@ -268,6 +270,9 @@ export class ProjectBoard {
     setStatus(status);
     this.taskError.set('');
     this.api.setTaskStatus(task.id, status).subscribe({
+      next: () => {
+        if (status === 'done') void celebrateDone(task.priority, dropPoint);
+      },
       error: () => {
         setStatus(task.status);
         this.taskError.set('Could not update task status.');

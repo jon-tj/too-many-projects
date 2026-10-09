@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { TaskForm, TaskFormValue } from '../../../components/task-form/task-form';
 import { ProjectCanvas } from '../canvas/editor/project-canvas';
+import { celebrateDone } from '../../../services/celebrate';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 @Component({
@@ -46,7 +47,11 @@ export class TaskDetail {
     if (!task) return;
     this.busy.set(true);
     this.api.updateTask({ ...task, ...value }).subscribe({
-      next: () => this.backToBoard(),
+      next: () => {
+        // The confetti canvas sits on the page itself, so it keeps going on the board.
+        if (value.status === 'done' && task.status !== 'done') void celebrateDone(value.priority);
+        this.backToBoard();
+      },
       error: (response) => {
         this.busy.set(false);
         this.message.set(response?.error?.error ?? 'Could not save the task. Please try again.');
