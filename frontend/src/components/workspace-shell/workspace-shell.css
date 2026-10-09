@@ -20,6 +20,7 @@
 .project-views > a:hover { background: var(--secondary-text); }
 .project-views > a.is-active { color: var(--primary-active-text); background: var(--primary-active-surface); font-weight: 600; }
 .project-mark { width: 23px; height: 23px; flex: 0 0 23px; color: var(--secondary-surface); border-radius: 4px; }
+.frozen-mark { color: var(--secondary-surface); }
 .project-link-name { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-bottom { position: relative; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--primary-active-surface); }
 .account-menu-wrap { position: relative; display: grid; }

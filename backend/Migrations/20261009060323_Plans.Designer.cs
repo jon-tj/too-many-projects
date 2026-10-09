@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261009060323_Plans")]
+    partial class Plans
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -216,14 +219,8 @@ namespace backend.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("PlanRenewDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PlanType")
+                    b.Property<string>("Plan")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PreviousPlanType")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PrimaryUseCase")
@@ -238,6 +235,9 @@ namespace backend.Migrations
 
                     b.Property<string>("TeamRole")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("TrialEndsAt")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("TwoFactorEnabled")
@@ -388,23 +388,6 @@ namespace backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CanvasPermissions");
-                });
-
-            modelBuilder.Entity("Model.PlanExemption", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("PlanExemptions");
                 });
 
             modelBuilder.Entity("Model.Project", b =>
@@ -691,17 +674,6 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Canvas");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Model.PlanExemption", b =>
-                {
-                    b.HasOne("Model.ApplicationUser", "User")
-                        .WithOne()
-                        .HasForeignKey("Model.PlanExemption", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });

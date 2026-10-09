@@ -1,0 +1,47 @@
+@if (info.value()?.planExempt) {
+  <p class="exempt">
+    <app-icon name="verified" [size]="18" />
+    <span>Your plan never runs out, and you can switch to any plan without paying.</span>
+  </p>
+}
+<div class="plans">
+  @for (option of PLANS; track option.name) {
+    @let previous = previousPlan() === option.name;
+    <article [class.featured]="option.featured" [class.current]="current() === option.name" [class.previous]="previous">
+      @if (current() === option.name) {
+        <span class="tag">Your plan</span>
+      } @else if (previous) {
+        <span class="tag">Your previous plan</span>
+      } @else if (option.featured) {
+        <span class="tag">Most popular</span>
+      }
+      <h3>{{ option.title }}</h3>
+      <p class="price">
+        @if (info.value()?.planExempt && option.name !== 'free') {
+          <!-- Exempt users switch to any plan without paying. -->
+          <s>{{ option.price }}</s>
+          <strong>Free for you</strong>
+        } @else {
+          <strong>{{ option.price }}</strong>
+          <span>/ month</span>
+        }
+      </p>
+      <ul>
+        @for (perk of option.perks; track perk) {
+          <li><app-icon name="check" [size]="15" />{{ perk }}</li>
+        }
+      </ul>
+      <button
+        [class]="option.featured ? 'primary' : 'transparent'"
+        type="button"
+        [disabled]="busy() || info.isLoading() || current() === option.name"
+        (click)="choose(option)"
+      >
+        {{ current() === option.name ? 'Current plan' : (previous ? 'Renew ' : 'Choose ') + option.title }}
+      </button>
+    </article>
+  }
+</div>
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}

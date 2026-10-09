@@ -15,7 +15,6 @@ public sealed class SignupController(UserManager<ApplicationUser> users) : Contr
 {
     public static readonly string[] UseCases = ["client-work", "product-development", "internal-operations", "personal", "other"];
     public static readonly string[] TeamRoles = ["founder", "manager", "contributor", "freelancer", "other"];
-    private static readonly TimeSpan Trial = TimeSpan.FromDays(30);
 
     [HttpPost]
     public async Task<IActionResult> Register(SignupRequest request)
@@ -35,7 +34,8 @@ public sealed class SignupController(UserManager<ApplicationUser> users) : Contr
             Email = email,
             DisplayName = request.DisplayName.Trim(),
             CreatedAt = now,
-            TrialEndsAt = now + Trial,
+            PlanType = Plans.Plan.Trial,
+            PlanRenewDate = Plans.Plan.RenewDateFrom(Plans.Plan.Trial, now),
             PrimaryUseCase = request.PrimaryUseCase,
             TeamRole = request.TeamRole,
             UtmSource = Clean(request.UtmSource),

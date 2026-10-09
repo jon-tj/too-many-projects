@@ -10,8 +10,15 @@ public sealed class ApplicationUser : IdentityUser
 	/// <summary>Small square profile picture as an image data URL; null shows the initial instead.</summary>
 	public string? AvatarImage { get; set; }
 	public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-	/// <summary>When the free trial started at sign-up runs out; null for accounts created before sign-up existed.</summary>
-	public DateTimeOffset? TrialEndsAt { get; set; }
+	/// <summary>trial, free, plus or pro (see Plans.Plan); trial is only ever set at registration. Owned projects follow it.</summary>
+	public string PlanType { get; set; } = Plans.Plan.Trial;
+	/// <summary>
+	/// When the plan runs out unless renewed: the end of the trial, or the next renewal of a paid plan. Null on the free
+	/// plan, which never runs out. See Plans.Plan.Lapsed.
+	/// </summary>
+	public DateTimeOffset? PlanRenewDate { get; set; }
+	/// <summary>The plan the user had when it last ran out (trial, plus or pro), so it can be named and offered again.</summary>
+	public string? PreviousPlanType { get; set; }
 
 	// Answers from the sign-up form, for understanding who signs up.
 	public string PrimaryUseCase { get; set; } = string.Empty;

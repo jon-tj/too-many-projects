@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Plans;
 using Model;
 
 /// <summary>
@@ -18,6 +19,7 @@ using Model;
 [ApiController]
 [Authorize]
 [Route("api/projects/{projectId:long}/billing")]
+[RequiresProject(ProjectFeature.Full)]
 public sealed class BillingController(AppDbContext db) : ControllerBase
 {
     private static readonly Dictionary<string, decimal> Fractions = new()

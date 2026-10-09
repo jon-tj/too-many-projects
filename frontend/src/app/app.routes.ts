@@ -18,6 +18,7 @@ import { ProjectMembers } from '../pages/project/members/project-members';
 import { ProjectSettings } from '../pages/project/settings/project-settings';
 import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
+import { PlansPage } from '../pages/plans/plans-page';
 import { BillingReportPage } from '../pages/report/billing-report';
 
 export const routes: Routes = [
@@ -53,6 +54,7 @@ export const routes: Routes = [
 				],
 			},
 			{ path: 'settings', component: SettingsPage },
+			{ path: 'plans', component: PlansPage },
 		],
 	},
 	{ path: '**', redirectTo: '' },

@@ -3,21 +3,79 @@ using Accounts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Model;
+using Plans;
 
 [ApiController]
 [Authorize]
 [Route("api/account")]
-public sealed class AccountController(UserManager<ApplicationUser> users, UserRemoval userRemoval) : ControllerBase
+public sealed class AccountController(
+    UserManager<ApplicationUser> users, UserRemoval userRemoval, AppDbContext db, PlanService plans) : ControllerBase
 {
     [HttpGet("me")]
-    public async Task<ActionResult<AccountResponse>> GetCurrent()
+    public async Task<ActionResult<AccountResponse>> GetCurrent(CancellationToken cancellationToken)
     {
         var user = await users.GetUserAsync(User);
-        return user is null
-            ? Unauthorized()
-            : Ok(new AccountResponse(
-                user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage));
+        if (user is null) return Unauthorized();
+        // First, so a plan that just ran out shows as none.
+        var lapsed = await plans.IsLapsed(user, cancellationToken);
+        return Ok(new AccountResponse(
+            user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage,
+            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType));
+    }
+
+    /// <summary>The caller's plan and the projects they own, for choosing a plan and which projects stay active.</summary>
+    [HttpGet("plan")]
+    public async Task<ActionResult<PlanResponse>> GetPlan(CancellationToken cancellationToken)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        // First, so a plan that just ran out shows as none with its projects frozen.
+        var lapsed = await plans.IsLapsed(user, cancellationToken);
+        var owned = await db.Projects.AsNoTracking()
+            .Where(project => project.OwnerId == user.Id)
+            .OrderBy(project => project.Name)
+            .Select(project => new OwnedProjectResponse(project.Id, project.Name, project.Frozen))
+            .ToListAsync(cancellationToken);
+        return Ok(new PlanResponse(
+            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType,
+            await plans.IsExempt(user.Id, cancellationToken), Plan.ProjectLimit(user.PlanType), owned));
+    }
+
+    /// <summary>
+    /// Switches plan. Exempt users switch to any plan without paying; for everyone else payment is not wired up yet, so
+    /// a paid plan simply runs for a month. On a plan without a project limit every owned project is active; on one
+    /// whose limit the caller is within, too. Over the limit, every owned project is frozen and the owner unfreezes the
+    /// ones they want, up to the limit (POST api/projects/{id}/unfreeze). A plan that ran out is "none" (no slots, all
+    /// frozen), so choosing any plan after that follows the same rules. Choosing the plan you are already on renews it
+    /// and keeps the projects as they are.
+    /// </summary>
+    [HttpPut("plan")]
+    public async Task<IActionResult> ChoosePlan(ChoosePlanRequest request, CancellationToken cancellationToken)
+    {
+        if (!Plan.Choosable.Contains(request.Plan)) return BadRequest(new { error = "Choose the free, plus or pro plan." });
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        // A plan that just ran out becomes none first, so choosing it again is a change of plan, not a renewal.
+        await plans.IsLapsed(user, cancellationToken);
+
+        // When Stripe is wired up, Plus and Pro need a payment here before anything below changes, unless the user is
+        // exempt (plans.IsExempt): exempt users switch to any plan for free.
+        // Renewing keeps the frozen projects as they are, so it cannot be used to swap them.
+        if (request.Plan != user.PlanType)
+        {
+            var owned = await db.Projects.Where(project => project.OwnerId == user.Id).ToListAsync(cancellationToken);
+            var freezeAll = Plan.ProjectLimit(request.Plan) is { } limit && owned.Count > limit;
+            foreach (var project in owned) project.Frozen = freezeAll;
+        }
+        user.PlanType = request.Plan;
+        user.PlanRenewDate = request.Plan == Plan.Free ? null : Plan.RenewDateFrom(request.Plan, DateTimeOffset.UtcNow);
+        // The user and the projects are tracked by the same context, so this saves both.
+        var result = await users.UpdateAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
+        return NoContent();
     }
 
     /// <summary>Changes the sign-in username after confirming the password. Identity rejects names already taken.</summary>
@@ -93,7 +151,22 @@ public sealed class AccountController(UserManager<ApplicationUser> users, UserRe
 
 /// <summary>Profile data for the authenticated account.</summary>
 public sealed record AccountResponse(
-    string Id, string UserName, string DisplayName, string Email, bool MustChangePassword, string? AvatarImage);
+    string Id, string UserName, string DisplayName, string Email, bool MustChangePassword, string? AvatarImage,
+    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType);
+
+/// <summary>The caller's plan, whether it is exempt from lapsing, its project limit (null for none) and the projects they own.</summary>
+public sealed record PlanResponse(
+    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool PlanExempt, int? ProjectLimit,
+    IReadOnlyList<OwnedProjectResponse> OwnedProjects);
+
+public sealed record OwnedProjectResponse(long Id, string Name, bool Frozen);
+
+/// <summary>The plan to switch to: free, plus or pro.</summary>
+public sealed record ChoosePlanRequest
+{
+    [Required]
+    public required string Plan { get; init; }
+}
 
 /// <summary>A profile picture as a small image data URL, or null to remove it.</summary>
 public sealed record SetAvatarRequest

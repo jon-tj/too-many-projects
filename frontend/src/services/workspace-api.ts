@@ -19,6 +19,9 @@ import {
   OverviewRange,
   ProjectRole,
   ProjectTask,
+  ChoosablePlan,
+  PlanInfo,
+  PlanName,
   PublicStats,
   TaskPriority,
   UserSummary,
@@ -36,6 +39,28 @@ export class WorkspaceApi {
 
   currentAccount(): Observable<Account> {
     return this.http.get<Account>('/api/account/me');
+  }
+
+  plan(): Observable<PlanInfo> {
+    return this.http.get<PlanInfo>('/api/account/plan');
+  }
+
+  /** Emails the project's owner that you would like it unfrozen or upgraded (at most once a day). */
+  requestUpgrade(projectId: number): Observable<void> {
+    return this.http.post<void>(`/api/projects/${projectId}/upgrade-request`, {});
+  }
+
+  /**
+   * Switches plan. Owning more projects than the new plan allows freezes all of them, to unfreeze one by one; Pro
+   * (no limit) unfreezes everything.
+   */
+  choosePlan(plan: ChoosablePlan): Observable<void> {
+    return this.http.put<void>('/api/account/plan', { plan });
+  }
+
+  /** Unfreezes one of your projects into a free slot of your plan. */
+  unfreezeProject(projectId: number): Observable<void> {
+    return this.http.post<void>(`/api/projects/${projectId}/unfreeze`, {});
   }
 
   projects(): Observable<Project[]> {

@@ -4,12 +4,15 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Plans;
 using Model;
 
 [ApiController]
 [Authorize]
 [Route("api/tasks")]
-public sealed class TasksController(AppDbContext db) : ControllerBase
+// by-project endpoints name the project; endpoints on one task override this to look it up from the task.
+[RequiresProject(ProjectFeature.Tasks)]
+public sealed class TasksController(AppDbContext db, PlanService plans) : ControllerBase
 {
     private static readonly string[] ValidStatuses = ["todo", "doing", "done"];
     private static readonly string[] ValidPriorities = ["low", "high", "critical"];
@@ -36,9 +39,12 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             .Select(ToResponse)
             .ToListAsync(cancellationToken);
 
+        // Frozen projects cannot be worked on, so their tasks are left out.
+        var statuses = await plans.GetStatuses(tasks.Select(task => task.ProjectId).Distinct().ToList(), cancellationToken);
         // Sorted in memory: SQLite cannot order by DateTimeOffset. Doing first, then by priority, then the earliest
         // due date (tasks without one last), then newest first.
         return Ok(tasks
+            .Where(task => statuses.TryGetValue(task.ProjectId, out var status) && !status.Frozen)
             .OrderBy(task => task.Status == "doing" ? 0 : 1)
             .ThenByDescending(task => task.Priority switch { "critical" => 2, "high" => 1, _ => 0 })
             .ThenBy(task => task.DueAt ?? DateTimeOffset.MaxValue)
@@ -46,6 +52,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
             .ToList());
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.TaskId)]
     [HttpGet("{id:long}")]
     public async Task<ActionResult<TaskResponse>> GetById(long id, CancellationToken cancellationToken)
     {
@@ -158,6 +165,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.TaskId)]
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(
         long id, UpdateTaskRequest request, CancellationToken cancellationToken)
@@ -201,6 +209,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.TaskId)]
     [HttpDelete("{id:long}")]
     public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
     {
@@ -216,6 +225,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>Sets how many units are done, from the board's − / + controls.</summary>
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.TaskId)]
     [HttpPatch("{id:long}/units")]
     public async Task<IActionResult> SetUnitsDone(
         long id, SetUnitsDoneRequest request, CancellationToken cancellationToken)
@@ -234,6 +244,7 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.TaskId)]
     [HttpPatch("{id:long}/status")]
     public async Task<IActionResult> SetStatus(
         long id, SetTaskStatusRequest request, CancellationToken cancellationToken)

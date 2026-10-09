@@ -58,11 +58,13 @@ if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
 else
     builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
 builder.Services.AddScoped<UserRemoval>();
+builder.Services.AddScoped<Plans.PlanService>();
 builder.Services.AddScoped<CanvasAccessService>();
 builder.Services.AddSingleton<CanvasLocks>();
 builder.Services.AddSingleton<CanvasPresence>();
 builder.Services.AddSignalR();
-builder.Services.AddControllers();
+// Frozen projects and free-plan limits are enforced for every endpoint marked with [RequiresProject].
+builder.Services.AddControllers(options => options.Filters.Add<Plans.ProjectFeatureFilter>());
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -86,13 +88,22 @@ await using (var scope = app.Services.CreateAsyncScope())
             UserName = "jon",
             Email = "piehunter123@gmail.com",
             EmailConfirmed = true,
-            DisplayName = "Jon"
+            DisplayName = "Jon",
+            PlanType = Plans.Plan.Pro
         };
         var result = await userManager.CreateAsync(jon, "Passw0rd!");
         if (!result.Succeeded)
         {
             throw new InvalidOperationException($"Could not seed the jon account: {string.Join("; ", result.Errors.Select(error => error.Description))}");
         }
+    }
+
+    // The admin's plan never lapses.
+    var admin = (await userManager.FindByNameAsync("jon"))!;
+    if (!await db.PlanExemptions.AnyAsync(exemption => exemption.UserId == admin.Id))
+    {
+        db.PlanExemptions.Add(new PlanExemption { UserId = admin.Id, Note = "Admin" });
+        await db.SaveChangesAsync();
     }
     else if (app.Environment.IsDevelopment())
     {

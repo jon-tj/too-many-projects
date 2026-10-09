@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { Avatar } from '../../components/avatar/avatar';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
 import { AuthService } from '../../services/auth.service';
@@ -10,7 +11,7 @@ import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [ReactiveFormsModule, Avatar],
+  imports: [ReactiveFormsModule, Avatar, RouterLink],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.css',
 })
@@ -22,6 +23,7 @@ export class SettingsPage implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly shell = inject(WorkspaceShell);
+
   /** The picture chosen but not saved yet: undefined = unchanged, null = remove. */
   protected readonly pendingAvatar = signal<string | null | undefined>(undefined);
   protected readonly avatarMessage = signal('');

@@ -17,6 +17,11 @@
   </dl>
 </section>
 <section class="settings-section">
+  <h2>Plan</h2>
+  <p class="plan-link">See your plan, which projects are active, and change plan on the <a routerLink="/plans">plans page</a>.</p>
+</section>
+
+<section class="settings-section">
   <h2>Profile picture</h2>
   <form (submit)="$event.preventDefault(); saveAvatar()">
     <app-avatar class="avatar" [name]="account()?.displayName ?? ''" [image]="avatarPreview()" />

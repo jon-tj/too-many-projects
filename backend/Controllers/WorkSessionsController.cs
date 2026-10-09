@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Plans;
 
 /// <summary>The caller's own work sessions, for the work log: listing them and correcting their times.</summary>
 [ApiController]
@@ -39,6 +40,7 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
     /// stops it. Times cannot be in the future, and sessions cannot overlap the caller's other sessions in the same
     /// project (sessions in different projects may).
     /// </summary>
+    [RequiresProject(ProjectFeature.Full, ProjectKey.WorkSessionId)]
     [HttpPatch("{id:long}")]
     public async Task<ActionResult<WorkSessionResponse>> Update(
         long id, UpdateWorkSessionRequest request, CancellationToken cancellationToken)

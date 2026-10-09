@@ -30,9 +30,11 @@ export class ProjectSettings {
   private readonly shell = inject(WorkspaceShell);
   protected readonly project = inject(ProjectPage).project;
   protected readonly isOwner = computed(() => this.project.value()?.myRole === 'Owner');
+  /** Billing is not in the free plan. */
+  protected readonly canBill = computed(() => this.isOwner() && !!this.project.value()?.fullFeatures);
   /** Billing settings are owner-only, so they are only loaded for owners. */
   private readonly billing = rxResource({
-    params: () => (this.isOwner() ? this.project.value()!.id : undefined),
+    params: () => (this.canBill() ? this.project.value()!.id : undefined),
     stream: ({ params }) => this.api.billing(params),
   });
   protected readonly billingMessage = signal('');

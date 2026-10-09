@@ -5,11 +5,13 @@ using Canvases;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Plans;
 using Model;
 
 [ApiController]
 [Authorize]
 [Route("api/projects/{projectId:long}/canvases")]
+[RequiresProject(ProjectFeature.Full)]
 public sealed class CanvasesController(AppDbContext db, CanvasAccessService access) : ControllerBase
 {
     [HttpGet]

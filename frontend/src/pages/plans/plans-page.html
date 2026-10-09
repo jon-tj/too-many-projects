@@ -1,0 +1,86 @@
+<header>
+  <h1>Plans</h1>
+</header>
+
+@if (info.error()) {
+  <p class="error" role="alert">Could not load your plan.</p>
+}
+
+@if (info.value(); as plan) {
+  <section class="summary" [class.lapsed]="plan.planLapsed">
+    <div>
+      <span class="label">Your plan</span>
+      <strong>{{ title() }}</strong>
+      <span class="status">{{ status() }}</span>
+    </div>
+    <div>
+      <span class="label">Active projects</span>
+      <strong>
+        {{ activeCount() }}
+        @if (plan.projectLimit !== null) {
+          <span class="of">of {{ plan.projectLimit }}</span>
+        } @else {
+          <span class="of">· no limit</span>
+        }
+      </strong>
+      <span class="status">{{ plan.ownedProjects.length }} owned in total</span>
+    </div>
+  </section>
+
+  @if (plan.planLapsed) {
+    <p class="notice">
+      <app-icon name="ac_unit" [size]="18" />
+      Your plan has run out, so every project you own is frozen. Choose a plan below to use them again.
+    </p>
+  }
+
+  @if (plan.ownedProjects.length) {
+    <section>
+      <h2>Your projects</h2>
+      <ul class="projects">
+        @for (project of plan.ownedProjects; track project.id) {
+          @let frozen = project.frozen || plan.planLapsed;
+          <li [class.frozen]="frozen">
+            <span class="name">{{ project.name }}</span>
+            <span class="state">
+              @if (frozen) {
+                <app-icon name="ac_unit" [size]="13" /> Frozen
+                @if (hasFreeSlot()) {
+                  <button
+                    class="transparent"
+                    type="button"
+                    [disabled]="unfreezing() !== null"
+                    (click)="unfreeze(project.id)"
+                  >
+                    <span>{{ unfreezing() === project.id ? 'Unfreezing…' : 'Unfreeze' }}</span>
+                  </button>
+                }
+              } @else {
+                Active
+              }
+            </span>
+          </li>
+        }
+      </ul>
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      @if (activeCount() < plan.ownedProjects.length) {
+        <p class="hint">
+          Frozen projects keep everything in them.
+          @if (hasFreeSlot()) {
+            Your plan has room for more active projects, so you can unfreeze some now.
+          } @else {
+            Every active slot in your plan is in use: upgrade to unfreeze more. Once unfrozen, a project stays active
+            until you change plan.
+          }
+        </p>
+      }
+    </section>
+  }
+
+  <section>
+    <h2>Choose a plan</h2>
+    <app-plan-picker (changed)="refresh()" />
+  </section>
+}

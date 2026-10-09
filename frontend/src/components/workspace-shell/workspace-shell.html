@@ -12,15 +12,20 @@
       <div class="section-heading"><span>Projects</span><button #createButton class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
-          <a [routerLink]="['/projects', project.id, 'board']" [class.is-active]="project.id === currentProjectId()"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
+          <a [routerLink]="['/projects', project.id, 'board']" [class.is-active]="project.id === currentProjectId()"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span>@if (project.frozen) {<app-icon class="frozen-mark" name="ac_unit" [size]="14" title="Frozen" />} @else {<span class="badge">{{ project.taskCount }}</span>}</a>
           <!-- The open project's views, nested under it. -->
-          @if (project.id === currentProjectId()) {
+          <!-- Frozen projects have no views to open; the free plan only has the board and settings. -->
+          @if (project.id === currentProjectId() && !project.frozen) {
             <nav class="project-views" aria-label="Project views">
-              <a [routerLink]="['/projects', project.id, 'overview']" routerLinkActive="is-active"><app-icon name="insights" /><span>Overview</span></a>
+              @if (project.fullFeatures) {
+                <a [routerLink]="['/projects', project.id, 'overview']" routerLinkActive="is-active"><app-icon name="insights" /><span>Overview</span></a>
+              }
               <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><app-icon name="grid_view" /><span>Board</span></a>
-              <a [routerLink]="['/projects', project.id, 'roadmap']" routerLinkActive="is-active"><app-icon name="view_timeline" /><span>Roadmap</span></a>
-              <a [routerLink]="['/projects', project.id, 'canvas']" routerLinkActive="is-active"><app-icon name="account_tree" /><span>Canvas</span></a>
-              <a [routerLink]="['/projects', project.id, 'members']" routerLinkActive="is-active"><app-icon name="person" /><span>Members</span><span class="badge">{{ project.memberCount }}</span></a>
+              @if (project.fullFeatures) {
+                <a [routerLink]="['/projects', project.id, 'roadmap']" routerLinkActive="is-active"><app-icon name="view_timeline" /><span>Roadmap</span></a>
+                <a [routerLink]="['/projects', project.id, 'canvas']" routerLinkActive="is-active"><app-icon name="account_tree" /><span>Canvas</span></a>
+                <a [routerLink]="['/projects', project.id, 'members']" routerLinkActive="is-active"><app-icon name="person" /><span>Members</span><span class="badge">{{ project.memberCount }}</span></a>
+              }
               <a [routerLink]="['/projects', project.id, 'settings']" routerLinkActive="is-active"><app-icon name="settings" /><span>Settings</span></a>
             </nav>
           }
@@ -33,6 +38,7 @@
       <div class="account-menu-wrap">
         @if (accountMenuOpen()) {
           <div class="account-menu" role="menu">
+            <button class="transparent" type="button" routerLink="/plans" role="menuitem" (click)="closeAccountMenu()"><app-icon name="workspace_premium" /><span>Plan</span></button>
             <button class="transparent" type="button" routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" /><span>Settings</span></button>
             <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" /><span>Sign out</span></button>
           </div>

@@ -14,6 +14,36 @@ export interface Project {
   gitHubUrl: string | null;
   /** The project's website (http(s)://...), or null. */
   websiteUrl: string | null;
+  /** The owner's plan no longer includes this project (or their trial ended): nothing in it can be used. */
+  frozen: boolean;
+  /** False on the free plan, which only includes boards and tasks. */
+  fullFeatures: boolean;
+  /** You own the project, so its plan (and whether it is frozen) is yours to change. */
+  isPlanOwner: boolean;
+  /** Who owns the project, to ask about upgrading it. */
+  ownerName: string;
+  /** The project is yours, frozen, and your plan has a free project slot to unfreeze it into. */
+  canUnfreeze: boolean;
+}
+
+/** none is what a trial or paid plan becomes when it runs out: no project slots, everything frozen. */
+export type PlanName = 'trial' | 'free' | 'plus' | 'pro' | 'none';
+
+/** The plans you can switch to; trial is only given at registration and none only when a plan runs out. */
+export type ChoosablePlan = Exclude<PlanName, 'trial' | 'none'>;
+
+/** Your plan and the projects you own, for choosing a plan. */
+export interface PlanInfo {
+  planType: PlanName;
+  planRenewDate: string | null;
+  planLapsed: boolean;
+  /** The plan you had when it last ran out; null if it never has. */
+  previousPlanType: PlanName | null;
+  /** The plan never runs out, whatever its renew date. */
+  planExempt: boolean;
+  /** Active projects the plan allows; null for no limit. */
+  projectLimit: number | null;
+  ownedProjects: { id: number; name: string; frozen: boolean }[];
 }
 
 export interface ProjectTask {
@@ -70,6 +100,14 @@ export interface Account {
   email: string;
   mustChangePassword: boolean;
   avatarImage: string | null;
+  /** trial is only ever set at registration; it cannot be chosen. */
+  planType: PlanName;
+  /** When the plan runs out unless renewed (end of the trial, or next renewal); null on the free plan. */
+  planRenewDate: string | null;
+  /** The plan has run out: every project you own is frozen until you choose a plan. */
+  planLapsed: boolean;
+  /** The plan you had when it last ran out (trial, plus or pro); null if it never has. */
+  previousPlanType: PlanName | null;
 }
 
 export type OverviewRange = '7d' | '30d' | '1y';

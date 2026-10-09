@@ -22,3 +22,46 @@ div {
 small {
   color: var(--secondary-surface);
 }
+
+/* Shown when the trial has ended: explains what happened and offers the plans. */
+.plan-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+  padding: 24px;
+  background: var(--primary-active-surface);
+  border: 1px solid var(--secondary-surface);
+  border-radius: 10px;
+}
+
+.plan-panel h2,
+.plan-panel p,
+.trial-bar p {
+  margin: 0;
+}
+
+.plan-panel p {
+  max-width: 640px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.trial-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: var(--primary-active-surface);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.see-plans {
+  color: var(--primary-active-text);
+  font-size: 12px;
+  font-weight: 600;
+}

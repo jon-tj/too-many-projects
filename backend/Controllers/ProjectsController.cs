@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Plans;
 using Model;
 
 [ApiController]
@@ -17,9 +19,12 @@ public sealed class ProjectsController(
     UserManager<ApplicationUser> userManager,
     IEmailService emailService,
     UserRemoval userRemoval,
+    PlanService plans,
     ILogger<ProjectsController> logger) : ControllerBase
 {
     private static readonly string[] MemberRoles = ["Owner", "Developer", "External"];
+    /// <summary>When each member last asked for an upgrade, per project, so owners get at most one email a day from each.</summary>
+    private static readonly ConcurrentDictionary<(long ProjectId, string UserId), DateTimeOffset> UpgradeRequests = new();
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProjectResponse>>> GetAll(CancellationToken cancellationToken)
@@ -32,10 +37,14 @@ public sealed class ProjectsController(
                 project.Id, project.Name, project.Description, project.CreatedAt,
                 project.Tasks.Count(task => task.Status != "done"), project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
-                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
+                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl, project.Frozen, true,
+                project.OwnerId == userId,
+                db.Users.Where(user => user.Id == project.OwnerId)
+                    .Select(user => user.DisplayName != "" ? user.DisplayName : user.UserName ?? "")
+                    .FirstOrDefault() ?? "", false))
             .ToListAsync(cancellationToken);
 
-        return Ok(projects);
+        return Ok(await WithPlanStatus(projects, cancellationToken));
     }
 
     [HttpGet("{id:long}")]
@@ -48,12 +57,17 @@ public sealed class ProjectsController(
                 project.Id, project.Name, project.Description, project.CreatedAt,
                 project.Tasks.Count(task => task.Status != "done"), project.Members.Count, project.Icon, project.IconImage,
                 project.Members.Where(member => member.UserId == userId).Select(member => member.Role).First(),
-                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl))
+                project.BillingEnabled, project.GitHubUrl, project.WebsiteUrl, project.Frozen, true,
+                project.OwnerId == userId,
+                db.Users.Where(user => user.Id == project.OwnerId)
+                    .Select(user => user.DisplayName != "" ? user.DisplayName : user.UserName ?? "")
+                    .FirstOrDefault() ?? "", false))
             .SingleOrDefaultAsync(cancellationToken);
 
-        return project is null ? NotFound() : Ok(project);
+        return project is null ? NotFound() : Ok((await WithPlanStatus([project], cancellationToken))[0]);
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.Id)]
     [HttpGet("{id:long}/members")]
     public async Task<ActionResult<IReadOnlyList<ProjectMemberResponse>>> GetMembers(long id, CancellationToken cancellationToken)
     {
@@ -78,6 +92,7 @@ public sealed class ProjectsController(
         return Ok(members);
     }
 
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpGet("{id:long}/member-candidates")]
     public async Task<ActionResult<IReadOnlyList<UserSummaryResponse>>> SearchMemberCandidates(
         long id, [FromQuery] string? search, CancellationToken cancellationToken)
@@ -101,6 +116,7 @@ public sealed class ProjectsController(
         return Ok(users);
     }
 
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpPost("{id:long}/members")]
     public async Task<ActionResult<ProjectMemberResponse>> AddMember(
         long id, AddMemberRequest request, CancellationToken cancellationToken)
@@ -152,6 +168,7 @@ public sealed class ProjectsController(
     /// Cancels the invite of a user who has not signed in yet. If this project is their only one, the
     /// account is deleted too; otherwise only this membership goes, so other projects' invites are untouched.
     /// </summary>
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpDelete("{id:long}/members/{userId}/invite")]
     public async Task<ActionResult<CancelInviteResponse>> CancelInvite(
         long id, string userId, CancellationToken cancellationToken)
@@ -178,6 +195,7 @@ public sealed class ProjectsController(
         return Ok(new CancelInviteResponse(UserDeleted: true));
     }
 
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpPost("{id:long}/members/new-user")]
     public async Task<ActionResult<ProjectMemberResponse>> AddNewUserMember(
         long id, NewUserMemberRequest request, CancellationToken cancellationToken)
@@ -194,7 +212,10 @@ public sealed class ProjectsController(
             Email = request.Email.Trim(),
             EmailConfirmed = true,
             DisplayName = request.UserName.Trim(),
-            MustChangePassword = true
+            MustChangePassword = true,
+            // Their own trial, for any projects they create themselves.
+            PlanType = Plan.Trial,
+            PlanRenewDate = Plan.RenewDateFrom(Plan.Trial, DateTimeOffset.UtcNow)
         };
         // An all-digit temporary password does not satisfy the Identity password rules, so it is hashed directly.
         user.PasswordHash = userManager.PasswordHasher.HashPassword(user, password);
@@ -224,6 +245,19 @@ public sealed class ProjectsController(
         ProjectRequest request, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var owner = await userManager.GetUserAsync(User);
+        if (owner is null) return Unauthorized();
+        if (await plans.IsLapsed(owner, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden,
+                new { error = "Your plan has run out. Choose a plan to create projects again.", code = "plan" });
+        if (Plan.ProjectLimit(owner.PlanType) is { } limit
+            && await db.Projects.CountAsync(project => project.OwnerId == userId && !project.Frozen, cancellationToken) >= limit)
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                error = $"Your plan includes {limit} active projects. Upgrade your plan, or delete a project, to create another.",
+                code = "limit"
+            });
+
         var project = new Project
         {
             Name = request.Name.Trim(),
@@ -236,10 +270,13 @@ public sealed class ProjectsController(
         await db.SaveChangesAsync(cancellationToken);
 
         var response = new ProjectResponse(
-            project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false, null, null);
+            project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false, null, null,
+            false, Plan.HasFullFeatures(owner.PlanType), true,
+            string.IsNullOrEmpty(owner.DisplayName) ? owner.UserName ?? "" : owner.DisplayName, false);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
     }
 
+    [RequiresProject(ProjectFeature.Tasks, ProjectKey.Id)]
     [HttpPut("{id:long}")]
     public async Task<IActionResult> Update(
         long id, UpdateProjectRequest request, CancellationToken cancellationToken)
@@ -266,6 +303,7 @@ public sealed class ProjectsController(
     /// Tasks completed and hours worked, cumulative from the start of the range (7d / 30d daily, 1y weekly, in UTC),
     /// plus whether the caller is currently working.
     /// </summary>
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpGet("{id:long}/overview")]
     public async Task<ActionResult<ProjectOverviewResponse>> GetOverview(
         long id, [FromQuery] string range, CancellationToken cancellationToken)
@@ -313,6 +351,7 @@ public sealed class ProjectsController(
     }
 
     /// <summary>"Working" opens a work session for the caller; "Idle" closes it.</summary>
+    [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpPut("{id:long}/work")]
     public async Task<IActionResult> SetWorking(long id, SetWorkingRequest request, CancellationToken cancellationToken)
     {
@@ -325,6 +364,64 @@ public sealed class ProjectsController(
             db.WorkSessions.Add(new WorkSession { ProjectId = id, UserId = userId });
         else if (!request.Working && open is not null)
             open.EndedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Emails the project's owner that a member would like the project upgraded: unfrozen, or moved off the free plan.
+    /// At most once a day per member and project.
+    /// </summary>
+    [HttpPost("{id:long}/upgrade-request")]
+    public async Task<IActionResult> RequestUpgrade(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var project = await GetMemberProject(id, cancellationToken);
+        if (project is null) return NotFound();
+        if (project.OwnerId == userId) return BadRequest(new { error = "This is your own project: change your plan instead." });
+        var status = await plans.GetStatus(id, cancellationToken);
+        if (status is { Frozen: false, FullFeatures: true })
+            return BadRequest(new { error = "This project already has everything its plan offers." });
+
+        var now = DateTimeOffset.UtcNow;
+        if (UpgradeRequests.TryGetValue((id, userId), out var last) && now - last < TimeSpan.FromDays(1))
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { error = "You already asked the owner today. Give them a little time." });
+
+        var owner = await db.Users.AsNoTracking().SingleAsync(user => user.Id == project.OwnerId, cancellationToken);
+        if (string.IsNullOrEmpty(owner.Email))
+            return BadRequest(new { error = "The project's owner has no email address to send the request to." });
+        var requester = await db.Users.AsNoTracking().SingleAsync(user => user.Id == userId, cancellationToken);
+        static string Name(ApplicationUser user) => string.IsNullOrEmpty(user.DisplayName) ? user.UserName ?? "" : user.DisplayName;
+
+        var sent = await TrySendEmail(PlanEmails.UpgradeRequest(
+            owner.Email, Name(owner), Name(requester), project.Name, status?.Frozen ?? false,
+            $"{Request.Scheme}://{Request.Host}/plans"), cancellationToken);
+        if (!sent)
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "The request could not be sent. Please try again." });
+        UpgradeRequests[(id, userId)] = now;
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Unfreezes one of the caller's own projects while their plan is running and has a free project slot. There is no
+    /// way back short of changing plan, so slots cannot be swapped between projects.
+    /// </summary>
+    [HttpPost("{id:long}/unfreeze")]
+    public async Task<IActionResult> Unfreeze(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var project = await GetMemberProject(id, cancellationToken);
+        if (project is null) return NotFound();
+        if (project.OwnerId != userId) return Forbid();
+        if (!project.Frozen) return NoContent();
+        if (!await HasFreeProjectSlot(cancellationToken))
+            return BadRequest(new
+            {
+                error = "Every active project slot in your plan is in use, or your plan has run out. Upgrade to unfreeze more."
+            });
+
+        project.Frozen = false;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -393,6 +490,35 @@ public sealed class ProjectsController(
             cancellationToken);
     }
 
+    /// <summary>
+    /// Fills in whether each project is frozen and has full features, which depend on its owner's plan, and whether the
+    /// caller can unfreeze it. Expects Frozen to hold the project's own frozen flag.
+    /// </summary>
+    private async Task<List<ProjectResponse>> WithPlanStatus(
+        IReadOnlyList<ProjectResponse> projects, CancellationToken cancellationToken)
+    {
+        var statuses = await plans.GetStatuses(projects.Select(project => project.Id).ToList(), cancellationToken);
+        var hasFreeSlot = projects.Any(project => project.IsPlanOwner && project.Frozen)
+            && await HasFreeProjectSlot(cancellationToken);
+        return projects.Select(project => statuses.TryGetValue(project.Id, out var status)
+            ? project with
+            {
+                Frozen = status.Frozen,
+                FullFeatures = status.FullFeatures,
+                CanUnfreeze = project.IsPlanOwner && project.Frozen && hasFreeSlot,
+            }
+            : project).ToList();
+    }
+
+    /// <summary>Whether the caller's plan is running and has room for another active project.</summary>
+    private async Task<bool> HasFreeProjectSlot(CancellationToken cancellationToken)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null || await plans.IsLapsed(user, cancellationToken)) return false;
+        return Plan.ProjectLimit(user.PlanType) is not { } limit
+            || await db.Projects.CountAsync(project => project.OwnerId == user.Id && !project.Frozen, cancellationToken) < limit;
+    }
+
     private Task<Project?> GetMemberProject(long id, CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -405,10 +531,13 @@ public sealed class ProjectsController(
 /// <summary>Project summary visible to a member.</summary>
 /// <param name="TaskCount">Tasks that are not done yet.</param>
 /// <param name="MyRole">The caller's role in the project.</param>
+/// <param name="IsPlanOwner">The caller owns the project, so its plan (and whether it is frozen) is theirs to change.</param>
+/// <param name="OwnerName">Who owns the project, to ask about upgrading it.</param>
+/// <param name="CanUnfreeze">The project is the caller's, frozen, and their plan has a free project slot.</param>
 public sealed record ProjectResponse(
     long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
     string? Icon, string? IconImage, string MyRole, bool BillingEnabled, string? GitHubUrl,
-    string? WebsiteUrl);
+    string? WebsiteUrl, bool Frozen, bool FullFeatures, bool IsPlanOwner, string OwnerName, bool CanUnfreeze);
 
 /// <summary>A member of a project visible to project participants.</summary>
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>

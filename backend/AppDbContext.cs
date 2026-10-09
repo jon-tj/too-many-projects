@@ -15,6 +15,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<CanvasImage> CanvasImages => Set<CanvasImage>();
 	public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
 	public DbSet<Bill> Bills => Set<Bill>();
+	public DbSet<PlanExemption> PlanExemptions => Set<PlanExemption>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -46,6 +47,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.HasForeignKey(task => task.ProjectId);
 		builder.Entity<ProjectTask>().HasIndex(task => new { task.ProjectId, task.Status });
 		builder.Entity<ProjectTask>().HasIndex(task => task.AssigneeUserId);
+		builder.Entity<PlanExemption>().HasKey(exemption => exemption.UserId);
+		builder.Entity<PlanExemption>()
+			.HasOne(exemption => exemption.User)
+			.WithOne()
+			.HasForeignKey<PlanExemption>(exemption => exemption.UserId);
 		builder.Entity<TaskDependency>().HasKey(dependency => new { dependency.TaskId, dependency.DependsOnTaskId });
 		builder.Entity<TaskDependency>()
 			.HasOne(dependency => dependency.Task)

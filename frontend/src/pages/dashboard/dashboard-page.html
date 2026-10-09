@@ -1,3 +1,35 @@
+@if (account.value(); as me) {
+  @if (me.planLapsed) {
+    <!-- A trial or paid plan that ran out: the account is on "none" until a plan is chosen. -->
+    <section class="plan-panel">
+      @if (me.previousPlanType === 'trial') {
+        <h2>Your free trial has ended</h2>
+        <p>
+          Thanks for trying TooManyProjects! Your projects and everything in them are safe, but they are frozen until
+          you choose a plan. Pick Plus or Pro to keep your roadmaps, canvases, time tracking and billing, or continue for
+          free with boards and tasks for up to two projects.
+        </p>
+      } @else {
+        <h2>Your {{ me.previousPlanType === 'pro' ? 'Pro' : me.previousPlanType === 'plus' ? 'Plus' : '' }} plan has run out</h2>
+        <p>
+          Your projects and everything in them are safe, but they are frozen until you choose a plan. Renew your plan to
+          pick up where you left off, or continue for free with boards and tasks for up to two projects.
+        </p>
+      }
+      <app-plan-picker (changed)="planChanged()" />
+    </section>
+  }
+}
+@if (trialDaysLeft(); as days) {
+  <section class="trial-bar">
+    <p>
+      <strong>{{ days }} {{ days === 1 ? 'day' : 'days' }}</strong> left in your free trial. Choose a plan to keep
+      going afterwards.
+    </p>
+    <a class="see-plans" routerLink="/plans">See plans</a>
+  </section>
+}
+
 <section>
   <h2>Your work</h2>
   <app-work-log />

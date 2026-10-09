@@ -30,4 +30,65 @@
   }
 </section>
 
-<router-outlet />
+@if (project.value(); as current) {
+  @if (current.frozen) {
+    <section class="locked">
+      <app-icon name="ac_unit" [size]="32" />
+      <h2>This project is frozen</h2>
+      @if (current.canUnfreeze) {
+        <p>
+          Nobody can use it while it is frozen, but nothing in it is lost. Your plan has a free project slot, so you can
+          unfreeze it now.
+        </p>
+        <button class="primary" type="button" [disabled]="unfreezing()" (click)="unfreeze()">
+          {{ unfreezing() ? 'Unfreezing…' : 'Unfreeze project' }}
+        </button>
+        @if (unfreezeError()) {
+          <p class="request-error" role="alert">{{ unfreezeError() }}</p>
+        }
+      } @else if (current.isPlanOwner) {
+        <p>
+          Every active project slot in your plan is in use, or your plan has run out, so nobody can use this project.
+          Nothing in it is lost: upgrade your plan to unfreeze it.
+        </p>
+        <a class="button" routerLink="/plans">Manage plan</a>
+      } @else {
+        <p>
+          The plan of {{ current.ownerName }}, who owns this project, doesn't include it right now, so nobody can use
+          it. Nothing in it is lost: it opens again when they upgrade.
+        </p>
+        <ng-container *ngTemplateOutlet="askOwner; context: { $implicit: current }" />
+      }
+    </section>
+  } @else if (!current.fullFeatures && fullFeatureView()) {
+    <section class="locked">
+      <app-icon name="lock" [size]="32" />
+      <h2>Not included in the free plan</h2>
+      <p>
+        The free plan includes boards and tasks. {{ current.isPlanOwner ? 'Upgrade' : current.ownerName + ', who owns this project, can upgrade' }}
+        to Plus or Pro for the roadmap, canvases, time tracking, billing and inviting your team.
+      </p>
+      @if (current.isPlanOwner) {
+        <a class="button" routerLink="/plans">Manage plan</a>
+      } @else {
+        <ng-container *ngTemplateOutlet="askOwner; context: { $implicit: current }" />
+      }
+    </section>
+  } @else {
+    <router-outlet />
+  }
+}
+
+<!-- For team members: the owner decides the plan, so they can only ask. -->
+<ng-template #askOwner let-current>
+  @if (requestState() === 'sent') {
+    <p class="sent" role="status">We emailed {{ current.ownerName }} that you'd like this project upgraded.</p>
+  } @else {
+    <button class="primary" type="button" [disabled]="requestState() === 'sending'" (click)="requestUpgrade()">
+      {{ requestState() === 'sending' ? 'Sending…' : 'Ask ' + current.ownerName + ' to upgrade' }}
+    </button>
+  }
+  @if (requestError()) {
+    <p class="request-error" role="alert">{{ requestError() }}</p>
+  }
+</ng-template>

@@ -12,3 +12,6 @@ dt { color: var(--secondary-surface); } dd { margin: 0; color: var(--primary-act
 form { max-width: 420px; }
 .success,.error { font-size: 11px; }.success { color: var(--secondary-surface); }.error { color: var(--secondary-surface); }
 .avatar { width: 64px; height: 64px; font-size: 24px; }
+
+.plan-link { margin: 0; font-size: 13px; }
+.plan-link a { color: var(--primary-active-text); font-weight: 600; }

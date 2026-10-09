@@ -62,7 +62,7 @@
   </footer>
 </form>
 
-@if (isOwner()) {
+@if (canBill()) {
   <section>
     <h2>Billing</h2>
     <form [formGroup]="billingForm" (ngSubmit)="saveBilling()">

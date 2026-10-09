@@ -7,7 +7,7 @@ namespace Canvases;
 public sealed record CanvasAccess(Canvas Canvas, bool CanWrite, bool IsOwner);
 
 /// <summary>Canvas permission rules, shared by the canvas endpoints and the live-editing hub.</summary>
-public sealed class CanvasAccessService(AppDbContext db)
+public sealed class CanvasAccessService(AppDbContext db, Plans.PlanService plans)
 {
     /// <summary>Owners always have full access; otherwise an override applies, else the role default.</summary>
     public static (bool CanRead, bool CanWrite) Effective(string role, CanvasPermission? permission) =>
@@ -26,6 +26,9 @@ public sealed class CanvasAccessService(AppDbContext db)
     {
         var member = await GetMember(projectId, userId, cancellationToken);
         if (member is null) return null;
+        // Canvases need full features and an unfrozen project; this also covers the live-editing hub.
+        if (await plans.GetStatus(projectId, cancellationToken) is { } status && (status.Frozen || !status.FullFeatures))
+            return null;
 
         var canvas = await db.Canvases.SingleOrDefaultAsync(
             canvas => canvas.Id == canvasId && canvas.ProjectId == projectId, cancellationToken);

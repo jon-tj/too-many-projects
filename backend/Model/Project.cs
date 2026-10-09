@@ -15,6 +15,8 @@ public sealed class Project
     public string? GitHubUrl { get; set; }
     /// <summary>The project's website (http(s)://...); null when not set.</summary>
     public string? WebsiteUrl { get; set; }
+    /// <summary>Set when the owner's plan no longer includes the project; nobody can use it until it is unfrozen.</summary>
+    public bool Frozen { get; set; }
     public bool BillingEnabled { get; set; }
     public string BillingClientName { get; set; } = string.Empty;
     /// <summary>Our side's point of contact for the client.</summary>
