@@ -58,6 +58,7 @@ if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
 else
     builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
 builder.Services.AddScoped<UserRemoval>();
+builder.Services.AddScoped<MembershipRemoval>();
 builder.Services.AddScoped<Plans.PlanService>();
 builder.Services.AddScoped<CanvasAccessService>();
 builder.Services.AddSingleton<CanvasLocks>();

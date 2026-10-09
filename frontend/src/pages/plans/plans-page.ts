@@ -5,6 +5,7 @@ import { Icon } from '../../components/icon/icon';
 import { PlanPicker } from '../../components/plan-picker/plan-picker';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
 import { PlanName } from '../../services/models';
+import { unfreezeWarning } from '../../services/unfreeze-warning';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const PLAN_TITLES: Record<PlanName, string> = {
@@ -47,6 +48,10 @@ export class PlansPage {
   protected readonly error = signal('');
 
   protected unfreeze(projectId: number): void {
+    const info = this.info.value();
+    const project = info?.ownedProjects.find((owned) => owned.id === projectId);
+    const warning = project && unfreezeWarning(project.memberCount, info!.memberLimit);
+    if (warning && !confirm(warning)) return;
     this.unfreezing.set(projectId);
     this.error.set('');
     this.api.unfreezeProject(projectId).subscribe({

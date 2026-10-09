@@ -20,6 +20,7 @@ public sealed class ProjectsController(
     IEmailService emailService,
     UserRemoval userRemoval,
     PlanService plans,
+    MembershipRemoval membershipRemoval,
     ILogger<ProjectsController> logger) : ControllerBase
 {
     private static readonly string[] MemberRoles = ["Owner", "Developer", "External"];
@@ -41,7 +42,7 @@ public sealed class ProjectsController(
                 project.OwnerId == userId,
                 db.Users.Where(user => user.Id == project.OwnerId)
                     .Select(user => user.DisplayName != "" ? user.DisplayName : user.UserName ?? "")
-                    .FirstOrDefault() ?? "", false))
+                    .FirstOrDefault() ?? "", false, null))
             .ToListAsync(cancellationToken);
 
         return Ok(await WithPlanStatus(projects, cancellationToken));
@@ -61,7 +62,7 @@ public sealed class ProjectsController(
                 project.OwnerId == userId,
                 db.Users.Where(user => user.Id == project.OwnerId)
                     .Select(user => user.DisplayName != "" ? user.DisplayName : user.UserName ?? "")
-                    .FirstOrDefault() ?? "", false))
+                    .FirstOrDefault() ?? "", false, null))
             .SingleOrDefaultAsync(cancellationToken);
 
         return project is null ? NotFound() : Ok((await WithPlanStatus([project], cancellationToken))[0]);
@@ -77,19 +78,25 @@ public sealed class ProjectsController(
             cancellationToken);
         if (!isMember) return NotFound();
 
+        var ownerId = await db.Projects.Where(project => project.Id == id)
+            .Select(project => project.OwnerId).SingleAsync(cancellationToken);
         var members = await db.ProjectMembers.AsNoTracking()
             .Where(member => member.ProjectId == id)
-            .OrderBy(member => member.Role)
             .Select(member => new ProjectMemberResponse(
                 member.UserId,
                 member.User.UserName ?? string.Empty,
                 member.User.DisplayName,
                 member.Role,
                 member.User.MustChangePassword,
-                member.BillableFraction))
+                member.BillableFraction,
+                member.AddedAt))
             .ToListAsync(cancellationToken);
 
-        return Ok(members);
+        // In the order they joined, the owner first; sorted in memory since SQLite cannot order by DateTimeOffset.
+        return Ok(members
+            .OrderBy(member => member.UserId == ownerId ? 0 : 1)
+            .ThenBy(member => member.AddedAt)
+            .ToList());
     }
 
     [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
@@ -123,6 +130,8 @@ public sealed class ProjectsController(
     {
         if (!MemberRoles.Contains(request.Role)) return BadRequest(new { error = "Role must be Owner, Developer, or External." });
         if (!await IsProjectOwner(id, cancellationToken)) return Forbid();
+        using var memberLock = await ProjectSlotLock.AcquireAsync($"members:{id}", cancellationToken);
+        if (await MemberLimitReached(id, cancellationToken) is { } refused) return refused;
 
         var user = await db.Users.SingleOrDefaultAsync(user => user.Id == request.UserId, cancellationToken);
         if (user is null) return NotFound();
@@ -139,7 +148,7 @@ public sealed class ProjectsController(
                 user.Email, user.DisplayName, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
         }
         return Ok(new ProjectMemberResponse(
-            user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword, "1/1"));
+            user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword, "1/1", DateTimeOffset.UtcNow));
     }
 
     [HttpDelete("{id:long}/members/{userId}")]
@@ -202,6 +211,8 @@ public sealed class ProjectsController(
     {
         if (!MemberRoles.Contains(request.Role)) return BadRequest(new { error = "Role must be Owner, Developer, or External." });
         if (!await IsProjectOwner(id, cancellationToken)) return Forbid();
+        using var memberLock = await ProjectSlotLock.AcquireAsync($"members:{id}", cancellationToken);
+        if (await MemberLimitReached(id, cancellationToken) is { } refused) return refused;
         if (await userManager.FindByEmailAsync(request.Email.Trim()) is not null)
             return Conflict(new { error = "A user with this email already exists." });
 
@@ -237,7 +248,7 @@ public sealed class ProjectsController(
                 new { error = "The invitation email could not be sent, so the user was not created. Please try again." });
         }
 
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true, "1/1"));
+        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true, "1/1", DateTimeOffset.UtcNow));
     }
 
     [HttpPost]
@@ -274,7 +285,8 @@ public sealed class ProjectsController(
         var response = new ProjectResponse(
             project.Id, project.Name, project.Description, project.CreatedAt, 0, 1, null, null, "Owner", false, null, null,
             false, Plan.HasFullFeatures(owner.PlanType), true,
-            string.IsNullOrEmpty(owner.DisplayName) ? owner.UserName ?? "" : owner.DisplayName, false);
+            string.IsNullOrEmpty(owner.DisplayName) ? owner.UserName ?? "" : owner.DisplayName, false,
+            Plan.MemberLimit(owner.PlanType));
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, response);
     }
 
@@ -406,8 +418,9 @@ public sealed class ProjectsController(
     }
 
     /// <summary>
-    /// Unfreezes one of the caller's own projects while their plan is running and has a free project slot. There is no
-    /// way back short of changing plan, so slots cannot be swapped between projects.
+    /// Unfreezes one of the caller's own projects while their plan is running and has a free project slot, removing the
+    /// most recently added members beyond the plan's member limit. There is no way back short of changing plan, so slots
+    /// cannot be swapped between projects.
     /// </summary>
     [HttpPost("{id:long}/unfreeze")]
     public async Task<IActionResult> Unfreeze(long id, CancellationToken cancellationToken)
@@ -426,6 +439,10 @@ public sealed class ProjectsController(
             });
 
         project.Frozen = false;
+        // Frozen projects kept all their members; now that it is active again it must fit the plan's member limit.
+        var owner = await userManager.GetUserAsync(User);
+        if (owner is not null && Plan.MemberLimit(owner.PlanType) is { } memberLimit)
+            await membershipRemoval.StageTrim(userId, [id], memberLimit, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -473,16 +490,7 @@ public sealed class ProjectsController(
     /// <summary>Removes one membership: unfinished tasks in the project are unassigned and canvas overrides dropped.</summary>
     private async Task RemoveMembership(ProjectMember member, CancellationToken cancellationToken)
     {
-        var unfinishedTasks = await db.ProjectTasks
-            .Where(task => task.ProjectId == member.ProjectId && task.AssigneeUserId == member.UserId
-                && (task.Status == "todo" || task.Status == "doing"))
-            .ToListAsync(cancellationToken);
-        foreach (var task in unfinishedTasks)
-            task.AssigneeUserId = null;
-
-        db.CanvasPermissions.RemoveRange(db.CanvasPermissions.Where(
-            permission => permission.Canvas.ProjectId == member.ProjectId && permission.UserId == member.UserId));
-        db.ProjectMembers.Remove(member);
+        await membershipRemoval.Stage(member, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -509,9 +517,25 @@ public sealed class ProjectsController(
             {
                 Frozen = status.Frozen,
                 FullFeatures = status.FullFeatures,
+                MemberLimit = status.MemberLimit,
                 CanUnfreeze = project.IsPlanOwner && project.Frozen && hasFreeSlot,
             }
             : project).ToList();
+    }
+
+    /// <summary>
+    /// A 403 when the project already has as many members (pending invites included) as its owner's plan allows; null
+    /// when there is room. Members beyond the limit after a downgrade stay, but no more can be added.
+    /// </summary>
+    private async Task<ObjectResult?> MemberLimitReached(long id, CancellationToken cancellationToken)
+    {
+        if (await plans.GetStatus(id, cancellationToken) is not { MemberLimit: { } limit }) return null;
+        if (await db.ProjectMembers.CountAsync(member => member.ProjectId == id, cancellationToken) < limit) return null;
+        return StatusCode(StatusCodes.Status403Forbidden, new
+        {
+            error = $"This project's plan includes up to {limit} members, pending invites included. Upgrade to Pro to add more.",
+            code = "member-limit"
+        });
     }
 
     /// <summary>Whether the caller's plan is running and has room for another active project.</summary>
@@ -538,15 +562,18 @@ public sealed class ProjectsController(
 /// <param name="IsPlanOwner">The caller owns the project, so its plan (and whether it is frozen) is theirs to change.</param>
 /// <param name="OwnerName">Who owns the project, to ask about upgrading it.</param>
 /// <param name="CanUnfreeze">The project is the caller's, frozen, and their plan has a free project slot.</param>
+/// <param name="MemberLimit">Members (pending invites included) the owner's plan allows; null for no limit.</param>
 public sealed record ProjectResponse(
     long Id, string Name, string Description, DateTimeOffset CreatedAt, int TaskCount, int MemberCount,
     string? Icon, string? IconImage, string MyRole, bool BillingEnabled, string? GitHubUrl,
-    string? WebsiteUrl, bool Frozen, bool FullFeatures, bool IsPlanOwner, string OwnerName, bool CanUnfreeze);
+    string? WebsiteUrl, bool Frozen, bool FullFeatures, bool IsPlanOwner, string OwnerName, bool CanUnfreeze,
+    int? MemberLimit);
 
 /// <summary>A member of a project visible to project participants.</summary>
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
 public sealed record ProjectMemberResponse(
-    string UserId, string UserName, string DisplayName, string Role, bool Pending, string BillableFraction);
+    string UserId, string UserName, string DisplayName, string Role, bool Pending, string BillableFraction,
+    DateTimeOffset AddedAt);
 
 /// <summary>Data required to create a project.</summary>
 public sealed record ProjectRequest

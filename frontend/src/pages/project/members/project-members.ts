@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
@@ -13,11 +14,12 @@ import {
   UserSummary,
 } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
+import { RouterLink } from '@angular/router';
 import { ProjectPage } from '../project-page';
 
 @Component({
   selector: 'app-project-members',
-  imports: [ReactiveFormsModule, Icon, Modal],
+  imports: [ReactiveFormsModule, Icon, Modal, RouterLink, DatePipe],
   templateUrl: './project-members.html',
   styleUrl: './project-members.css',
 })
@@ -33,6 +35,12 @@ export class ProjectMembers {
   });
   /** From the project rather than the member list, so the Add member button shows while members load. */
   protected readonly isOwner = computed(() => this.project.value()?.myRole === 'Owner');
+  protected readonly memberLimit = computed(() => this.project.value()?.memberLimit ?? null);
+  /** The plan's member limit is reached (pending invites count), so nobody more can be added. */
+  protected readonly full = computed(() => {
+    const limit = this.memberLimit();
+    return limit !== null && this.members.value().length >= limit;
+  });
 
   protected readonly adding = signal(false);
   protected readonly error = signal('');

@@ -18,7 +18,27 @@ small {
 }
 
 header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.count,
+.limit {
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+
+.limit {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.limit a {
+  color: var(--primary-active-text);
+  font-weight: 600;
 }
 
 section {

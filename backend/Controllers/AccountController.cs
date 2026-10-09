@@ -11,7 +11,8 @@ using Plans;
 [Authorize]
 [Route("api/account")]
 public sealed class AccountController(
-    UserManager<ApplicationUser> users, UserRemoval userRemoval, AppDbContext db, PlanService plans) : ControllerBase
+    UserManager<ApplicationUser> users, UserRemoval userRemoval, AppDbContext db, PlanService plans,
+    MembershipRemoval membershipRemoval) : ControllerBase
 {
     [HttpGet("me")]
     public async Task<ActionResult<AccountResponse>> GetCurrent(CancellationToken cancellationToken)
@@ -36,11 +37,12 @@ public sealed class AccountController(
         var owned = await db.Projects.AsNoTracking()
             .Where(project => project.OwnerId == user.Id)
             .OrderBy(project => project.Name)
-            .Select(project => new OwnedProjectResponse(project.Id, project.Name, project.Frozen))
+            .Select(project => new OwnedProjectResponse(project.Id, project.Name, project.Frozen, project.Members.Count))
             .ToListAsync(cancellationToken);
         return Ok(new PlanResponse(
             user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType,
-            await plans.IsExempt(user.Id, cancellationToken), Plan.ProjectLimit(user.PlanType), owned));
+            await plans.IsExempt(user.Id, cancellationToken), Plan.ProjectLimit(user.PlanType),
+            Plan.MemberLimit(user.PlanType), owned));
     }
 
     /// <summary>
@@ -68,6 +70,12 @@ public sealed class AccountController(
             var owned = await db.Projects.Where(project => project.OwnerId == user.Id).ToListAsync(cancellationToken);
             var freezeAll = Plan.ProjectLimit(request.Plan) is { } limit && owned.Count > limit;
             foreach (var project in owned) project.Frozen = freezeAll;
+            // Active projects over the new plan's member limit lose their most recently added members (free keeps only
+            // the owner). Frozen projects keep theirs until they are unfrozen.
+            if (Plan.MemberLimit(request.Plan) is { } memberLimit)
+                await membershipRemoval.StageTrim(user.Id,
+                    owned.Where(project => !project.Frozen).Select(project => project.Id).ToList(), memberLimit,
+                    cancellationToken);
         }
         user.PlanType = request.Plan;
         user.PlanRenewDate = request.Plan == Plan.Free ? null : Plan.RenewDateFrom(request.Plan, DateTimeOffset.UtcNow);
@@ -157,9 +165,11 @@ public sealed record AccountResponse(
 /// <summary>The caller's plan, whether it is exempt from lapsing, its project limit (null for none) and the projects they own.</summary>
 public sealed record PlanResponse(
     string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool PlanExempt, int? ProjectLimit,
+    int? MemberLimit,
     IReadOnlyList<OwnedProjectResponse> OwnedProjects);
 
-public sealed record OwnedProjectResponse(long Id, string Name, bool Frozen);
+/// <param name="MemberCount">Members including the owner and pending invites.</param>
+public sealed record OwnedProjectResponse(long Id, string Name, bool Frozen, int MemberCount);
 
 /// <summary>The plan to switch to: free, plus or pro.</summary>
 public sealed record ChoosePlanRequest

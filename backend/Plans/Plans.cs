@@ -33,6 +33,17 @@ public static class Plan
         _ => null,
     };
 
+    /// <summary>
+    /// How many members (the owner and pending invites included) a project may have; null means no limit. Free is just
+    /// the owner. The trial matches Plus, since members cannot sensibly be removed afterwards.
+    /// </summary>
+    public static int? MemberLimit(string plan) => plan switch
+    {
+        Free => 1,
+        Trial or Plus => 8,
+        _ => null,
+    };
+
     /// <summary>Whether projects get everything beyond boards and tasks (roadmap, canvas, time tracking, billing, members).</summary>
     public static bool HasFullFeatures(string plan) => plan is not (Free or None);
 
@@ -51,8 +62,11 @@ public static class Plan
         user.PlanType is not (Free or None) && (user.PlanRenewDate is not { } renew || renew <= now);
 }
 
-/// <summary>What a project allows right now: frozen projects allow nothing; free-plan projects allow only tasks.</summary>
-public sealed record ProjectPlanStatus(bool Frozen, bool FullFeatures);
+/// <summary>
+/// What a project allows right now: frozen projects allow nothing; free-plan projects allow only tasks. MemberLimit is
+/// null when the plan allows any number of members.
+/// </summary>
+public sealed record ProjectPlanStatus(bool Frozen, bool FullFeatures, int? MemberLimit);
 
 /// <summary>
 /// Reads plans and project status. Every read first moves owners whose plan has run out to <see cref="Plan.None"/> and
@@ -94,7 +108,8 @@ public sealed class PlanService(AppDbContext db)
             var owner = owners.GetValueOrDefault(project.OwnerId);
             return new ProjectPlanStatus(
                 project.Frozen || justLapsed.Contains(project.OwnerId),
-                owner is null || Plan.HasFullFeatures(owner.PlanType));
+                owner is null || Plan.HasFullFeatures(owner.PlanType),
+                owner is null ? null : Plan.MemberLimit(owner.PlanType));
         });
     }
 

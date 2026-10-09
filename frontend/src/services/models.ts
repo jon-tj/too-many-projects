@@ -24,6 +24,8 @@ export interface Project {
   ownerName: string;
   /** The project is yours, frozen, and your plan has a free project slot to unfreeze it into. */
   canUnfreeze: boolean;
+  /** Members (pending invites included) the owner's plan allows; null for no limit. */
+  memberLimit: number | null;
 }
 
 /** none is what a trial or paid plan becomes when it runs out: no project slots, everything frozen. */
@@ -43,7 +45,10 @@ export interface PlanInfo {
   planExempt: boolean;
   /** Active projects the plan allows; null for no limit. */
   projectLimit: number | null;
-  ownedProjects: { id: number; name: string; frozen: boolean }[];
+  /** Members per project the plan allows, you included; null for no limit. */
+  memberLimit: number | null;
+  /** memberCount includes you and pending invites. */
+  ownedProjects: { id: number; name: string; frozen: boolean; memberCount: number }[];
 }
 
 export interface ProjectTask {
@@ -142,6 +147,8 @@ export interface ProjectMember {
   /** Invited but not signed in yet. */
   pending: boolean;
   billableFraction: BillableFraction;
+  /** When they joined the project. */
+  addedAt: string;
 }
 
 export const BILLABLE_FRACTIONS = ['1/1', '3/4', '2/3', '1/2'] as const;

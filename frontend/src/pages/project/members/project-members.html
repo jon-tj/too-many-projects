@@ -1,9 +1,24 @@
 @if (isOwner()) {
   <header>
-    <button class="primary" type="button" (click)="openAdd()">
-      <app-icon name="person_add" />
-      <span>Add member</span>
-    </button>
+    @if (full()) {
+      <p class="limit">
+        This project has {{ members.value().length }} of the {{ memberLimit() }} members its plan includes, pending
+        invites included.
+        @if (project.value()?.isPlanOwner) {
+          <a routerLink="/plans">Upgrade to Pro</a> to add more.
+        } @else {
+          {{ project.value()?.ownerName }}, who owns it, can upgrade to Pro to add more.
+        }
+      </p>
+    } @else {
+      <button class="primary" type="button" (click)="openAdd()">
+        <app-icon name="person_add" />
+        <span>Add member</span>
+      </button>
+      @if (memberLimit() !== null && !members.isLoading()) {
+        <span class="count">{{ members.value().length }} of {{ memberLimit() }} members</span>
+      }
+    }
   </header>
 }
 
@@ -19,7 +34,7 @@
     <article>
       <div>
         <strong>{{ member.displayName || member.userName }}</strong>
-        <small>{{ member.userName }}</small>
+        <small>{{ member.userName }} · added {{ member.addedAt | date: 'mediumDate' }}</small>
       </div>
       @if (member.pending) {
         <span class="badge">Invited</span>

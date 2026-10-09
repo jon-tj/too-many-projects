@@ -58,7 +58,10 @@ export class WorkspaceApi {
     return this.http.put<void>('/api/account/plan', { plan });
   }
 
-  /** Unfreezes one of your projects into a free slot of your plan. */
+  /**
+   * Unfreezes one of your projects into a free slot of your plan. Members beyond the plan's member limit (the most
+   * recently added) are removed from it; see unfreezeWarning.
+   */
   unfreezeProject(projectId: number): Observable<void> {
     return this.http.post<void>(`/api/projects/${projectId}/unfreeze`, {});
   }

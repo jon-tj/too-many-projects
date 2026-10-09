@@ -7,6 +7,7 @@ import { filter, map } from 'rxjs';
 import { Icon } from '../../components/icon/icon';
 import { ProjectIcon } from '../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
+import { unfreezeWarning } from '../../services/unfreeze-warning';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
@@ -41,6 +42,9 @@ export class ProjectPage {
   protected readonly requestError = signal('');
 
   protected unfreeze(): void {
+    const project = this.project.value();
+    const warning = project && unfreezeWarning(project.memberCount, project.memberLimit);
+    if (warning && !confirm(warning)) return;
     this.unfreezing.set(true);
     this.unfreezeError.set('');
     this.api.unfreezeProject(this.projectId()).subscribe({
