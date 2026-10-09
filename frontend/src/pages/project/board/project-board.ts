@@ -256,25 +256,28 @@ export class ProjectBoard {
     this.changeStatus(event.item.data, event.container.data, event.dropPoint);
   }
 
-  /** Confetti bursts from where the card was dropped when a high or critical task is done. */
+  /**
+   * Moving an unassigned task to doing assigns it to you, as the server does too.
+   * Confetti bursts from where the card was dropped when a high or critical task is done.
+   */
   private changeStatus(task: ProjectTask, status: TaskStatus, dropPoint?: { x: number; y: number }): void {
     if (task.status === status) return;
     if (task.status === 'todo' && this.blockedIds().has(task.id)) {
       this.taskError.set('This task is blocked until all its dependencies are done.');
       return;
     }
-    const setStatus = (value: TaskStatus) =>
-      this.tasks.update((tasks) =>
-        tasks.map((item) => (item.id === task.id ? { ...item, status: value } : item)),
-      );
-    setStatus(status);
+    const assigneeUserId =
+      status === 'doing' && !task.assigneeUserId ? (this.account.value()?.id ?? null) : task.assigneeUserId;
+    const setTask = (value: Pick<ProjectTask, 'status' | 'assigneeUserId'>) =>
+      this.tasks.update((tasks) => tasks.map((item) => (item.id === task.id ? { ...item, ...value } : item)));
+    setTask({ status, assigneeUserId });
     this.taskError.set('');
     this.api.setTaskStatus(task.id, status).subscribe({
       next: () => {
         if (status === 'done') void celebrateDone(task.priority, dropPoint);
       },
       error: () => {
-        setStatus(task.status);
+        setTask({ status: task.status, assigneeUserId: task.assigneeUserId });
         this.taskError.set('Could not update task status.');
       },
     });

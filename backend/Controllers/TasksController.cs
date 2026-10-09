@@ -25,17 +25,25 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<TaskResponse>>> GetMyAndUnassigned(CancellationToken cancellationToken)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        // What you are doing, then what you could pick up next: to do tasks that are yours or unassigned and not
+        // blocked (blocked ones cannot be started yet).
         var tasks = await db.ProjectTasks.AsNoTracking()
             .Where(task => task.Project.Members.Any(member => member.UserId == userId)
-                && (task.AssigneeUserId == null || task.AssigneeUserId == userId)
-                && task.Status != "done")
-            // Highest priority first, then newest first.
-            .OrderByDescending(task => task.Priority == "critical" ? 2 : task.Priority == "high" ? 1 : 0)
-            .ThenByDescending(task => task.Id)
+                && ((task.Status == "doing" && task.AssigneeUserId == userId)
+                    || (task.Status == "todo"
+                        && (task.AssigneeUserId == null || task.AssigneeUserId == userId)
+                        && !task.Dependencies.Any(dependency => dependency.DependsOn.Status != "done"))))
             .Select(ToResponse)
             .ToListAsync(cancellationToken);
 
-        return Ok(tasks);
+        // Sorted in memory: SQLite cannot order by DateTimeOffset. Doing first, then by priority, then the earliest
+        // due date (tasks without one last), then newest first.
+        return Ok(tasks
+            .OrderBy(task => task.Status == "doing" ? 0 : 1)
+            .ThenByDescending(task => task.Priority switch { "critical" => 2, "high" => 1, _ => 0 })
+            .ThenBy(task => task.DueAt ?? DateTimeOffset.MaxValue)
+            .ThenByDescending(task => task.Id)
+            .ToList());
     }
 
     [HttpGet("{id:long}")]
@@ -242,6 +250,8 @@ public sealed class TasksController(AppDbContext db) : ControllerBase
                 dependency => dependency.TaskId == id && dependency.DependsOn.Status != "done", cancellationToken))
             return BadRequest(new { error = BlockedError });
 
+        // Starting an unassigned task makes it yours; tasks already assigned to someone keep their assignee.
+        if (request.Status == "doing" && task.AssigneeUserId is null) task.AssigneeUserId = userId;
         task.SetStatus(request.Status);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
