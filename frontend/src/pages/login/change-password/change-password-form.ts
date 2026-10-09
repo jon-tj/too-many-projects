@@ -49,7 +49,7 @@ export class ChangePasswordForm {
     this.busy.set(true);
     this.error.set('');
     this.auth.changePassword(account.userName, currentPassword, newPassword).subscribe({
-      next: () => void this.router.navigateByUrl('/'),
+      next: () => void this.router.navigateByUrl('/dashboard'),
       error: (response: HttpErrorResponse) => {
         this.error.set(response.error?.error ?? 'Could not update the password. Please try again.');
         this.busy.set(false);

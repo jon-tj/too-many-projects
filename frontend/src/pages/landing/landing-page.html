@@ -1,0 +1,150 @@
+<header class="site-header">
+  <a class="brand" routerLink="/">
+    <img src="logo.png" alt="" />
+    <span>TooManyProjects</span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="#why" (click)="scrollTo($event, 'why')">Why us</a>
+    <a href="#features" (click)="scrollTo($event, 'features')">Features</a>
+    <a href="#reviews" (click)="scrollTo($event, 'reviews')">Reviews</a>
+  </nav>
+  <div class="header-actions">
+    <a class="button ghost" routerLink="/login" [queryParams]="utm">Log in</a>
+    <a class="button solid" routerLink="/register" [queryParams]="utm">Start free trial</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Project management for small businesses</p>
+    <h1>Too many projects?<br /><em>Keep every one moving.</em></h1>
+    <p class="lede">
+      Boards, roadmaps, canvases, time tracking and client billing in one calm workspace. Built for small teams, priced
+      like it, and getting ready to hand work to AI agents.
+    </p>
+    <div class="hero-actions">
+      <a class="button solid large" routerLink="/register" [queryParams]="utm">
+        Try free for 30 days
+        <app-icon name="arrow_forward" />
+      </a>
+      <a class="button ghost large" routerLink="/login" [queryParams]="utm">I already have an account</a>
+    </div>
+    <p class="fine">Everything included during the trial.</p>
+  </div>
+
+  <!-- A miniature board, drawn with CSS, to show the product without screenshots. -->
+  <div class="hero-visual" aria-hidden="true">
+    <div class="mock-window">
+      <div class="mock-bar"><span></span><span></span><span></span></div>
+      <div class="mock-board">
+        <div class="mock-column" data-status="todo">
+          <p>To do</p>
+          <div class="mock-card"><b></b><i class="critical">Critical</i></div>
+          <div class="mock-card"><b class="short"></b></div>
+          <div class="mock-card blocked"><b></b><i class="blocked">Blocked</i></div>
+        </div>
+        <div class="mock-column" data-status="doing">
+          <p>Doing</p>
+          <div class="mock-card"><b></b><i class="high">High</i></div>
+          <div class="mock-card"><b class="short"></b></div>
+        </div>
+        <div class="mock-column" data-status="done">
+          <p>Done</p>
+          <div class="mock-card done"><b></b></div>
+          <div class="mock-card done"><b class="short"></b></div>
+          <div class="mock-card done"><b></b></div>
+        </div>
+      </div>
+      <div class="mock-roadmap">
+        <span style="--start: 0; --length: 3"></span>
+        <span style="--start: 3; --length: 4"></span>
+        <span style="--start: 7; --length: 2"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+@if (stats.value(); as numbers) {
+  <section class="stats" aria-label="TooManyProjects in numbers">
+    <div>
+      <strong>{{ numbers.weeklyActiveUsers.toLocaleString() }}</strong>
+      <span>weekly active users</span>
+    </div>
+    <div>
+      <strong>{{ numbers.tasksCompleted.toLocaleString() }}</strong>
+      <span>tasks completed</span>
+    </div>
+    <div>
+      <strong>{{ numbers.hoursTracked.toLocaleString() }}</strong>
+      <span>hours of work tracked</span>
+    </div>
+  </section>
+}
+
+<section id="why" class="why">
+  <h2>Why small teams choose TooManyProjects</h2>
+  <div class="reason-grid">
+    @for (reason of REASONS; track reason.title) {
+      <article>
+        <app-icon [name]="reason.icon" [size]="26" />
+        <h3>
+          {{ reason.title }}
+          @if (reason.soon) {
+            <span class="tag">Coming soon</span>
+          }
+        </h3>
+        <p>{{ reason.text }}</p>
+      </article>
+    }
+  </div>
+</section>
+
+<section id="features" class="features">
+  <h2>Everything a project needs, nothing it doesn't</h2>
+  <div class="feature-grid">
+    @for (feature of FEATURES; track feature.title) {
+      <article>
+        <span class="feature-icon"><app-icon [name]="feature.icon" /></span>
+        <div>
+          <h3>{{ feature.title }}</h3>
+          <p>{{ feature.text }}</p>
+        </div>
+      </article>
+    }
+  </div>
+</section>
+
+<section id="reviews" class="reviews">
+  <h2>What teams say</h2>
+  <div class="review-grid">
+    @for (review of REVIEWS; track $index) {
+      <figure>
+        @if (review.sample) {
+          <span class="tag">Sample</span>
+        }
+        <blockquote>“{{ review.quote }}”</blockquote>
+        <figcaption>
+          <strong>{{ review.name }}</strong>
+          <span>{{ review.role }}</span>
+        </figcaption>
+      </figure>
+    }
+  </div>
+</section>
+
+<section class="final-cta">
+  <h2>Ready to get your projects under control?</h2>
+  <p>Set up your first project in minutes. Free for 30 days.</p>
+  <a class="button inverse large" routerLink="/register" [queryParams]="utm">
+    Start your free trial
+    <app-icon name="arrow_forward" />
+  </a>
+</section>
+
+<footer class="site-footer">
+  <span>© {{ year }} TooManyProjects</span>
+  <nav aria-label="Account">
+    <a routerLink="/login" [queryParams]="utm">Log in</a>
+    <a routerLink="/register" [queryParams]="utm">Start free trial</a>
+  </nav>
+</footer>

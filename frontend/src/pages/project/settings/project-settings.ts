@@ -126,7 +126,7 @@ export class ProjectSettings {
     if (!project || !confirm(`Delete "${project.name}" and all of its tasks? This cannot be undone.`)) return;
     this.busy.set(true);
     this.api.deleteProject(project.id).subscribe({
-      next: () => void this.router.navigateByUrl('/'),
+      next: () => void this.router.navigateByUrl('/dashboard'),
       error: (error: HttpErrorResponse) => {
         this.busy.set(false);
         this.message.set(

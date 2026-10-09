@@ -2,8 +2,19 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, finalize, map, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { Attribution } from './attribution';
 
 interface TokenResponse { accessToken: string; expiresIn: number; refreshToken: string; tokenType: string; }
+
+/** The sign-up form's answers. */
+export interface SignupDetails {
+  displayName: string;
+  userName: string;
+  email: string;
+  password: string;
+  primaryUseCase: string;
+  teamRole: string;
+}
 
 const ACCESS_TOKEN = 'workspace_access_token';
 const REFRESH_TOKEN = 'workspace_refresh_token';
@@ -30,6 +41,13 @@ export class AuthService {
         this.signInPassword = password;
       }),
     );
+  }
+
+  /** Creates the account (starting its trial), then signs in to it and stays signed in. */
+  register(details: SignupDetails, attribution: Attribution): Observable<TokenResponse> {
+    return this.http
+      .post('/api/signup', { ...details, ...attribution })
+      .pipe(switchMap(() => this.login(details.userName, details.password, true)));
   }
 
   /** Returns the password used to sign in, once; null after a reload or when already taken. */

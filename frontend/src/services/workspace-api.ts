@@ -19,6 +19,7 @@ import {
   OverviewRange,
   ProjectRole,
   ProjectTask,
+  PublicStats,
   TaskPriority,
   UserSummary,
   WorkSession,
@@ -27,6 +28,11 @@ import {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceApi {
   constructor(private readonly http: HttpClient) {}
+
+  /** Usage numbers for the landing page; needs no sign-in. */
+  publicStats(): Observable<PublicStats> {
+    return this.http.get<PublicStats>('/api/public/stats');
+  }
 
   currentAccount(): Observable<Account> {
     return this.http.get<Account>('/api/account/me');

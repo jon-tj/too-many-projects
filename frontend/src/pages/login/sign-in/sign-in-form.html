@@ -23,4 +23,5 @@
   <button class="primary" type="submit" [disabled]="form.invalid || busy()">
     {{ busy() ? 'Signing in' : 'Sign in' }}
   </button>
+  <p class="switch">New to TooManyProjects? <a routerLink="/register" [queryParams]="utm">Start a free trial</a></p>
 </form>

@@ -39,6 +39,13 @@ export interface ProjectTask {
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
+/** Real usage numbers for the landing page. */
+export interface PublicStats {
+  weeklyActiveUsers: number;
+  tasksCompleted: number;
+  hoursTracked: number;
+}
+
 /** A stretch of time someone marked themselves as working on a project. */
 export interface WorkSession {
   id: number;
