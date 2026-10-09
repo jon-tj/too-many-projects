@@ -247,6 +247,8 @@ public sealed class ProjectsController(
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var owner = await userManager.GetUserAsync(User);
         if (owner is null) return Unauthorized();
+        // Held until the project is saved, so simultaneous requests cannot both take the last free slot.
+        using var slotLock = await ProjectSlotLock.AcquireAsync(userId, cancellationToken);
         if (await plans.IsLapsed(owner, cancellationToken))
             return StatusCode(StatusCodes.Status403Forbidden,
                 new { error = "Your plan has run out. Choose a plan to create projects again.", code = "plan" });
@@ -415,6 +417,8 @@ public sealed class ProjectsController(
         if (project is null) return NotFound();
         if (project.OwnerId != userId) return Forbid();
         if (!project.Frozen) return NoContent();
+        // Held until the project is saved, so simultaneous unfreezes cannot both take the last free slot.
+        using var slotLock = await ProjectSlotLock.AcquireAsync(userId, cancellationToken);
         if (!await HasFreeProjectSlot(cancellationToken))
             return BadRequest(new
             {

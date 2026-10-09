@@ -59,6 +59,15 @@
 }
 
 <app-modal heading="Create a project" [(open)]="creating">
+  @if (createBlocked()) {
+    <div class="create-blocked">
+      <p>{{ createBlocked() }}</p>
+      <footer>
+        <button class="transparent" type="button" (click)="creating.set(false)">Cancel</button>
+        <button class="primary" type="button" (click)="changePlan()">Change plan</button>
+      </footer>
+    </div>
+  } @else {
   <form [formGroup]="form" (ngSubmit)="createProject()">
     <label>
       Project name
@@ -76,4 +85,5 @@
       <button class="primary" type="submit" [disabled]="form.invalid">Create project</button>
     </footer>
   </form>
+  }
 </app-modal>

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -97,10 +98,33 @@ export class WorkspaceShell implements OnInit {
     this.api.projects().subscribe({ next: (projects) => this.projects.set(projects) });
   }
 
+  /** Why a new project cannot be created on your plan right now; empty while it can. */
+  protected readonly createBlocked = signal('');
+
+  /** Checks the plan first: with no free project slot the dialog explains that instead of showing the form. */
   protected openCreate(): void {
     this.form.reset({ name: '', description: '' });
     this.createError.set('');
+    this.createBlocked.set('');
     this.creating.set(true);
+    this.api.plan().subscribe({
+      next: (plan) => {
+        const active = plan.ownedProjects.filter((project) => !project.frozen).length;
+        if (plan.planLapsed) {
+          this.createBlocked.set('You have no plan right now, so you cannot create projects. Choose a plan to continue.');
+        } else if (plan.projectLimit !== null && active >= plan.projectLimit) {
+          this.createBlocked.set(
+            `Your plan includes ${plan.projectLimit} active projects and they are all in use, so you cannot create another. ` +
+              'Change your plan to get more.',
+          );
+        }
+      },
+    });
+  }
+
+  protected changePlan(): void {
+    this.creating.set(false);
+    void this.router.navigateByUrl('/plans');
   }
 
   protected createProject(): void {
@@ -112,7 +136,11 @@ export class WorkspaceShell implements OnInit {
         this.creating.set(false);
         void this.router.navigate(['/projects', project.id]);
       },
-      error: () => this.createError.set('Could not create this project. Please try again.'),
+      error: (response: HttpErrorResponse) => {
+        // The plan may have changed since the dialog opened: show the same explanation as on opening.
+        if (response.status === 403 && response.error?.error) this.createBlocked.set(response.error.error);
+        else this.createError.set('Could not create this project. Please try again.');
+      },
     });
   }
 
