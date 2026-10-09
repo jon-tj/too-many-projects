@@ -1,0 +1,76 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.filter {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+.error {
+  margin: 0;
+  color: var(--priority-critical);
+}
+.day h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.day ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* One session per row: project, times, duration, then save. Wraps on narrow screens. */
+.day li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.day li.empty {
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+.project {
+  flex: 1 1 140px;
+  align-self: center;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.project:hover {
+  text-decoration: underline;
+}
+.day label {
+  font-size: 10px;
+}
+.day input {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.duration {
+  align-self: center;
+  color: var(--secondary-surface);
+  font: 11px 'IBM Plex Mono', monospace;
+}
+.duration {
+  min-width: 52px;
+  text-align: right;
+}
+.actions {
+  display: flex;
+  gap: 6px;
+}

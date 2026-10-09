@@ -1,0 +1,78 @@
+<div class="controls">
+  @if (projectId() === null) {
+    <select class="filter" aria-label="Filter by project" title="Filter by project" (change)="setFilter($any($event.target).value)">
+      <option value="" [selected]="filter() === null">All projects</option>
+      @for (project of projects.value(); track project.id) {
+        <option [value]="project.id" [selected]="filter() === project.id">{{ project.name }}</option>
+      }
+    </select>
+  }
+  <button class="transparent" type="button" [disabled]="selected() === today()" (click)="goToToday()">
+    <app-icon name="today" />
+    <span>Today</span>
+  </button>
+</div>
+
+@if (sessions.error()) {
+  <p class="error" role="alert">Could not load your work sessions.</p>
+}
+
+<app-activity-grid [hours]="hours()" [weeks]="WEEKS" [(selected)]="selected">
+  {{ formatHours(total()) }} in the last year
+</app-activity-grid>
+
+@if (selectedDate(); as date) {
+  <section class="day">
+    <h3>
+      {{ date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) }}
+      @if (hours().get(selected()!); as dayHours) {
+        <span class="badge">{{ formatHours(dayHours) }}</span>
+      }
+    </h3>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <ul>
+      @for (session of daySessions(); track session.id) {
+        @let draft = draftFor(session);
+        <li>
+          <a class="project" [routerLink]="['/projects', session.projectId, 'overview']">{{ session.projectName }}</a>
+          <label>
+            Start
+            <input
+              type="datetime-local"
+              [value]="draft.start"
+              (input)="edit(session, 'start', $any($event.target).value)"
+            />
+          </label>
+          @if (session.endedAt) {
+            <label>
+              End
+              <input
+                type="datetime-local"
+                [value]="draft.end"
+                (input)="edit(session, 'end', $any($event.target).value)"
+              />
+            </label>
+          } @else {
+            <button class="transparent" type="button" [disabled]="saving() !== null" (click)="end(session)">
+              <app-icon name="stop_circle" />
+              <span>{{ saving() === session.id ? 'Ending…' : 'End now' }}</span>
+            </button>
+          }
+          <span class="duration">{{ formatHours(duration(session)) }}</span>
+          @if (isDirty(session)) {
+            <div class="actions">
+              <button class="primary" type="button" [disabled]="saving() !== null" (click)="save(session)">
+                {{ saving() === session.id ? 'Saving…' : 'Save' }}
+              </button>
+              <button class="transparent" type="button" (click)="reset(session)">Undo</button>
+            </div>
+          }
+        </li>
+      } @empty {
+        <li class="empty">{{ sessions.isLoading() ? 'Loading…' : 'Nothing logged on this day.' }}</li>
+      }
+    </ul>
+  </section>
+}

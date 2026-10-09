@@ -21,6 +21,7 @@ import {
   ProjectTask,
   TaskPriority,
   UserSummary,
+  WorkSession,
 } from './models';
 
 @Injectable({ providedIn: 'root' })
@@ -185,6 +186,18 @@ export class WorkspaceApi {
   /** Assigns several of the project's tasks at once; null unassigns them. */
   assignTasks(projectId: number, taskIds: number[], assigneeUserId: string | null): Observable<void> {
     return this.http.patch<void>(`/api/tasks/by-project/${projectId}/assignee`, { taskIds, assigneeUserId });
+  }
+
+  /** Your own work sessions still running at or after `from`, optionally only one project's. */
+  workSessions(from: Date, projectId: number | null): Observable<WorkSession[]> {
+    const params: Record<string, string> = { from: from.toISOString() };
+    if (projectId !== null) params['projectId'] = String(projectId);
+    return this.http.get<WorkSession[]>('/api/work-sessions', { params });
+  }
+
+  /** Corrects a session's times; a null end keeps a running session running. */
+  updateWorkSession(id: number, startedAt: string, endedAt: string | null): Observable<WorkSession> {
+    return this.http.patch<WorkSession>(`/api/work-sessions/${id}`, { startedAt, endedAt });
   }
 
   /** Sets the priority of several of the project's tasks at once. */

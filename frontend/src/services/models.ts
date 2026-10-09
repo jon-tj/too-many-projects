@@ -39,6 +39,16 @@ export interface ProjectTask {
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
+/** A stretch of time someone marked themselves as working on a project. */
+export interface WorkSession {
+  id: number;
+  projectId: number;
+  projectName: string;
+  startedAt: string;
+  /** Null while the session is still running. */
+  endedAt: string | null;
+}
+
 export type TaskPriority = 'low' | 'high' | 'critical';
 
 /** Higher ranks sort first. */

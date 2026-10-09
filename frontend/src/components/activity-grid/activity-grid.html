@@ -1,0 +1,38 @@
+<div #scroller class="scroller">
+  <div class="grid" [style.--weeks]="weeks()">
+    @for (month of months(); track month.column) {
+      <span class="month" [style.grid-column]="month.column + 2 + ' / span 3'">{{ month.text }}</span>
+    }
+    @for (weekday of WEEKDAYS; track weekday.row) {
+      <span class="weekday" [style.grid-row]="weekday.row + 2">{{ weekday.label }}</span>
+    }
+    @for (days of columns(); track $index; let column = $index) {
+      @for (day of days; track $index; let row = $index) {
+        @if (day) {
+          <button
+            class="cell"
+            type="button"
+            [style.grid-column]="column + 2"
+            [style.grid-row]="row + 2"
+            [attr.data-level]="day.level"
+            [class.selected]="day.key === selected()"
+            [title]="label(day)"
+            [attr.aria-label]="label(day)"
+            [attr.aria-pressed]="day.key === selected()"
+            (click)="selected.set(day.key)"
+          ></button>
+        }
+      }
+    }
+  </div>
+</div>
+<footer>
+  <span><ng-content /></span>
+  <span class="legend" aria-hidden="true">
+    Less
+    @for (level of LEVELS; track level) {
+      <span class="cell" [attr.data-level]="level"></span>
+    }
+    More
+  </span>
+</footer>

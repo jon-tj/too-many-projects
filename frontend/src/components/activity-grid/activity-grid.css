@@ -1,0 +1,71 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.scroller {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: auto repeat(var(--weeks), 11px);
+  grid-template-rows: auto repeat(7, 11px);
+  gap: 3px;
+  width: max-content;
+  color: var(--secondary-surface);
+  font: 9px 'IBM Plex Mono', monospace;
+}
+.month {
+  grid-row: 1;
+  white-space: nowrap;
+}
+.weekday {
+  grid-column: 1;
+  padding-right: 4px;
+  line-height: 11px;
+}
+/* Sizes are fixed so the global button styles (min-height, padding) cannot stretch the cells. */
+.cell {
+  display: block;
+  width: 11px;
+  height: 11px;
+  min-height: 0;
+  padding: 0;
+  background: var(--primary-active-surface);
+  border: 0;
+  border-radius: 2px;
+}
+button.cell {
+  cursor: pointer;
+}
+button.cell:hover,
+button.cell:focus-visible {
+  outline: 1px solid var(--secondary-surface);
+  outline-offset: 1px;
+}
+/* GitHub-like greens from the theme's done color. */
+.cell[data-level='1'] { background: color-mix(in srgb, var(--done) 30%, var(--primary-active-surface)); }
+.cell[data-level='2'] { background: color-mix(in srgb, var(--done) 55%, var(--primary-active-surface)); }
+.cell[data-level='3'] { background: color-mix(in srgb, var(--done) 80%, var(--primary-active-surface)); }
+.cell[data-level='4'] { background: var(--done); }
+button.cell.selected {
+  outline: 2px solid var(--primary-text);
+  outline-offset: 1px;
+}
+footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+}

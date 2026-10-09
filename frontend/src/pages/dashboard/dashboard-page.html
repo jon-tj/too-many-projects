@@ -1,18 +1,6 @@
 <section>
-  <h2>Projects <span class="badge">{{ projects().length }}</span></h2>
-  @for (project of projects(); track project.id) {
-    <a [routerLink]="['/projects', project.id, 'board']">
-      <div>
-        <strong>{{ project.name }}</strong>
-        @if (project.description) {
-          <small>{{ project.description }}</small>
-        }
-      </div>
-      <span class="badge">{{ project.taskCount }} {{ project.taskCount === 1 ? 'task' : 'tasks' }}</span>
-    </a>
-  } @empty {
-    <p>No projects yet. Use the plus button in the sidebar to create one.</p>
-  }
+  <h2>Your work</h2>
+  <app-work-log />
 </section>
 
 <section>
