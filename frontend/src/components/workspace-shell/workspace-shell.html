@@ -2,14 +2,14 @@
   <aside class="sidebar">
     <header class="sidebar-top">
       <a class="wordmark" routerLink="/dashboard"><img class="brand-mark" src="logo.png" alt="" /><span>TMP</span></a>
-      <button class="transparent" type="button" [title]="'Switch to ' + nextTheme().label + ' theme'" (click)="toggleTheme()">
+      <button #themeButton class="transparent" type="button" [title]="'Switch to ' + nextTheme().label + ' theme'" (click)="toggleTheme()">
         <app-icon [name]="nextTheme().icon" />
       </button>
     </header>
 
     <nav class="primary-nav" aria-label="Main navigation">
       <a routerLink="/dashboard" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }"><app-icon name="dashboard" /><span>Dashboard</span></a>
-      <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
+      <div class="section-heading"><span>Projects</span><button #createButton class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
           <a [routerLink]="['/projects', project.id, 'board']" [class.is-active]="project.id === currentProjectId()"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
@@ -47,6 +47,10 @@
 
   <main class="workspace-main"><router-outlet /></main>
 </div>
+
+@if (onboarding()) {
+  <app-tour [steps]="tourSteps()" (done)="finishOnboarding()" />
+}
 
 <app-modal heading="Create a project" [(open)]="creating">
   <form [formGroup]="form" (ngSubmit)="createProject()">

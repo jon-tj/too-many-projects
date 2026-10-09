@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -7,6 +7,7 @@ import { Icon } from '../icon/icon';
 import { Avatar } from '../avatar/avatar';
 import { Modal } from '../modal/modal';
 import { ProjectIcon } from '../project-icon/project-icon';
+import { Tour, TourStep } from '../tour/tour';
 import { AuthService } from '../../services/auth.service';
 import { Account, Project } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -20,7 +21,7 @@ type Theme = (typeof THEMES)[number]['name'];
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar, Tour],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })
@@ -32,6 +33,22 @@ export class WorkspaceShell implements OnInit {
   /** The project in the URL, whose views are listed under it in the sidebar. */
   protected readonly currentProjectId = signal<number | null>(null);
   protected readonly createError = signal('');
+  /** Shown when the URL has ?onboard=true, as it does right after signing up. */
+  protected readonly onboarding = signal(false);
+  private readonly createButton = viewChild.required<ElementRef<HTMLElement>>('createButton');
+  private readonly themeButton = viewChild.required<ElementRef<HTMLElement>>('themeButton');
+  protected readonly tourSteps = computed((): TourStep[] => [
+    {
+      target: this.createButton().nativeElement,
+      title: 'Start with a project',
+      text: 'Everything lives in a project: tasks, the roadmap, canvases and the hours you track. Use this button to create your first one.',
+    },
+    {
+      target: this.themeButton().nativeElement,
+      title: 'Make it yours',
+      text: 'Switch between the day, night and coffee themes whenever you like.',
+    },
+  ]);
   private readonly formBuilder = inject(FormBuilder);
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
@@ -48,10 +65,22 @@ export class WorkspaceShell implements OnInit {
     this.refreshAccount();
     this.refreshProjects();
     this.updateCurrentProject();
+    this.updateOnboarding();
     this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
       this.refreshProjects();
       this.updateCurrentProject();
+      this.updateOnboarding();
     });
+  }
+
+  private updateOnboarding(): void {
+    this.onboarding.set(this.router.parseUrl(this.router.url).queryParams['onboard'] === 'true');
+  }
+
+  /** Ends the tour and drops ?onboard from the address, so reloading does not start it again. */
+  protected finishOnboarding(): void {
+    this.onboarding.set(false);
+    void this.router.navigate([], { queryParams: { onboard: null }, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   private updateCurrentProject(): void {

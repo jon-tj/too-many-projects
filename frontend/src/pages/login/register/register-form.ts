@@ -60,7 +60,8 @@ export class RegisterForm {
     this.error.set('');
     const details = this.form.getRawValue();
     this.auth.register({ ...details, displayName: details.displayName.trim(), userName: details.userName.trim() }, readAttribution()).subscribe({
-      next: () => void this.router.navigateByUrl('/dashboard'),
+      // ?onboard=true shows the first-steps tour in the workspace.
+      next: () => void this.router.navigate(['/dashboard'], { queryParams: { onboard: true } }),
       error: (error: HttpErrorResponse) => {
         this.error.set(error.error?.error ?? 'We could not create your account. Please try again.');
         this.busy.set(false);

@@ -1,0 +1,73 @@
+.blocker {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+}
+/* The ring's huge shadow dims everything around the element it surrounds. */
+.ring {
+  position: fixed;
+  z-index: 1001;
+  border: 2px solid var(--secondary-surface);
+  border-radius: 8px;
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 45%, transparent);
+  pointer-events: none;
+  transition:
+    top 0.25s ease,
+    left 0.25s ease,
+    width 0.25s ease,
+    height 0.25s ease;
+}
+.card {
+  position: fixed;
+  z-index: 1002;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px -12px color-mix(in srgb, #000 50%, transparent);
+  animation: appear 0.2s ease both;
+}
+.card h2,
+.card p {
+  margin: 0;
+}
+.card h2 {
+  font-size: 15px;
+}
+.card p {
+  color: color-mix(in srgb, var(--primary-text) 80%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.card .count {
+  color: var(--secondary-surface);
+  font:
+    600 10px 'IBM Plex Mono',
+    monospace;
+  text-transform: uppercase;
+}
+footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.spacer {
+  flex: 1;
+}
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    transition: none;
+  }
+  .card {
+    animation: none;
+  }
+}

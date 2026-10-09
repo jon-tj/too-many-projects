@@ -1,0 +1,34 @@
+<!-- Catches clicks so the page underneath cannot be used mid-tour. -->
+<div class="blocker"></div>
+@if (ring(); as ring) {
+  <div
+    class="ring"
+    [style.top.px]="ring.top"
+    [style.left.px]="ring.left"
+    [style.width.px]="ring.width"
+    [style.height.px]="ring.height"
+  ></div>
+}
+@if (card(); as card) {
+  <div
+    class="card"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tour-title"
+    [style.top.px]="card.top"
+    [style.left.px]="card.left"
+    [style.width.px]="card.width"
+  >
+    <p class="count">{{ index() + 1 }} of {{ steps().length }}</p>
+    <h2 id="tour-title">{{ step().title }}</h2>
+    <p>{{ step().text }}</p>
+    <footer>
+      <button class="transparent" type="button" (click)="finish()">Skip</button>
+      <span class="spacer"></span>
+      @if (index() > 0) {
+        <button class="transparent" type="button" (click)="back()">Back</button>
+      }
+      <button class="primary" type="button" (click)="next()">{{ last() ? 'Get started' : 'Next' }}</button>
+    </footer>
+  </div>
+}
