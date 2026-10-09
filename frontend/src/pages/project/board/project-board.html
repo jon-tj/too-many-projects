@@ -7,7 +7,7 @@
     class="filter"
     aria-label="Filter by assignee"
     title="Filter by assignee"
-    (change)="setAssigneeFilter($any($event.target).value)"
+    (change)="setFilters({ assignee: $any($event.target).value })"
   >
     <!-- Selected per option: a [value] on the select is applied before the options exist. -->
     <option [value]="ASSIGNEE_FILTER.all" [selected]="assigneeFilter() === ASSIGNEE_FILTER.all">All</option>
@@ -28,6 +28,16 @@
       Unassigned
     </option>
   </select>
+  <!-- Only when something is blocked: without dependencies in use the checkbox would do nothing. -->
+  @if (blockedIds().size) {
+    <label class="toggle" title="Hide tasks waiting on a dependency that is not done">
+      <input type="checkbox" [checked]="hideBlocked()" (change)="setFilters({ hideBlocked: $any($event.target).checked })" />
+      Hide blocked
+      @if (hideBlocked()) {
+        <span class="badge">{{ blockedIds().size }}</span>
+      }
+    </label>
+  }
   @if (selected().size) {
     <div class="selection">
       <span>{{ selected().size }} selected</span>

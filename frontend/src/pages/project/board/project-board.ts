@@ -27,6 +27,16 @@ const ASSIGNEE_FILTER = {
   unassigned: '*unassigned',
 } as const;
 
+/** The board's filters, remembered per project in this browser. */
+interface BoardFilters {
+  /** A member's user id, or one of the special ASSIGNEE_FILTER values. */
+  assignee: string;
+  /** Leaves out tasks waiting on a dependency that is not done. */
+  hideBlocked: boolean;
+}
+
+const DEFAULT_FILTERS: BoardFilters = { assignee: ASSIGNEE_FILTER.all, hideBlocked: true };
+
 @Component({
   selector: 'app-project-board',
   imports: [TaskForm, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
@@ -47,19 +57,20 @@ export class ProjectBoard {
     defaultValue: [],
   });
   protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
-  /** Which assignee's tasks to show: a member's user id, or one of the special ASSIGNEE_FILTER values. */
-  /** Remembered per project in this browser. */
-  private readonly storedFilter = linkedSignal(() => this.readStoredFilter(this.projectId()));
-  /** Falls back to all when the stored member has left the project. */
+  private readonly filters = linkedSignal(() => this.readStoredFilters(this.projectId()));
+  protected readonly hideBlocked = computed(() => this.filters().hideBlocked);
+  /** Which assignee's tasks to show; falls back to all when the stored member has left the project. */
   protected readonly assigneeFilter = computed(() => {
-    const filter = this.storedFilter();
+    const filter = this.filters().assignee;
     if (filter.startsWith('*') || this.members.isLoading()) return filter;
     return this.members.value().some((member) => member.userId === filter) ? filter : ASSIGNEE_FILTER.all;
   });
   protected readonly visibleTasks = computed(() => {
     const filter = this.assigneeFilter();
     const me = this.account.value()?.id;
+    const blocked = this.hideBlocked() ? this.blockedIds() : new Set<number>();
     return this.tasks.value().filter((task) => {
+      if (blocked.has(task.id)) return false;
       switch (filter) {
         case ASSIGNEE_FILTER.all:
           return true;
@@ -109,23 +120,30 @@ export class ProjectBoard {
     });
   }
 
-  /** Drops hidden tasks from the selection, so group actions only touch what is on screen. */
-  protected setAssigneeFilter(filter: string): void {
-    this.storedFilter.set(filter);
+  /** Saves the change for this project and drops hidden tasks from the selection, so group actions only touch what is on screen. */
+  protected setFilters(changes: Partial<BoardFilters>): void {
+    this.filters.update((filters) => ({ ...filters, ...changes }));
     try {
-      localStorage.setItem(`board-assignee-filter:${this.projectId()}`, filter);
+      localStorage.setItem(`board-filters:${this.projectId()}`, JSON.stringify(this.filters()));
+      localStorage.removeItem(`board-assignee-filter:${this.projectId()}`);
     } catch {
-      // Storage can be unavailable (e.g. private windows); the filter then lasts until reload.
+      // Storage can be unavailable (e.g. private windows); the filters then last until reload.
     }
     const visible = new Set(this.visibleTasks().map((task) => task.id));
     this.selected.update((ids) => new Set([...ids].filter((id) => visible.has(id))));
   }
 
-  private readStoredFilter(projectId: number): string {
+  /** Reads this project's filters, falling back to the assignee filter saved on its own before. */
+  private readStoredFilters(projectId: number): BoardFilters {
     try {
-      return localStorage.getItem(`board-assignee-filter:${projectId}`) || ASSIGNEE_FILTER.all;
+      const stored = JSON.parse(localStorage.getItem(`board-filters:${projectId}`) ?? 'null') as Partial<BoardFilters> | null;
+      const legacyAssignee = localStorage.getItem(`board-assignee-filter:${projectId}`);
+      return {
+        assignee: typeof stored?.assignee === 'string' ? stored.assignee : legacyAssignee || DEFAULT_FILTERS.assignee,
+        hideBlocked: typeof stored?.hideBlocked === 'boolean' ? stored.hideBlocked : DEFAULT_FILTERS.hideBlocked,
+      };
     } catch {
-      return ASSIGNEE_FILTER.all;
+      return DEFAULT_FILTERS;
     }
   }
 

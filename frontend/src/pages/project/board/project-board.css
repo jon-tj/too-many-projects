@@ -11,6 +11,16 @@
   gap: 8px;
   margin-bottom: 16px;
 }
+.toggle {
+  gap: 6px;
+  color: var(--secondary-surface);
+  font-size: 11px;
+  cursor: pointer;
+}
+.toggle input {
+  margin: 0;
+  accent-color: var(--secondary-surface);
+}
 .selection {
   display: flex;
   align-items: center;
