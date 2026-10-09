@@ -29,6 +29,8 @@ export class WorkspaceShell implements OnInit {
   protected readonly account = signal<Account | null>(null);
   protected readonly creating = signal(false);
   protected readonly accountMenuOpen = signal(false);
+  /** The project in the URL, whose views are listed under it in the sidebar. */
+  protected readonly currentProjectId = signal<number | null>(null);
   protected readonly createError = signal('');
   private readonly formBuilder = inject(FormBuilder);
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -45,7 +47,16 @@ export class WorkspaceShell implements OnInit {
   ngOnInit(): void {
     this.refreshAccount();
     this.refreshProjects();
-    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => this.refreshProjects());
+    this.updateCurrentProject();
+    this.router.events.pipe(filter((event) => event instanceof NavigationEnd)).subscribe(() => {
+      this.refreshProjects();
+      this.updateCurrentProject();
+    });
+  }
+
+  private updateCurrentProject(): void {
+    const match = /^\/projects\/(\d+)/.exec(this.router.url);
+    this.currentProjectId.set(match ? Number(match[1]) : null);
   }
 
   /** Reloads the signed-in account, e.g. after the profile picture changed in settings. */

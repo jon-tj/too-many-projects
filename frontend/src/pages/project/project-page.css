@@ -12,13 +12,15 @@ header {
   gap: 16px;
 }
 
-/* The project links: a plain row, without the tab bar's styling below. */
+/* Title, links and description, set apart from the view below. */
+.project-head {
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
 header nav {
   display: flex;
   gap: 16px;
-  margin: 0;
-  padding: 0;
-  border: 0;
 }
 
 header a {
@@ -52,20 +54,4 @@ h1 app-project-icon {
 
 p {
   color: var(--secondary-surface);
-}
-
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-/* On phones the tabs show only their icons and counts. */
-@media (max-width: 620px) {
-  nav span:not(.badge) {
-    display: none;
-  }
 }

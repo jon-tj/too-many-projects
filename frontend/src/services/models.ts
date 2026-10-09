@@ -23,6 +23,7 @@ export interface ProjectTask {
   title: string;
   description: string;
   status: TaskStatus;
+  priority: TaskPriority;
   assigneeUserId: string | null;
   dueAt: string | null;
   createdAt: string;
@@ -30,9 +31,18 @@ export interface ProjectTask {
   units: number | null;
   /** Units completed so far. A done task counts as complete whatever this is. */
   unitsDone: number;
+  /** Ids of tasks in the same project that must be done before this one can start. */
+  dependsOn: number[];
+  /** True while any dependency is not done; a blocked task stays in to do. */
+  blocked: boolean;
 }
 
 export type TaskStatus = 'todo' | 'doing' | 'done';
+
+export type TaskPriority = 'low' | 'high' | 'critical';
+
+/** Higher ranks sort first. */
+export const PRIORITY_RANK: Record<TaskPriority, number> = { critical: 2, high: 1, low: 0 };
 
 export interface Account {
   id: string;

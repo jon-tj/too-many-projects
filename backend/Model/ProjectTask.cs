@@ -7,6 +7,8 @@ public sealed class ProjectTask
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Status { get; set; } = "todo";
+    /// <summary>low, high or critical; the board lists higher priorities first.</summary>
+    public string Priority { get; set; } = "low";
     public string CreatedByUserId { get; set; } = string.Empty;
     public string? AssigneeUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -34,4 +36,8 @@ public sealed class ProjectTask
         Status = status;
     }
     public Project Project { get; set; } = null!;
+    /// <summary>Tasks this one waits for.</summary>
+    public ICollection<TaskDependency> Dependencies { get; set; } = new List<TaskDependency>();
+    /// <summary>Tasks that wait for this one.</summary>
+    public ICollection<TaskDependency> Dependents { get; set; } = new List<TaskDependency>();
 }

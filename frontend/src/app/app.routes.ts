@@ -11,6 +11,7 @@ import { ProjectOverview } from '../pages/project/overview/project-overview';
 import { CanvasList } from '../pages/project/canvas/canvas-list';
 import { ProjectCanvas } from '../pages/project/canvas/editor/project-canvas';
 import { CanvasSettings } from '../pages/project/canvas/settings/canvas-settings';
+import { ProjectRoadmap } from '../pages/project/roadmap/project-roadmap';
 import { ProjectMembers } from '../pages/project/members/project-members';
 import { ProjectSettings } from '../pages/project/settings/project-settings';
 import { TaskDetail } from '../pages/project/task/task-detail';
@@ -37,6 +38,7 @@ export const routes: Routes = [
 					{ path: '', pathMatch: 'full', redirectTo: 'board' },
 					{ path: 'overview', component: ProjectOverview },
 					{ path: 'board', component: ProjectBoard },
+					{ path: 'roadmap', component: ProjectRoadmap },
 					{ path: 'canvas', component: CanvasList },
 					{ path: 'canvas/:canvasId', component: ProjectCanvas },
 					{ path: 'canvas/:canvasId/settings', component: CanvasSettings },

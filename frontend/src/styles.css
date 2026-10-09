@@ -137,3 +137,16 @@ button.transparent[aria-expanded='true'] {
     color: var(--primary-surface);
     background-color: var(--status);
 }
+
+/* Task priority: set data-priority on a badge. Low is the default, so views only badge high and critical. */
+.badge[data-priority] {
+    text-transform: capitalize;
+}
+.badge[data-priority='high'] {
+    color: var(--priority-high);
+    background-color: color-mix(in srgb, var(--priority-high) 16%, transparent);
+}
+.badge[data-priority='critical'] {
+    color: var(--primary-surface);
+    background-color: var(--priority-critical);
+}

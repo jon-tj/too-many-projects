@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008130158_TaskPriority")]
+    partial class TaskPriority
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
@@ -490,21 +493,6 @@ namespace backend.Migrations
                     b.ToTable("ProjectTasks");
                 });
 
-            modelBuilder.Entity("Model.TaskDependency", b =>
-                {
-                    b.Property<long>("TaskId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<long>("DependsOnTaskId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("TaskId", "DependsOnTaskId");
-
-                    b.HasIndex("DependsOnTaskId");
-
-                    b.ToTable("TaskDependencies");
-                });
-
             modelBuilder.Entity("Model.WorkSession", b =>
                 {
                     b.Property<long>("Id")
@@ -675,25 +663,6 @@ namespace backend.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("Model.TaskDependency", b =>
-                {
-                    b.HasOne("Model.ProjectTask", "DependsOn")
-                        .WithMany("Dependents")
-                        .HasForeignKey("DependsOnTaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Model.ProjectTask", "Task")
-                        .WithMany("Dependencies")
-                        .HasForeignKey("TaskId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DependsOn");
-
-                    b.Navigation("Task");
-                });
-
             modelBuilder.Entity("Model.WorkSession", b =>
                 {
                     b.HasOne("Model.Project", "Project")
@@ -725,13 +694,6 @@ namespace backend.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Tasks");
-                });
-
-            modelBuilder.Entity("Model.ProjectTask", b =>
-                {
-                    b.Navigation("Dependencies");
-
-                    b.Navigation("Dependents");
                 });
 #pragma warning restore 612, 618
         }

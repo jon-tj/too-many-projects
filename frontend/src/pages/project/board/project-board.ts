@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { Modal } from '../../../components/modal/modal';
 import { TaskForm, TaskFormValue } from '../../../components/task-form/task-form';
-import { ProjectTask, TaskStatus } from '../../../services/models';
+import { PRIORITY_RANK, ProjectTask, TaskStatus } from '../../../services/models';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const COLUMNS = [
@@ -75,9 +75,24 @@ export class ProjectBoard {
   protected readonly columns = computed(() =>
     COLUMNS.map((column) => ({
       ...column,
-      tasks: this.visibleTasks().filter((task) => task.status === column.status),
+      // Highest priority first; the sort is stable, so newest first within a priority.
+      tasks: this.visibleTasks()
+        .filter((task) => task.status === column.status)
+        .sort((a, b) => PRIORITY_RANK[b.priority] - PRIORITY_RANK[a.priority]),
     })),
   );
+  /**
+   * Tasks waiting on a dependency that is not done. Worked out from the loaded tasks rather than the server's flag,
+   * so moving a dependency to done unblocks its dependents straight away.
+   */
+  protected readonly blockedIds = computed(() => {
+    const tasks = this.tasks.value();
+    const done = new Set(tasks.filter((task) => task.status === 'done').map((task) => task.id));
+    return new Set(tasks.filter((task) => task.dependsOn.some((id) => !done.has(id))).map((task) => task.id));
+  });
+  /** A blocked task cannot be dragged out of to do. */
+  protected readonly canEnter = (drag: CdkDrag<ProjectTask>, drop: CdkDropList<TaskStatus>): boolean =>
+    drop.data === 'todo' || drag.data.status !== 'todo' || !this.blockedIds().has(drag.data.id);
   protected readonly ASSIGNEE_FILTER = ASSIGNEE_FILTER;
   protected readonly addingTask = signal(false);
   protected readonly taskError = signal('');
@@ -224,11 +239,16 @@ export class ProjectBoard {
 
   private changeStatus(task: ProjectTask, status: TaskStatus): void {
     if (task.status === status) return;
+    if (task.status === 'todo' && this.blockedIds().has(task.id)) {
+      this.taskError.set('This task is blocked until all its dependencies are done.');
+      return;
+    }
     const setStatus = (value: TaskStatus) =>
       this.tasks.update((tasks) =>
         tasks.map((item) => (item.id === task.id ? { ...item, status: value } : item)),
       );
     setStatus(status);
+    this.taskError.set('');
     this.api.setTaskStatus(task.id, status).subscribe({
       error: () => {
         setStatus(task.status);

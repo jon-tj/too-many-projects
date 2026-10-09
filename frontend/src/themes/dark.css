@@ -13,6 +13,10 @@
     --todo: #8fa3b8;
     --doing: #d9a441;
     --done: #6fae69;
+  --priority-high: #e0894f;
+  --priority-critical: #e25d5d;
+    --priority-high: #e0894f;
+    --priority-critical: #e25d5d;
   --chart-tasks: #3987e5;
   --chart-hours: #d95926;
   }
@@ -31,6 +35,8 @@
   --todo: #8fa3b8;
   --doing: #d9a441;
   --done: #6fae69;
+  --priority-high: #e0894f;
+  --priority-critical: #e25d5d;
   --chart-tasks: #3987e5;
   --chart-hours: #d95926;
 }

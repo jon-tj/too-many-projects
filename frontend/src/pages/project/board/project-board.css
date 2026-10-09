@@ -141,6 +141,13 @@
   align-items: center;
   gap: 4px;
 }
+.blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--priority-critical);
+  background-color: color-mix(in srgb, var(--priority-critical) 14%, transparent);
+}
 .task-card p {
   margin: 7px 0 0;
   color: var(--secondary-surface);

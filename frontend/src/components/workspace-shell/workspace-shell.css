@@ -11,6 +11,13 @@
 .section-heading { display: flex; align-items: center; justify-content: space-between; margin: 24px 3px 7px 9px; color: var(--secondary-surface); font-size: 11px; font-weight: 650; }
 .project-nav-list { display: grid; gap: 2px; }
 .project-nav-list > a { min-height: 34px; }
+/* The open project's row stays plain, so the highlight sits on its active view below. */
+.project-nav-list > a.is-active { background: none; }
+.project-views { display: grid; gap: 2px; margin: 0 0 6px 20px; padding-left: 8px; border-left: 1px solid var(--border); }
+.project-views > a { display: flex; min-height: 30px; align-items: center; gap: 9px; padding: 0 9px; color: var(--secondary-surface); border-radius: 4px; font-size: 11px; text-decoration: none; }
+.project-views > a > span:not(.badge) { flex: 1; }
+.project-views > a:hover { background: var(--secondary-text); }
+.project-views > a.is-active { color: var(--primary-active-text); background: var(--primary-active-surface); font-weight: 600; }
 .project-mark { width: 23px; height: 23px; flex: 0 0 23px; color: var(--secondary-surface); border-radius: 4px; }
 .project-link-name { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-bottom { position: relative; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--primary-active-surface); }
@@ -29,6 +36,10 @@
   .primary-nav > a,.project-nav-list > a { justify-content: center; padding: 0; }
   .project-mark { width: 30px; height: 30px; }.project-nav-list { margin-top: 16px; }
   .section-heading { justify-content: center; margin: 16px 0 5px; }
+  /* Icons only, under the project's mark. */
+  .project-views { margin: 0 0 6px; padding: 4px 0 0; border-left: 0; border-top: 1px solid var(--border); }
+  .project-views > a { justify-content: center; padding: 0; }
+  .project-views > a > span { display: none; }
   /* Open beside the collapsed sidebar: 6px sidebar padding + 1px border + 8px gap past the wrapper. */
   .account-menu { right: auto; left: calc(100% + 15px); bottom: 0; width: 150px; }
 }

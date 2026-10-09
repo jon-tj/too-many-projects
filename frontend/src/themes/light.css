@@ -11,6 +11,8 @@
     --todo: #6f8296;
     --doing: #c98a1b;
     --done: #4f8a4b;
+    --priority-high: #c8692a;
+    --priority-critical: #c23b3b;
     --chart-tasks: #2a78d6;
     --chart-hours: #eb6834;
 }

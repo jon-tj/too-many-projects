@@ -72,6 +72,7 @@
         cdkDropList
         cdkDropListSortingDisabled
         [cdkDropListData]="column.status"
+        [cdkDropListEnterPredicate]="canEnter"
         (cdkDropListDropped)="drop($event)"
       >
         @let selectedCount = selectedInColumn(column.tasks);
@@ -145,7 +146,19 @@
               </div>
             }
             <footer>
-              <span class="badge">{{ assigneeName(task) }}</span>
+              <div>
+                <span class="badge">{{ assigneeName(task) }}</span>
+                @if (blockedIds().has(task.id)) {
+                  <span class="badge blocked" title="Waiting for dependencies to be done">
+                    <app-icon name="block" [size]="11" />
+                    Blocked
+                  </span>
+                }
+                <!-- Low is the default, so only high and critical get a marker. -->
+                @if (task.priority !== 'low') {
+                  <span class="badge" [attr.data-priority]="task.priority">{{ task.priority }}</span>
+                }
+              </div>
               <div>
                 @if (task.status === 'done') {
                   <span class="done-check"><app-icon name="check" /></span>
@@ -171,6 +184,7 @@
       #taskForm
       [members]="members.value()"
       [currentUserId]="account.value()?.id ?? null"
+      [tasks]="tasks.value()"
       (save)="createTask($event)"
     >
       <button class="primary" type="submit" [disabled]="taskForm.form.invalid">Add task</button>

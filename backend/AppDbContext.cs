@@ -9,6 +9,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<Project> Projects => Set<Project>();
 	public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
 	public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
+	public DbSet<TaskDependency> TaskDependencies => Set<TaskDependency>();
 	public DbSet<Canvas> Canvases => Set<Canvas>();
 	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
 	public DbSet<CanvasImage> CanvasImages => Set<CanvasImage>();
@@ -45,5 +46,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.HasForeignKey(task => task.ProjectId);
 		builder.Entity<ProjectTask>().HasIndex(task => new { task.ProjectId, task.Status });
 		builder.Entity<ProjectTask>().HasIndex(task => task.AssigneeUserId);
+		builder.Entity<TaskDependency>().HasKey(dependency => new { dependency.TaskId, dependency.DependsOnTaskId });
+		builder.Entity<TaskDependency>()
+			.HasOne(dependency => dependency.Task)
+			.WithMany(task => task.Dependencies)
+			.HasForeignKey(dependency => dependency.TaskId);
+		builder.Entity<TaskDependency>()
+			.HasOne(dependency => dependency.DependsOn)
+			.WithMany(task => task.Dependents)
+			.HasForeignKey(dependency => dependency.DependsOnTaskId);
 	}
 }

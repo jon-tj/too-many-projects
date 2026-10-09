@@ -26,6 +26,12 @@ export class TaskDetail {
     stream: ({ params }) => this.api.projectMembers(params),
     defaultValue: [],
   });
+  /** The project's tasks, to pick dependencies from. */
+  protected readonly tasks = rxResource({
+    params: () => this.projectId(),
+    stream: ({ params }) => this.api.projectTasks(params),
+    defaultValue: [],
+  });
   protected readonly account = rxResource({ stream: () => this.api.currentAccount() });
   protected readonly pinnedCanvases = rxResource({
     params: () => ({ projectId: this.projectId(), taskId: this.taskId() }),
@@ -41,9 +47,9 @@ export class TaskDetail {
     this.busy.set(true);
     this.api.updateTask({ ...task, ...value }).subscribe({
       next: () => this.backToBoard(),
-      error: () => {
+      error: (response) => {
         this.busy.set(false);
-        this.message.set('Could not save the task. Please try again.');
+        this.message.set(response?.error?.error ?? 'Could not save the task. Please try again.');
       },
     });
   }

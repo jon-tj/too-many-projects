@@ -12,7 +12,18 @@
       <div class="section-heading"><span>Projects</span><button class="transparent" type="button" aria-label="Create project" title="Create project" (click)="$event.stopPropagation(); openCreate()"><app-icon name="add" /></button></div>
       <div class="project-nav-list">
         @for (project of projects(); track project.id) {
-          <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
+          <a [routerLink]="['/projects', project.id, 'board']" [class.is-active]="project.id === currentProjectId()"><app-project-icon class="project-mark" [project]="project" /><span class="project-link-name">{{ project.name }}</span><span class="badge">{{ project.taskCount }}</span></a>
+          <!-- The open project's views, nested under it. -->
+          @if (project.id === currentProjectId()) {
+            <nav class="project-views" aria-label="Project views">
+              <a [routerLink]="['/projects', project.id, 'overview']" routerLinkActive="is-active"><app-icon name="insights" /><span>Overview</span></a>
+              <a [routerLink]="['/projects', project.id, 'board']" routerLinkActive="is-active"><app-icon name="grid_view" /><span>Board</span></a>
+              <a [routerLink]="['/projects', project.id, 'roadmap']" routerLinkActive="is-active"><app-icon name="view_timeline" /><span>Roadmap</span></a>
+              <a [routerLink]="['/projects', project.id, 'canvas']" routerLinkActive="is-active"><app-icon name="account_tree" /><span>Canvas</span></a>
+              <a [routerLink]="['/projects', project.id, 'members']" routerLinkActive="is-active"><app-icon name="person" /><span>Members</span><span class="badge">{{ project.memberCount }}</span></a>
+              <a [routerLink]="['/projects', project.id, 'settings']" routerLinkActive="is-active"><app-icon name="settings" /><span>Settings</span></a>
+            </nav>
+          }
         } @empty {
         }
       </div>

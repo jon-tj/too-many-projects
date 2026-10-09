@@ -1,0 +1,232 @@
+:host {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+/* Controls row above the roadmap; the legend sits at its end. */
+:host > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  color: var(--secondary-surface);
+  font-size: 10px;
+  list-style: none;
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.swatch {
+  width: 18px;
+  height: 9px;
+  border-radius: 2px;
+}
+.swatch.no-due {
+  background: color-mix(in srgb, var(--todo) 25%, transparent);
+  border: 1px dashed var(--todo);
+}
+.swatch.late {
+  background: var(--todo);
+  outline: 2px solid var(--priority-critical);
+}
+.swatch.today {
+  width: 2px;
+  height: 12px;
+  background: var(--priority-critical);
+}
+.roadmap-error {
+  color: var(--priority-critical);
+}
+.roadmap-notice {
+  color: var(--secondary-surface);
+}
+
+.roadmap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  height: 70vh;
+  min-height: 400px;
+  overflow: hidden;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+/* Task names, panning up and down with the chart. */
+.labels {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+.labels-head {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  padding: 0 12px 8px;
+  color: var(--secondary-surface);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+.labels-body {
+  flex: 1;
+  overflow: hidden;
+}
+.labels-body a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  color: var(--primary-text);
+  font-size: 11px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--primary-active-surface);
+}
+.labels-body a:hover {
+  background: var(--primary-active-surface);
+}
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--status);
+  border-radius: 2px;
+}
+.title {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.labels-body .badge {
+  flex: none;
+}
+.blocked {
+  color: var(--priority-critical);
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.chart:active {
+  cursor: grabbing;
+}
+.weekend {
+  fill: var(--primary-active-surface);
+  opacity: 0.6;
+}
+.start-line {
+  stroke: var(--secondary-surface);
+  stroke-dasharray: 2 3;
+  opacity: 0.5;
+}
+.today-line {
+  stroke: var(--priority-critical);
+  stroke-width: 1.5;
+}
+.row-line {
+  stroke: var(--primary-active-surface);
+}
+.arrow {
+  fill: none;
+  stroke: var(--secondary-surface);
+  stroke-width: 1.2;
+  opacity: 0.75;
+}
+.arrow.done {
+  opacity: 0.3;
+}
+#roadmap-arrow path {
+  fill: var(--secondary-surface);
+}
+.bar {
+  cursor: ew-resize;
+}
+.drag-label {
+  fill: var(--primary-text);
+  font:
+    600 10px 'IBM Plex Mono',
+    monospace;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.bar rect {
+  fill: var(--status);
+  transition: filter 0.15s ease;
+}
+.bar:hover rect {
+  filter: brightness(1.15);
+}
+.bar[data-status='done'] rect {
+  opacity: 0.5;
+}
+.bar.no-due rect {
+  fill: color-mix(in srgb, var(--status) 25%, transparent);
+  stroke: var(--status);
+  stroke-dasharray: 3 2;
+}
+.bar.late rect {
+  stroke: var(--priority-critical);
+  stroke-width: 2;
+}
+.axis rect {
+  fill: var(--primary-surface);
+}
+.axis line {
+  stroke: var(--border);
+}
+.axis text {
+  fill: var(--secondary-surface);
+  font:
+    10px 'IBM Plex Mono',
+    monospace;
+}
+.axis .month {
+  fill: var(--primary-text);
+  font-weight: 650;
+}
+.axis .tick {
+  text-anchor: middle;
+}
+.axis .tick.today {
+  fill: var(--priority-critical);
+  font-weight: 700;
+}
+
+.overlay {
+  position: absolute;
+  inset: 50% 0 auto;
+  margin: 0;
+  color: var(--secondary-surface);
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .roadmap {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  .legend {
+    margin-left: 0;
+  }
+}

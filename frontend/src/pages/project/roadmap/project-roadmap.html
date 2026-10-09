@@ -1,0 +1,153 @@
+<header>
+  <button
+    class="primary"
+    type="button"
+    title="Critical: no float. High: starts the longest chains of work. Low: the rest."
+    [disabled]="!bars().length"
+    (click)="paintPriorities()"
+  >
+    <app-icon name="route" />
+    <span>Prioritize</span>
+  </button>
+  <button class="transparent" type="button" title="Zoom out" (click)="zoom(1 / 1.5)">
+    <app-icon name="zoom_out" />
+  </button>
+  <button class="transparent" type="button" title="Zoom in" (click)="zoom(1.5)">
+    <app-icon name="zoom_in" />
+  </button>
+  <button class="transparent" type="button" (click)="goToToday()">
+    <app-icon name="today" />
+    <span>Today</span>
+  </button>
+  <button class="transparent" type="button" (click)="fit()">
+    <app-icon name="fit_screen" />
+    <span>Fit</span>
+  </button>
+  <ul class="legend">
+    <li>Drag a bar to move its due date</li>
+    <li><span class="swatch no-due"></span>No due date</li>
+    <li><span class="swatch late"></span>Due before its dependencies</li>
+    <li><span class="swatch today"></span>Today</li>
+  </ul>
+</header>
+
+@if (tasks.error()) {
+  <p class="roadmap-error" role="alert">Could not load project tasks.</p>
+}
+@if (error()) {
+  <p class="roadmap-error" role="alert">{{ error() }}</p>
+}
+@if (notice()) {
+  <p class="roadmap-notice" role="status">{{ notice() }}</p>
+}
+
+<div class="roadmap" (wheel)="onWheel($event)">
+  <div class="labels">
+    <div class="labels-head" [style.height.px]="AXIS">Task</div>
+    <div class="labels-body">
+      <div [style.transform]="'translateY(' + view().y + 'px)'">
+        @for (bar of bars(); track bar.task.id) {
+          <a [routerLink]="['../tasks', bar.task.id]" [attr.data-status]="bar.task.status" [style.height.px]="ROW">
+            <span class="dot"></span>
+            <span class="title">{{ bar.task.title }}</span>
+            @if (bar.task.priority !== 'low') {
+              <span class="badge" [attr.data-priority]="bar.task.priority">{{ bar.task.priority }}</span>
+            }
+            @if (bar.task.blocked) {
+              <app-icon class="blocked" name="block" [size]="13" title="Blocked" />
+            }
+          </a>
+        }
+      </div>
+    </div>
+  </div>
+
+  <svg #chart class="chart" (pointerdown)="onPointerDown($event)">
+    <defs>
+      <marker id="roadmap-arrow" viewBox="0 0 6 6" refX="5" refY="3" markerWidth="6" markerHeight="6" orient="auto">
+        <path d="M0,0 L6,3 L0,6 z" />
+      </marker>
+    </defs>
+
+    <!-- Backdrop: weekends, the project start and today, fixed vertically. -->
+    <g [attr.transform]="'translate(' + view().x + ',' + AXIS + ')'">
+      @for (weekend of weekends(); track weekend.day) {
+        <rect
+          class="weekend"
+          [attr.x]="weekend.day * view().dayWidth"
+          y="0"
+          [attr.width]="view().dayWidth"
+          [attr.height]="size().height"
+        />
+      }
+      <line class="start-line" x1="0" x2="0" y1="0" [attr.y2]="size().height" />
+      <line
+        class="today-line"
+        [attr.x1]="today() * view().dayWidth"
+        [attr.x2]="today() * view().dayWidth"
+        y1="0"
+        [attr.y2]="size().height"
+      />
+    </g>
+
+    <g [attr.transform]="'translate(' + view().x + ',' + (AXIS + view().y) + ')'">
+      @for (bar of bars(); track bar.task.id) {
+        <line
+          class="row-line"
+          [attr.x1]="-view().x"
+          [attr.x2]="size().width - view().x"
+          [attr.y1]="(bar.row + 1) * ROW"
+          [attr.y2]="(bar.row + 1) * ROW"
+        />
+      }
+      @for (arrow of arrows(); track arrow.key) {
+        <path class="arrow" [class.done]="arrow.done" [attr.d]="arrow.path" marker-end="url(#roadmap-arrow)" />
+      }
+      @for (bar of bars(); track bar.task.id) {
+        <g
+          class="bar"
+          [attr.data-status]="bar.task.status"
+          [attr.data-task]="bar.task.id"
+          [class.no-due]="!bar.hasDue"
+          [class.late]="bar.late"
+        >
+          <rect
+            [attr.x]="bar.start * view().dayWidth"
+            [attr.y]="bar.row * ROW + (ROW - BAR) / 2"
+            [attr.width]="Math.max(3, (bar.end - bar.start) * view().dayWidth - 2)"
+            [attr.height]="BAR"
+            rx="3"
+          />
+          <title>{{ barTitle(bar) }}</title>
+        </g>
+      }
+      @if (dragLabel(); as label) {
+        <text class="drag-label" [attr.x]="label.x" [attr.y]="label.y">{{ label.text }}</text>
+      }
+    </g>
+
+    <g class="axis">
+      <rect x="0" y="0" width="100%" [attr.height]="AXIS" />
+      <line x1="0" x2="100%" [attr.y1]="AXIS - 0.5" [attr.y2]="AXIS - 0.5" />
+      @for (month of months(); track month.key) {
+        <text class="month" [attr.x]="month.x" y="17">{{ month.label }}</text>
+      }
+      @for (tick of ticks(); track tick.day) {
+        <text
+          class="tick"
+          [class.today]="tick.day === today()"
+          [attr.x]="view().x + (tick.day + 0.5) * view().dayWidth"
+          y="36"
+        >
+          {{ tick.date.getDate() }}
+        </text>
+      }
+    </g>
+  </svg>
+
+  @if (tasks.isLoading()) {
+    <p class="overlay">Laying out the roadmap…</p>
+  } @else if (!bars().length) {
+    <p class="overlay">No tasks yet. Add some on the board, then link them with “Depends on”.</p>
+  }
+</div>

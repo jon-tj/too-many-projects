@@ -8,6 +8,14 @@
     <textarea formControlName="description" rows="4" placeholder="A little context (optional)"></textarea>
   </label>
   <label>
+    Priority
+    <select formControlName="priority">
+      <option value="low">Low</option>
+      <option value="high">High</option>
+      <option value="critical">Critical</option>
+    </select>
+  </label>
+  <label>
     Units of work
     <input type="number" min="1" max="1000" formControlName="units" placeholder="Optional, e.g. 5" />
   </label>
@@ -16,8 +24,8 @@
       Status
       <select formControlName="status">
         <option value="todo">To do</option>
-        <option value="doing">Doing</option>
-        <option value="done">Done</option>
+        <option value="doing" [disabled]="blocked()">Doing</option>
+        <option value="done" [disabled]="blocked()">Done</option>
       </select>
     </label>
   }
@@ -35,6 +43,31 @@
       <span>Assign to me</span>
     </button>
   </div>
+  @if (tasks().length) {
+    <div class="dependencies">
+      <label>
+        Depends on
+        <select aria-label="Add a dependency" (change)="addDependency($any($event.target))">
+          <option value="" selected>Add a task it waits for…</option>
+          @for (option of dependencyOptions(); track option.id) {
+            <option [value]="option.id">{{ option.title }}</option>
+          }
+        </select>
+      </label>
+      @if (dependencies().length) {
+        <ul>
+          @for (dependency of dependencies(); track dependency.id) {
+            <li [attr.data-status]="dependency.status">
+              <span>{{ dependency.title }}</span>
+              <button class="transparent" type="button" title="Remove dependency" (click)="removeDependency(dependency.id)">
+                <app-icon name="close" [size]="14" />
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
   <div>
     <label>
       Due date

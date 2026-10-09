@@ -19,6 +19,7 @@ import {
   OverviewRange,
   ProjectRole,
   ProjectTask,
+  TaskPriority,
   UserSummary,
 } from './models';
 
@@ -149,15 +150,17 @@ export class WorkspaceApi {
 
   createTask(
     projectId: number,
-    task: Pick<ProjectTask, 'title' | 'description' | 'assigneeUserId' | 'dueAt' | 'units'>,
+    task: Pick<ProjectTask, 'title' | 'description' | 'priority' | 'assigneeUserId' | 'dueAt' | 'units' | 'dependsOn'>,
   ): Observable<ProjectTask> {
-    const { title, description, assigneeUserId, dueAt, units } = task;
+    const { title, description, priority, assigneeUserId, dueAt, units, dependsOn } = task;
     return this.http.post<ProjectTask>(`/api/tasks/by-project/${projectId}`, {
       title,
       description,
+      priority,
       assigneeUserId,
       dueAt,
       units,
+      dependsOn,
     });
   }
 
@@ -166,13 +169,27 @@ export class WorkspaceApi {
   }
 
   updateTask(task: ProjectTask): Observable<void> {
-    const { title, description, status, assigneeUserId, dueAt, units } = task;
-    return this.http.put<void>(`/api/tasks/${task.id}`, { title, description, status, assigneeUserId, dueAt, units });
+    const { title, description, status, priority, assigneeUserId, dueAt, units, dependsOn } = task;
+    return this.http.put<void>(`/api/tasks/${task.id}`, {
+      title,
+      description,
+      status,
+      priority,
+      assigneeUserId,
+      dueAt,
+      units,
+      dependsOn,
+    });
   }
 
   /** Assigns several of the project's tasks at once; null unassigns them. */
   assignTasks(projectId: number, taskIds: number[], assigneeUserId: string | null): Observable<void> {
     return this.http.patch<void>(`/api/tasks/by-project/${projectId}/assignee`, { taskIds, assigneeUserId });
+  }
+
+  /** Sets the priority of several of the project's tasks at once. */
+  setTasksPriority(projectId: number, taskIds: number[], priority: TaskPriority): Observable<void> {
+    return this.http.patch<void>(`/api/tasks/by-project/${projectId}/priority`, { taskIds, priority });
   }
 
   setTaskUnitsDone(taskId: number, done: number): Observable<void> {

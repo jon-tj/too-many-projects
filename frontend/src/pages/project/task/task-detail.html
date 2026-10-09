@@ -11,6 +11,7 @@
     [task]="current"
     [members]="members.value()"
     [currentUserId]="account.value()?.id ?? null"
+    [tasks]="tasks.value()"
     (save)="save($event)"
   >
     <button class="primary" type="submit" [disabled]="taskForm.form.invalid || taskForm.form.pristine || busy()">
