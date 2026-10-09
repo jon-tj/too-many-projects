@@ -1,6 +1,7 @@
 :host { display: block; min-height: 100dvh; }
 .workspace-frame { display: grid; min-height: 100dvh; grid-template-columns: 236px minmax(0, 1fr); color: var(--primary-text); background: var(--background); }
-.sidebar { position: sticky; top: 0; display: flex; height: 100dvh; flex-direction: column; padding: 20px 12px 12px; background: var(--primary-surface); border-right: 1px solid var(--border); }
+/* Above the main content, so the account menu is never covered by it. */
+.sidebar { position: sticky; z-index: 100; top: 0; display: flex; height: 100dvh; flex-direction: column; padding: 20px 12px 12px; background: var(--primary-surface); border-right: 1px solid var(--border); }
 .sidebar-top { display: flex; align-items: center; justify-content: space-between; padding: 0 0 22px 6px; }
 .wordmark { display: flex; align-items: center; gap: 9px; color: var(--primary-text); font-size: 15px; font-weight: 700; text-decoration: none; }
 .brand-mark { width: 27px; height: 27px; object-fit: contain; }
@@ -26,7 +27,7 @@
 .profile-copy { overflow: hidden; }
 .profile-copy strong,.profile-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-copy strong { color: var(--primary-active-text); font-size: 11px; }.profile-copy small { margin-top: 3px; color: var(--secondary-surface); font-size: 9px; }
-.account-menu { position: absolute; z-index: 10; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; gap: 2px; padding: 4px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 5px; }
+.account-menu { position: absolute; z-index: 100; right: 0; bottom: calc(100% + 8px); left: 0; display: grid; gap: 2px; padding: 4px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 5px; }
 /* overflow-x: clip stops wide content from widening the page, which makes mobile browsers zoom out. */
 .workspace-main { position: relative; display: flex; min-width: 0; min-height: 100dvh; flex-direction: column; overflow-x: clip; }
 @media (max-width: 700px) {
