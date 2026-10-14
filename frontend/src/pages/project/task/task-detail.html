@@ -25,6 +25,15 @@
     <button class="transparent" type="button" [disabled]="busy()" (click)="deleteTask()">Delete task</button>
   </app-task-form>
 
+  <!-- Recorded by the server; shown here but not editable. -->
+  <p class="history">
+    Created by {{ personName(current.createdByUserId) }} on {{ current.createdAt | date: 'medium' }}
+    @if (current.updatedByUserId && current.updatedAt) {
+      <br />
+      Last updated by {{ personName(current.updatedByUserId) }} on {{ current.updatedAt | date: 'medium' }}
+    }
+  </p>
+
   @if (pinnedCanvases.value().length) {
     <section>
       <h2>On canvas</h2>

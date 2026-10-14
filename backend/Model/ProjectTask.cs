@@ -10,6 +10,16 @@ public sealed class ProjectTask
     /// <summary>low, high or critical; the board lists higher priorities first.</summary>
     public string Priority { get; set; } = "low";
     public string CreatedByUserId { get; set; } = string.Empty;
+    /// <summary>Who last changed the task, and when; null until it is first changed after being created.</summary>
+    public string? UpdatedByUserId { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
+    /// <summary>Records who changed the task just now.</summary>
+    public void MarkUpdated(string userId)
+    {
+        UpdatedByUserId = userId;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
     public string? AssigneeUserId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? DueAt { get; set; }

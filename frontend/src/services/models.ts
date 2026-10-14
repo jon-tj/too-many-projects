@@ -72,6 +72,10 @@ export interface ProjectTask {
   dependsOn: number[];
   /** True while any dependency is not done; a blocked task stays in to do. */
   blocked: boolean;
+  createdByUserId: string;
+  /** Who last changed the task and when; null until it is first changed after being created. */
+  updatedByUserId: string | null;
+  updatedAt: string | null;
 }
 
 export type TaskStatus = 'todo' | 'doing' | 'done';

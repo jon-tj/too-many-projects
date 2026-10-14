@@ -22,7 +22,8 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
         task.Id, task.ProjectId, task.Project.Name, task.Title, task.Description,
         task.Status, task.Priority, task.AssigneeUserId, task.DueAt, task.CreatedAt, task.CompletedAt, task.Units, task.UnitsDone,
         task.Dependencies.Select(dependency => dependency.DependsOnTaskId).ToList(),
-        task.Dependencies.Any(dependency => dependency.DependsOn.Status != "done"));
+        task.Dependencies.Any(dependency => dependency.DependsOn.Status != "done"),
+        task.CreatedByUserId, task.UpdatedByUserId, task.UpdatedAt);
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<TaskResponse>>> GetMyAndUnassigned(CancellationToken cancellationToken)
@@ -138,7 +139,11 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
             .ToListAsync(cancellationToken);
         if (tasks.Count != request.TaskIds.Distinct().Count()) return NotFound();
 
-        foreach (var task in tasks) task.AssigneeUserId = request.AssigneeUserId;
+        foreach (var task in tasks)
+        {
+            task.AssigneeUserId = request.AssigneeUserId;
+            task.MarkUpdated(userId);
+        }
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -160,7 +165,11 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
             .ToListAsync(cancellationToken);
         if (tasks.Count != request.TaskIds.Distinct().Count()) return NotFound();
 
-        foreach (var task in tasks) task.Priority = request.Priority;
+        foreach (var task in tasks)
+        {
+            task.Priority = request.Priority;
+            task.MarkUpdated(userId);
+        }
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -205,6 +214,7 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
         task.AssigneeUserId = request.AssigneeUserId;
         task.DueAt = request.DueAt;
         task.SetUnits(request.Units);
+        task.MarkUpdated(userId);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -240,6 +250,7 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
             return BadRequest(new { error = $"Units done must be between 0 and {total}." });
 
         task.UnitsDone = request.Done;
+        task.MarkUpdated(userId);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -264,6 +275,7 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
         // Starting an unassigned task makes it yours; tasks already assigned to someone keep their assignee.
         if (request.Status == "doing" && task.AssigneeUserId is null) task.AssigneeUserId = userId;
         task.SetStatus(request.Status);
+        task.MarkUpdated(userId);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -326,7 +338,8 @@ public sealed record TaskResponse(
     long Id, long ProjectId, string ProjectName, string Title, string Description,
     string Status, string Priority, string? AssigneeUserId, DateTimeOffset? DueAt, DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt, int? Units, int UnitsDone,
-    IReadOnlyList<long> DependsOn, bool Blocked);
+    IReadOnlyList<long> DependsOn, bool Blocked,
+    string CreatedByUserId, string? UpdatedByUserId, DateTimeOffset? UpdatedAt);
 
 /// <summary>How many units of a task are done.</summary>
 public sealed record SetUnitsDoneRequest(int Done);

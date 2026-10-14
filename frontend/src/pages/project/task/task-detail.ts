@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
@@ -9,7 +10,7 @@ import { WorkspaceApi } from '../../../services/workspace-api';
 
 @Component({
   selector: 'app-task-detail',
-  imports: [TaskForm, Icon, RouterLink, ProjectCanvas],
+  imports: [TaskForm, Icon, RouterLink, ProjectCanvas, DatePipe],
   templateUrl: './task-detail.html',
   styleUrl: './task-detail.css',
 })
@@ -40,6 +41,13 @@ export class TaskDetail {
     defaultValue: [],
   });
   protected readonly busy = signal(false);
+
+  /** A project member's name; people who have left the project are no longer in the member list. */
+  protected personName(userId: string): string {
+    if (userId === this.account.value()?.id) return 'you';
+    const member = this.members.value().find((entry) => entry.userId === userId);
+    return member ? member.displayName || member.userName : 'a former member';
+  }
   protected readonly message = signal('');
 
   protected save(value: TaskFormValue): void {

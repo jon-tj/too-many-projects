@@ -543,6 +543,12 @@ namespace backend.Migrations
                     b.Property<int>("UnitsDone")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssigneeUserId");
