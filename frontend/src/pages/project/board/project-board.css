@@ -158,11 +158,18 @@
   color: var(--priority-critical);
   background-color: color-mix(in srgb, var(--priority-critical) 14%, transparent);
 }
+/* At most three lines of description, ending in an ellipsis; the task page shows all of it. */
 .task-card p {
+  display: -webkit-box;
   margin: 7px 0 0;
+  overflow: hidden;
   color: var(--secondary-surface);
   font-size: 10px;
   line-height: 1.55;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 .task-card footer {
   display: flex;
