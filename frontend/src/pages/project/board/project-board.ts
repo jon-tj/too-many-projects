@@ -255,6 +255,12 @@ export class ProjectBoard {
     });
   }
 
+  /** The assignee's profile picture, or null when unassigned or they have none. */
+  protected assigneeAvatar(task: ProjectTask): string | null {
+    if (!task.assigneeUserId) return null;
+    return this.members.value().find((entry) => entry.userId === task.assigneeUserId)?.avatarImage ?? null;
+  }
+
   protected assigneeName(task: ProjectTask): string {
     if (!task.assigneeUserId) return 'Unassigned';
     if (task.assigneeUserId === this.account.value()?.id) return 'You';
@@ -284,10 +290,9 @@ export class ProjectBoard {
     // Completed now, like the server records it, so the card lands at the top of done.
     setTask({ status, assigneeUserId, completedAt: status === 'done' ? new Date().toISOString() : null });
     this.taskError.set('');
+    // Straight away, like the card move itself, rather than after the server answers.
+    if (status === 'done') void celebrateDone(task.priority, dropPoint);
     this.api.setTaskStatus(task.id, status).subscribe({
-      next: () => {
-        if (status === 'done') void celebrateDone(task.priority, dropPoint);
-      },
       error: () => {
         setTask({ status: task.status, assigneeUserId: task.assigneeUserId, completedAt: task.completedAt });
         this.taskError.set('Could not update task status.');

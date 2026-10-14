@@ -32,6 +32,7 @@
   }
   @for (member of members.value(); track member.userId) {
     <article>
+      <app-avatar class="avatar" [name]="member.displayName || member.userName" [image]="member.avatarImage" />
       <div>
         <strong>{{ member.displayName || member.userName }}</strong>
         <small>{{ member.userName }} · added {{ member.addedAt | date: 'mediumDate' }}</small>

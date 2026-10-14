@@ -157,7 +157,12 @@
             }
             <footer>
               <div>
-                <span class="badge">{{ assigneeName(task) }}</span>
+                <span class="badge assignee">
+                  @if (assigneeAvatar(task); as image) {
+                    <img [src]="image" alt="" />
+                  }
+                  {{ assigneeName(task) }}
+                </span>
                 @if (blockedIds().has(task.id)) {
                   <span class="badge blocked" title="Waiting for dependencies to be done">
                     <app-icon name="block" [size]="11" />

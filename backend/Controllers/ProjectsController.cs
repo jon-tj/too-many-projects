@@ -89,7 +89,8 @@ public sealed class ProjectsController(
                 member.Role,
                 member.User.MustChangePassword,
                 member.BillableFraction,
-                member.AddedAt))
+                member.AddedAt,
+                member.User.AvatarImage))
             .ToListAsync(cancellationToken);
 
         // In the order they joined, the owner first; sorted in memory since SQLite cannot order by DateTimeOffset.
@@ -148,7 +149,8 @@ public sealed class ProjectsController(
                 user.Email, user.DisplayName, projectName, inviterName, request.Role, SignInUrl()), cancellationToken);
         }
         return Ok(new ProjectMemberResponse(
-            user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword, "1/1", DateTimeOffset.UtcNow));
+            user.Id, user.UserName ?? string.Empty, user.DisplayName, request.Role, user.MustChangePassword, "1/1", DateTimeOffset.UtcNow,
+            user.AvatarImage));
     }
 
     [HttpDelete("{id:long}/members/{userId}")]
@@ -248,7 +250,8 @@ public sealed class ProjectsController(
                 new { error = "The invitation email could not be sent, so the user was not created. Please try again." });
         }
 
-        return Ok(new ProjectMemberResponse(user.Id, user.UserName, user.DisplayName, request.Role, true, "1/1", DateTimeOffset.UtcNow));
+        return Ok(new ProjectMemberResponse(
+            user.Id, user.UserName, user.DisplayName, request.Role, true, "1/1", DateTimeOffset.UtcNow, null));
     }
 
     [HttpPost]
@@ -573,7 +576,7 @@ public sealed record ProjectResponse(
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
 public sealed record ProjectMemberResponse(
     string UserId, string UserName, string DisplayName, string Role, bool Pending, string BillableFraction,
-    DateTimeOffset AddedAt);
+    DateTimeOffset AddedAt, string? AvatarImage);
 
 /// <summary>Data required to create a project.</summary>
 public sealed record ProjectRequest

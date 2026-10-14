@@ -1,4 +1,5 @@
 import { DatePipe } from '@angular/common';
+import { Avatar } from '../../../components/avatar/avatar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
@@ -19,7 +20,7 @@ import { ProjectPage } from '../project-page';
 
 @Component({
   selector: 'app-project-members',
-  imports: [ReactiveFormsModule, Icon, Modal, RouterLink, DatePipe],
+  imports: [ReactiveFormsModule, Icon, Modal, RouterLink, DatePipe, Avatar],
   templateUrl: './project-members.html',
   styleUrl: './project-members.css',
 })

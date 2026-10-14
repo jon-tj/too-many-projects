@@ -153,6 +153,8 @@ export interface ProjectMember {
   billableFraction: BillableFraction;
   /** When they joined the project. */
   addedAt: string;
+  /** Profile picture as an image data URL; null shows their initial. */
+  avatarImage: string | null;
 }
 
 export const BILLABLE_FRACTIONS = ['1/1', '3/4', '2/3', '1/2'] as const;

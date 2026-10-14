@@ -17,6 +17,13 @@ small {
   color: var(--secondary-surface);
 }
 
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  font-size: 13px;
+}
+
 header {
   display: flex;
   flex-wrap: wrap;

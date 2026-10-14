@@ -54,12 +54,11 @@ export class TaskDetail {
     const task = this.task.value();
     if (!task) return;
     this.busy.set(true);
+    // Straight away rather than after the server answers; the confetti canvas sits on the page itself, so it keeps
+    // going on the board.
+    if (value.status === 'done' && task.status !== 'done') void celebrateDone(value.priority);
     this.api.updateTask({ ...task, ...value }).subscribe({
-      next: () => {
-        // The confetti canvas sits on the page itself, so it keeps going on the board.
-        if (value.status === 'done' && task.status !== 'done') void celebrateDone(value.priority);
-        this.backToBoard();
-      },
+      next: () => this.backToBoard(),
       error: (response) => {
         this.busy.set(false);
         this.message.set(response?.error?.error ?? 'Could not save the task. Please try again.');
