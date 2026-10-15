@@ -42,10 +42,32 @@ public sealed class AdminController(
             .OrderBy(user => user.DisplayName, StringComparer.OrdinalIgnoreCase)
             .Select(user => new AdminUserResponse(
                 user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.AvatarImage, user.CreatedAt,
-                user.IsAdmin, user.MustChangePassword, user.PlanType, user.PlanRenewDate, user.PreviousPlanType,
+                user.LastSeenAt, user.IsAdmin, user.MustChangePassword, user.PlanType, user.PlanRenewDate, user.PreviousPlanType,
                 exempt.Contains(user.Id), owned.GetValueOrDefault(user.Id), memberOf.GetValueOrDefault(user.Id),
                 tasksCreated.GetValueOrDefault(user.Id), tasksCompleted.GetValueOrDefault(user.Id)))
             .ToList());
+    }
+
+    /// <summary>Weekly and monthly active users, and sign-ups and invites over the same periods.</summary>
+    [HttpGet("stats")]
+    public async Task<ActionResult<AdminStatsResponse>> GetStats(CancellationToken cancellationToken)
+    {
+        // Counted in memory: SQLite cannot compare DateTimeOffset values in queries.
+        var all = await db.Users.AsNoTracking()
+            .Select(user => new { user.CreatedAt, user.LastSeenAt, user.IsAdmin, SignedUp = user.PrimaryUseCase != "" })
+            .ToListAsync(cancellationToken);
+        // The sign-up form requires a use case; invited accounts (and the seeded admin) have none.
+        var created = all.Where(user => !user.IsAdmin).ToList();
+        var now = DateTimeOffset.UtcNow;
+        var weekAgo = now.AddDays(-7);
+        var monthAgo = now.AddDays(-30);
+        return Ok(new AdminStatsResponse(
+            all.Count(user => user.LastSeenAt >= weekAgo),
+            all.Count(user => user.LastSeenAt >= monthAgo),
+            created.Count(user => user.SignedUp && user.CreatedAt >= weekAgo),
+            created.Count(user => user.SignedUp && user.CreatedAt >= monthAgo),
+            created.Count(user => !user.SignedUp && user.CreatedAt >= weekAgo),
+            created.Count(user => !user.SignedUp && user.CreatedAt >= monthAgo)));
     }
 
     [HttpGet("projects")]
@@ -199,8 +221,15 @@ public sealed class AdminController(
 /// <param name="TasksCompleted">Done tasks assigned to them.</param>
 public sealed record AdminUserResponse(
     string Id, string UserName, string DisplayName, string Email, string? AvatarImage, DateTimeOffset CreatedAt,
-    bool IsAdmin, bool Pending, string PlanType, DateTimeOffset? PlanRenewDate, string? PreviousPlanType,
+    DateTimeOffset? LastSeenAt, bool IsAdmin, bool Pending, string PlanType, DateTimeOffset? PlanRenewDate, string? PreviousPlanType,
     bool PlanExempt, int ProjectsCreated, int ProjectsJoined, int TasksCreated, int TasksCompleted);
+
+/// <summary>Usage over the last 7 and 30 days.</summary>
+/// <param name="WeeklyActive">Users who opened the app in the last 7 days.</param>
+/// <param name="MonthlyActive">Users who opened the app in the last 30 days.</param>
+/// <param name="SignupsWeek">Accounts made through the sign-up form; invited accounts are counted apart.</param>
+public sealed record AdminStatsResponse(
+    int WeeklyActive, int MonthlyActive, int SignupsWeek, int SignupsMonth, int InvitedWeek, int InvitedMonth);
 
 /// <summary>A project with its owner and size.</summary>
 /// <param name="AdminIsMember">The caller (the admin) is a member, so can open it.</param>

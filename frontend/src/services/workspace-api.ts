@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import {
   Account,
   AdminProject,
+  AdminStats,
   AdminUser,
   CanvasDetail,
   CanvasDocument,
@@ -310,6 +311,10 @@ export class WorkspaceApi {
       canRead,
       canWrite,
     });
+  }
+
+  adminStats(): Observable<AdminStats> {
+    return this.http.get<AdminStats>('/api/admin/stats');
   }
 
   adminUsers(): Observable<AdminUser[]> {

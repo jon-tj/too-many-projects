@@ -4,6 +4,19 @@
 
 <section class="summary">
   <div>
+    <span class="label">Active users</span>
+    <strong>{{ stats.value()?.weeklyActive ?? '–' }} <span class="of">WAU</span></strong>
+    <span class="status">{{ stats.value()?.monthlyActive ?? '–' }} MAU · opened the app in the last 7 / 30 days</span>
+  </div>
+  <div>
+    <span class="label">Sign-ups</span>
+    <strong>{{ stats.value()?.signupsWeek ?? '–' }} <span class="of">this week</span></strong>
+    <span class="status">
+      {{ stats.value()?.signupsMonth ?? '–' }} in the last 30 days
+      · {{ stats.value()?.invitedWeek ?? '–' }} / {{ stats.value()?.invitedMonth ?? '–' }} invited
+    </span>
+  </div>
+  <div>
     <span class="label">Members</span>
     <strong>{{ users.value()?.length ?? '–' }}</strong>
     <span class="status">{{ lapsedCount() }} with no plan</span>
@@ -40,6 +53,7 @@
       <thead>
         <tr>
           <th scope="col">Member</th>
+          <th scope="col">Last active</th>
           <th scope="col">Plan</th>
           <th scope="col">Runs out</th>
           <th scope="col" class="number" title="Projects they own">Projects created</th>
@@ -64,6 +78,7 @@
                 </div>
               </div>
             </td>
+            <td [title]="user.lastSeenAt ? (user.lastSeenAt | date: 'medium') : ''">{{ lastSeen(user) }}</td>
             <td>
               <span [class.lapsed]="user.planType === 'none'">{{ planTitles[user.planType] }}</span>
               @if (user.planExempt) { <span class="tag">Exempt</span> }
@@ -91,7 +106,7 @@
           </tr>
         } @empty {
           @if (!users.isLoading()) {
-            <tr><td colspan="8" class="empty">No members match.</td></tr>
+            <tr><td colspan="9" class="empty">No members match.</td></tr>
           }
         }
       </tbody>

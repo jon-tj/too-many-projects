@@ -10,6 +10,8 @@ public sealed class ApplicationUser : IdentityUser
 	/// <summary>Small square profile picture as an image data URL; null shows the initial instead.</summary>
 	public string? AvatarImage { get; set; }
 	public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+	/// <summary>When the user last opened the app (to within ten minutes), for weekly and monthly active users; null if never.</summary>
+	public DateTimeOffset? LastSeenAt { get; set; }
 	/// <summary>Can open the admin page (api/admin) to manage every user and project.</summary>
 	public bool IsAdmin { get; set; }
 	/// <summary>trial, free, plus or pro (see Plans.Plan); trial is only ever set at registration. Owned projects follow it.</summary>

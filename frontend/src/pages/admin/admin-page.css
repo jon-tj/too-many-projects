@@ -36,6 +36,11 @@ p {
 .summary strong {
   font-size: 22px;
 }
+.of {
+  color: var(--secondary-surface);
+  font-size: 13px;
+  font-weight: 500;
+}
 .status {
   color: var(--secondary-surface);
   font-size: 12px;

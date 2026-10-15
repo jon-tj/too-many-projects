@@ -27,6 +27,7 @@ export class AdminPage {
   private readonly api = inject(WorkspaceApi);
   private readonly shell = inject(WorkspaceShell);
   protected readonly planTitles = PLAN_TITLES;
+  protected readonly stats = rxResource({ stream: () => this.api.adminStats() });
   protected readonly users = rxResource({ stream: () => this.api.adminUsers() });
   protected readonly projects = rxResource({ stream: () => this.api.adminProjects() });
   protected readonly tab = signal<Tab>('members');
@@ -55,6 +56,17 @@ export class AdminPage {
   private matches(...fields: string[]): boolean {
     const search = this.search().trim().toLowerCase();
     return !search || fields.some((field) => field.toLowerCase().includes(search));
+  }
+
+  /** How long ago the user last opened the app, in words. */
+  protected lastSeen(user: AdminUser): string {
+    if (!user.lastSeenAt) return 'Never';
+    const minutes = (Date.now() - new Date(user.lastSeenAt).getTime()) / 60_000;
+    if (minutes < 60) return 'Within the hour';
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} h ago`;
+    const days = Math.floor(minutes / (24 * 60));
+    if (days < 30) return days === 1 ? 'Yesterday' : `${days} days ago`;
+    return new Date(user.lastSeenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   /** When the plan runs out, in words; exempt plans and the free plan never do. */
@@ -87,6 +99,7 @@ export class AdminPage {
       : '';
     if (!confirm(`Permanently delete ${user.displayName} (@${user.userName})?${owned} This cannot be undone.`)) return;
     this.run(`delete-user:${user.id}`, this.api.adminDeleteUser(user.id), () => {
+      this.stats.reload();
       this.users.reload();
       this.projects.reload();
     });

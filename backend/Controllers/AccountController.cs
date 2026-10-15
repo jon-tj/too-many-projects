@@ -19,6 +19,15 @@ public sealed class AccountController(
     {
         var user = await users.GetUserAsync(User);
         if (user is null) return Unauthorized();
+        // The app loads the account on every visit, so this is when the user was last active. Written at most every ten
+        // minutes, and without UpdateAsync so the security stamp's concurrency token is left alone.
+        var now = DateTimeOffset.UtcNow;
+        if (user.LastSeenAt is not { } seen || now - seen > TimeSpan.FromMinutes(10))
+        {
+            user.LastSeenAt = now;
+            await db.Users.Where(entry => entry.Id == user.Id)
+                .ExecuteUpdateAsync(entry => entry.SetProperty(field => field.LastSeenAt, now), cancellationToken);
+        }
         // First, so a plan that just ran out shows as none.
         var lapsed = await plans.IsLapsed(user, cancellationToken);
         return Ok(new AccountResponse(

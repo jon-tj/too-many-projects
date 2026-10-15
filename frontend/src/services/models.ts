@@ -137,6 +137,8 @@ export interface AdminUser {
   email: string;
   avatarImage: string | null;
   createdAt: string;
+  /** When they last opened the app; null if never. */
+  lastSeenAt: string | null;
   isAdmin: boolean;
   /** Invited but not signed in yet. */
   pending: boolean;
@@ -151,6 +153,20 @@ export interface AdminUser {
   tasksCreated: number;
   /** Done tasks assigned to them. */
   tasksCompleted: number;
+}
+
+/** Usage over the last 7 and 30 days, for the admin page. */
+export interface AdminStats {
+  /** Users who opened the app in the last 7 days. */
+  weeklyActive: number;
+  /** Users who opened the app in the last 30 days. */
+  monthlyActive: number;
+  /** Accounts made through the sign-up form. */
+  signupsWeek: number;
+  signupsMonth: number;
+  /** Accounts made by inviting someone to a project. */
+  invitedWeek: number;
+  invitedMonth: number;
 }
 
 /** A project as the admin page lists it. */

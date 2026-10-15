@@ -193,6 +193,9 @@ namespace backend.Migrations
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTimeOffset?>("LastSeenAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("INTEGER");
 
