@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Model;
+using Payments;
 using Plans;
 
 [ApiController]
@@ -12,7 +13,7 @@ using Plans;
 [Route("api/account")]
 public sealed class AccountController(
     UserManager<ApplicationUser> users, UserRemoval userRemoval, AppDbContext db, PlanService plans,
-    MembershipRemoval membershipRemoval) : ControllerBase
+    StripeBilling stripe, ILogger<AccountController> logger) : ControllerBase
 {
     [HttpGet("me")]
     public async Task<ActionResult<AccountResponse>> GetCurrent(CancellationToken cancellationToken)
@@ -51,19 +52,19 @@ public sealed class AccountController(
         return Ok(new PlanResponse(
             user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType,
             await plans.IsExempt(user.Id, cancellationToken), Plan.ProjectLimit(user.PlanType),
-            Plan.MemberLimit(user.PlanType), owned));
+            Plan.MemberLimit(user.PlanType), owned, stripe.Enabled, user.StripeSubscriptionId is not null,
+            user.StripeCustomerId is not null, user.PlanCancelsAtRenewal));
     }
 
     /// <summary>
-    /// Switches plan. Exempt users switch to any plan without paying; for everyone else payment is not wired up yet, so
-    /// a paid plan simply runs for a month. On a plan without a project limit every owned project is active; on one
-    /// whose limit the caller is within, too. Over the limit, every owned project is frozen and the owner unfreezes the
-    /// ones they want, up to the limit (POST api/projects/{id}/unfreeze). A plan that ran out is "none" (no slots, all
-    /// frozen), so choosing any plan after that follows the same rules. Choosing the plan you are already on renews it
-    /// and keeps the projects as they are.
+    /// Switches plan. With Stripe connected, a paid plan needs paying: without a running subscription the answer is a
+    /// Checkout URL to send the user to, and the plan changes once they have paid (see StripeBilling); with one, the
+    /// subscription moves to the new price at once. Choosing free with a running subscription ends it at the renew date,
+    /// keeping the paid plan until then. Exempt users, and everyone while Stripe is not connected, switch straight away
+    /// (a paid plan then runs for a month). See PlanService.StageSwitch for what happens to the projects.
     /// </summary>
     [HttpPut("plan")]
-    public async Task<IActionResult> ChoosePlan(ChoosePlanRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ChoosePlanResponse>> ChoosePlan(ChoosePlanRequest request, CancellationToken cancellationToken)
     {
         if (!Plan.Choosable.Contains(request.Plan)) return BadRequest(new { error = "Choose the free, plus or pro plan." });
         var user = await users.GetUserAsync(User);
@@ -71,29 +72,83 @@ public sealed class AccountController(
         // A plan that just ran out becomes none first, so choosing it again is a change of plan, not a renewal.
         await plans.IsLapsed(user, cancellationToken);
 
-        // When Stripe is wired up, Plus and Pro need a payment here before anything below changes, unless the user is
-        // exempt (plans.IsExempt): exempt users switch to any plan for free.
-        // Renewing keeps the frozen projects as they are, so it cannot be used to swap them.
-        if (request.Plan != user.PlanType)
+        if (stripe.Enabled && !await plans.IsExempt(user.Id, cancellationToken))
         {
-            var owned = await db.Projects.Where(project => project.OwnerId == user.Id).ToListAsync(cancellationToken);
-            var freezeAll = Plan.ProjectLimit(request.Plan) is { } limit && owned.Count > limit;
-            foreach (var project in owned) project.Frozen = freezeAll;
-            // Active projects over the new plan's member limit lose their most recently added members (free keeps only
-            // the owner). Frozen projects keep theirs until they are unfrozen.
-            if (Plan.MemberLimit(request.Plan) is { } memberLimit)
-                await membershipRemoval.StageTrim(user.Id,
-                    owned.Where(project => !project.Frozen).Select(project => project.Id).ToList(), memberLimit,
-                    cancellationToken);
+            try
+            {
+                if (user.StripeSubscriptionId is not null)
+                {
+                    if (request.Plan == Plan.Free) await stripe.CancelAtRenewal(user, cancellationToken);
+                    else await stripe.ChangePlan(user, request.Plan, cancellationToken);
+                    return Ok(new ChoosePlanResponse(null));
+                }
+                if (request.Plan != Plan.Free)
+                    return Ok(new ChoosePlanResponse(await stripe.CreateCheckout(user, request.Plan, AppUrl(), cancellationToken)));
+            }
+            catch (Stripe.StripeException exception)
+            {
+                logger.LogError(exception, "Stripe refused a plan change for {User}.", user.Id);
+                return StatusCode(StatusCodes.Status502BadGateway, new { error = "The payment provider could not be reached. Please try again." });
+            }
         }
-        user.PlanType = request.Plan;
-        user.PlanRenewDate = request.Plan == Plan.Free ? null : Plan.RenewDateFrom(request.Plan, DateTimeOffset.UtcNow);
+
+        await plans.StageSwitch(user, request.Plan,
+            request.Plan == Plan.Free ? null : Plan.RenewDateFrom(request.Plan, DateTimeOffset.UtcNow), cancellationToken);
         // The user and the projects are tracked by the same context, so this saves both.
         var result = await users.UpdateAsync(user);
         if (!result.Succeeded)
             return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
+        return Ok(new ChoosePlanResponse(null));
+    }
+
+    /// <summary>
+    /// Applies a finished Stripe Checkout as soon as the user is back on the plans page, rather than waiting for the
+    /// webhook (which applies it too, should they never come back).
+    /// </summary>
+    [HttpPost("plan/checkout/confirm")]
+    public async Task<IActionResult> ConfirmCheckout(ConfirmCheckoutRequest request, CancellationToken cancellationToken)
+    {
+        if (!stripe.Enabled) return NotFound();
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        try
+        {
+            await stripe.ConfirmCheckout(user, request.SessionId, cancellationToken);
+        }
+        catch (Stripe.StripeException exception)
+        {
+            logger.LogError(exception, "Could not confirm Checkout session {Session}.", request.SessionId);
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "Could not confirm the payment yet. Your plan updates in a moment." });
+        }
         return NoContent();
     }
+
+    /// <summary>A Stripe customer portal session, for the payment method, invoices and cancelling.</summary>
+    [HttpPost("plan/portal")]
+    public async Task<ActionResult<PortalResponse>> OpenBillingPortal(CancellationToken cancellationToken)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        if (!stripe.Enabled || user.StripeCustomerId is null) return NotFound();
+        try
+        {
+            return Ok(new PortalResponse(await stripe.CreatePortal(user, $"{AppUrl()}/plans", cancellationToken)));
+        }
+        catch (Stripe.StripeException exception)
+        {
+            logger.LogError(exception, "Could not open the billing portal for {User}.", user.Id);
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "The payment provider could not be reached. Please try again." });
+        }
+    }
+
+    /// <summary>
+    /// Where the app is served, for Stripe to send the user back to: the browser's origin, so it also works behind the
+    /// dev server's proxy; the API's own address otherwise.
+    /// </summary>
+    private string AppUrl() =>
+        Uri.TryCreate(Request.Headers.Origin.ToString(), UriKind.Absolute, out var origin)
+            ? origin.GetLeftPart(UriPartial.Authority)
+            : $"{Request.Scheme}://{Request.Host}";
 
     /// <summary>Changes the sign-in username after confirming the password. Identity rejects names already taken.</summary>
     [HttpPut("username")]
@@ -172,10 +227,26 @@ public sealed record AccountResponse(
     string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool IsAdmin);
 
 /// <summary>The caller's plan, whether it is exempt from lapsing, its project limit (null for none) and the projects they own.</summary>
+/// <param name="PaymentsEnabled">Stripe is connected, so paid plans go through Checkout.</param>
+/// <param name="Subscribed">A Stripe subscription pays for the plan.</param>
+/// <param name="HasBillingAccount">The caller has paid through Stripe before, so the customer portal has something to show.</param>
+/// <param name="CancelsAtRenewal">The subscription ends at the renew date, and the caller then moves to free.</param>
 public sealed record PlanResponse(
     string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool PlanExempt, int? ProjectLimit,
     int? MemberLimit,
-    IReadOnlyList<OwnedProjectResponse> OwnedProjects);
+    IReadOnlyList<OwnedProjectResponse> OwnedProjects, bool PaymentsEnabled, bool Subscribed, bool HasBillingAccount,
+    bool CancelsAtRenewal);
+
+/// <param name="CheckoutUrl">Where to send the user to pay; null when the plan changed (or was scheduled) already.</param>
+public sealed record ChoosePlanResponse(string? CheckoutUrl);
+
+public sealed record PortalResponse(string Url);
+
+public sealed record ConfirmCheckoutRequest
+{
+    [Required, StringLength(200)]
+    public required string SessionId { get; init; }
+}
 
 /// <param name="MemberCount">Members including the owner and pending invites.</param>
 public sealed record OwnedProjectResponse(long Id, string Name, bool Frozen, int MemberCount);

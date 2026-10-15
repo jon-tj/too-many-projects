@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Icon } from '../../components/icon/icon';
 import { PlanPicker } from '../../components/plan-picker/plan-picker';
@@ -18,8 +19,10 @@ import { WorkspaceApi } from '../../services/workspace-api';
   templateUrl: './plans-page.html',
   styleUrl: './plans-page.css',
 })
-export class PlansPage {
+export class PlansPage implements OnInit {
   private readonly api = inject(WorkspaceApi);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly shell = inject(WorkspaceShell);
   private readonly picker = viewChild(PlanPicker);
   protected readonly info = rxResource({ stream: () => this.api.plan() });
@@ -37,6 +40,46 @@ export class PlansPage {
     return !!info && !info.planLapsed && (info.projectLimit === null || this.activeCount() < info.projectLimit);
   });
   protected readonly unfreezing = signal<number | null>(null);
+  /** What happened at Stripe Checkout, shown after coming back from it. */
+  protected readonly checkoutMessage = signal('');
+  protected readonly openingPortal = signal(false);
+
+  /**
+   * Coming back from Stripe Checkout, the URL has ?checkout= with the session id (paid) or "cancelled". A paid session
+   * is applied at once, then the parameter is dropped so reloading does not repeat it.
+   */
+  ngOnInit(): void {
+    const checkout = this.route.snapshot.queryParamMap.get('checkout');
+    if (!checkout) return;
+    void this.router.navigate([], { queryParams: { checkout: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    if (checkout === 'cancelled') {
+      this.checkoutMessage.set('Checkout was cancelled, so nothing was charged and your plan is unchanged.');
+      return;
+    }
+    this.checkoutMessage.set('Payment received. Updating your plan…');
+    this.api.confirmCheckout(checkout).subscribe({
+      next: () => {
+        this.checkoutMessage.set('Payment received. Thank you, your new plan is active.');
+        this.refresh();
+      },
+      error: () => {
+        this.checkoutMessage.set('Payment received. Your plan updates in a moment; reload the page if it has not.');
+      },
+    });
+  }
+
+  /** Opens Stripe's billing portal, for the payment method, invoices and cancelling. */
+  protected openBillingPortal(): void {
+    this.openingPortal.set(true);
+    this.error.set('');
+    this.api.billingPortal().subscribe({
+      next: ({ url }) => (window.location.href = url),
+      error: (response: HttpErrorResponse) => {
+        this.openingPortal.set(false);
+        this.error.set(response.error?.error ?? 'Could not open billing. Please try again.');
+      },
+    });
+  }
   protected readonly error = signal('');
 
   protected unfreeze(projectId: number): void {
@@ -73,6 +116,7 @@ export class PlansPage {
     }
     if (info.planType === 'free') return 'Free, with no end date';
     if (info.planType === 'trial') return `Ends on ${date}`;
+    if (info.cancelsAtRenewal) return `Ends on ${date}, then moves to Free`;
     return `Renews on ${date}`;
   });
 

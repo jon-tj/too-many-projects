@@ -43,6 +43,7 @@ public sealed class AdminController(
             .Select(user => new AdminUserResponse(
                 user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.AvatarImage, user.CreatedAt,
                 user.LastSeenAt, user.IsAdmin, user.MustChangePassword, user.PlanType, user.PlanRenewDate, user.PreviousPlanType,
+                user.StripeSubscriptionId is not null,
                 exempt.Contains(user.Id), owned.GetValueOrDefault(user.Id), memberOf.GetValueOrDefault(user.Id),
                 tasksCreated.GetValueOrDefault(user.Id), tasksCompleted.GetValueOrDefault(user.Id)))
             .ToList());
@@ -216,12 +217,14 @@ public sealed class AdminController(
 
 /// <summary>A user with their plan and how much they have done.</summary>
 /// <param name="Pending">Invited but not signed in yet: still on the temporary password.</param>
+/// <param name="Subscribed">A Stripe subscription pays for their plan.</param>
 /// <param name="ProjectsCreated">Projects they own.</param>
 /// <param name="ProjectsJoined">Projects they are a member of, their own included.</param>
 /// <param name="TasksCompleted">Done tasks assigned to them.</param>
 public sealed record AdminUserResponse(
     string Id, string UserName, string DisplayName, string Email, string? AvatarImage, DateTimeOffset CreatedAt,
     DateTimeOffset? LastSeenAt, bool IsAdmin, bool Pending, string PlanType, DateTimeOffset? PlanRenewDate, string? PreviousPlanType,
+    bool Subscribed,
     bool PlanExempt, int ProjectsCreated, int ProjectsJoined, int TasksCreated, int TasksCompleted);
 
 /// <summary>Usage over the last 7 and 30 days.</summary>

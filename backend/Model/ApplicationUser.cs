@@ -23,6 +23,12 @@ public sealed class ApplicationUser : IdentityUser
 	public DateTimeOffset? PlanRenewDate { get; set; }
 	/// <summary>The plan the user had when it last ran out (trial, plus or pro), so it can be named and offered again.</summary>
 	public string? PreviousPlanType { get; set; }
+	/// <summary>The user's customer in Stripe, made the first time they pay; null until then.</summary>
+	public string? StripeCustomerId { get; set; }
+	/// <summary>The Stripe subscription paying for the plan; null while nothing is being paid.</summary>
+	public string? StripeSubscriptionId { get; set; }
+	/// <summary>The subscription ends at the renew date instead of renewing; the user then moves to the free plan.</summary>
+	public bool PlanCancelsAtRenewal { get; set; }
 
 	// Answers from the sign-up form, for understanding who signs up.
 	public string PrimaryUseCase { get; set; } = string.Empty;

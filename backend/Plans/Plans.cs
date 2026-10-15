@@ -55,11 +55,20 @@ public static class Plan
     };
 
     /// <summary>
+    /// How long a plan paid through Stripe keeps running past its renew date, while Stripe charges the renewal and
+    /// reports the new period (retrying failed payments for a few days).
+    /// </summary>
+    public static readonly TimeSpan PaidRenewalGrace = TimeSpan.FromDays(3);
+
+    /// <summary>
     /// The plan has reached its renew date (or never had one) and should move to <see cref="None"/>. Free never runs
-    /// out; exempt users are left out by <see cref="PlanService"/>.
+    /// out; exempt users are left out by <see cref="PlanService"/>. A Stripe subscription gets
+    /// <see cref="PaidRenewalGrace"/> to renew first.
     /// </summary>
     public static bool IsDue(ApplicationUser user, DateTimeOffset now) =>
-        user.PlanType is not (Free or None) && (user.PlanRenewDate is not { } renew || renew <= now);
+        user.PlanType is not (Free or None)
+        && (user.PlanRenewDate is not { } renew
+            || (user.StripeSubscriptionId is null ? renew : renew + PaidRenewalGrace) <= now);
 }
 
 /// <summary>
@@ -72,8 +81,34 @@ public sealed record ProjectPlanStatus(bool Frozen, bool FullFeatures, int? Memb
 /// Reads plans and project status. Every read first moves owners whose plan has run out to <see cref="Plan.None"/> and
 /// freezes their projects, so a plan stops the moment its renew date passes without a scheduled job.
 /// </summary>
-public sealed class PlanService(AppDbContext db)
+public sealed class PlanService(AppDbContext db, Accounts.MembershipRemoval membershipRemoval)
 {
+    /// <summary>
+    /// Stages moving the user to a plan that runs until <paramref name="renewDate"/> (null for free). On a plan without
+    /// a project limit, or one whose limit the user is within, every owned project is active; over the limit, every
+    /// owned project is frozen and the owner unfreezes the ones they want (POST api/projects/{id}/unfreeze). Active
+    /// projects then keep at most the plan's member limit (the most recently added go); frozen ones keep their members
+    /// until they are unfrozen. Staying on the same plan only moves the renew date, so renewing cannot be used to swap
+    /// frozen projects. Call <see cref="IsLapsed"/> first, so a plan that just ran out counts as a change. The user must
+    /// be tracked by this context; the caller saves.
+    /// </summary>
+    public async Task StageSwitch(
+        ApplicationUser user, string plan, DateTimeOffset? renewDate, CancellationToken cancellationToken)
+    {
+        if (plan != user.PlanType)
+        {
+            var owned = await db.Projects.Where(project => project.OwnerId == user.Id).ToListAsync(cancellationToken);
+            var freezeAll = Plan.ProjectLimit(plan) is { } limit && owned.Count > limit;
+            foreach (var project in owned) project.Frozen = freezeAll;
+            if (Plan.MemberLimit(plan) is { } memberLimit)
+                await membershipRemoval.StageTrim(user.Id,
+                    owned.Where(project => !project.Frozen).Select(project => project.Id).ToList(), memberLimit,
+                    cancellationToken);
+        }
+        user.PlanType = plan;
+        user.PlanRenewDate = renewDate;
+    }
+
     /// <summary>Whether the user's plan never runs out (see <see cref="PlanExemption"/>).</summary>
     public Task<bool> IsExempt(string userId, CancellationToken cancellationToken) =>
         db.PlanExemptions.AnyAsync(exemption => exemption.UserId == userId, cancellationToken);

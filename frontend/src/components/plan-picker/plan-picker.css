@@ -95,3 +95,9 @@ article button {
   color: var(--priority-critical);
   font-size: 12px;
 }
+.checkout-hint {
+  margin-top: -4px;
+  color: var(--secondary-surface);
+  font-size: 11px;
+  text-align: center;
+}

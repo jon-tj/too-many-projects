@@ -6,12 +6,24 @@
   <p class="error" role="alert">Could not load your plan.</p>
 }
 
+@if (checkoutMessage()) {
+  <p class="notice" role="status">
+    <app-icon name="credit_card" [size]="18" />
+    {{ checkoutMessage() }}
+  </p>
+}
+
 @if (info.value(); as plan) {
   <section class="summary" [class.lapsed]="plan.planLapsed">
     <div>
       <span class="label">Your plan</span>
       <strong>{{ title() }}</strong>
       <span class="status">{{ status() }}</span>
+      @if (plan.hasBillingAccount && plan.paymentsEnabled) {
+        <button class="transparent billing" type="button" [disabled]="openingPortal()" (click)="openBillingPortal()">
+          <app-icon name="receipt_long" [size]="16" /><span>{{ openingPortal() ? 'Opening…' : 'Billing and invoices' }}</span>
+        </button>
+      }
     </div>
     <div>
       <span class="label">Active projects</span>

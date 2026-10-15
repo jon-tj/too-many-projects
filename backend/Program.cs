@@ -57,6 +57,10 @@ if (!string.IsNullOrWhiteSpace(resendSettings[nameof(ResendOptions.ApiKey)]))
     builder.Services.AddHttpClient<IEmailService, ResendEmailService>();
 else
     builder.Services.AddSingleton<IEmailService, LoggingEmailService>();
+// Stripe: paid plans go through Checkout once a secret key and both price ids are configured (appsettings.json locally,
+// Stripe__SecretKey and so on on Render); without them, plans switch without payment.
+builder.Services.Configure<Payments.StripeOptions>(builder.Configuration.GetSection(Payments.StripeOptions.Section));
+builder.Services.AddScoped<Payments.StripeBilling>();
 builder.Services.AddScoped<UserRemoval>();
 builder.Services.AddScoped<MembershipRemoval>();
 builder.Services.AddScoped<Plans.PlanService>();

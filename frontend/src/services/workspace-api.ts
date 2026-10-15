@@ -55,10 +55,21 @@ export class WorkspaceApi {
 
   /**
    * Switches plan. Owning more projects than the new plan allows freezes all of them, to unfreeze one by one; Pro
-   * (no limit) unfreezes everything.
+   * (no limit) unfreezes everything. With payments on, a paid plan answers with a Stripe Checkout URL to go to
+   * instead, and the plan changes once paid; free with a subscription ends it at the renew date.
    */
-  choosePlan(plan: ChoosablePlan): Observable<void> {
-    return this.http.put<void>('/api/account/plan', { plan });
+  choosePlan(plan: ChoosablePlan): Observable<{ checkoutUrl: string | null }> {
+    return this.http.put<{ checkoutUrl: string | null }>('/api/account/plan', { plan });
+  }
+
+  /** Applies a finished Stripe Checkout straight away, on coming back from it. */
+  confirmCheckout(sessionId: string): Observable<void> {
+    return this.http.post<void>('/api/account/plan/checkout/confirm', { sessionId });
+  }
+
+  /** A Stripe billing portal page for your payment method, invoices and cancelling. */
+  billingPortal(): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>('/api/account/plan/portal', {});
   }
 
   /**

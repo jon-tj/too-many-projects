@@ -82,6 +82,7 @@
             <td>
               <span [class.lapsed]="user.planType === 'none'">{{ planTitles[user.planType] }}</span>
               @if (user.planExempt) { <span class="tag">Exempt</span> }
+              @if (user.subscribed) { <span class="tag">Paying</span> }
             </td>
             <td>{{ expiry(user) }}</td>
             <td class="number">{{ user.projectsCreated }}</td>

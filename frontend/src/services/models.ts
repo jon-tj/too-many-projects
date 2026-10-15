@@ -57,6 +57,14 @@ export interface PlanInfo {
   memberLimit: number | null;
   /** memberCount includes you and pending invites. */
   ownedProjects: { id: number; name: string; frozen: boolean; memberCount: number }[];
+  /** Stripe is connected, so paid plans are paid for through Stripe Checkout. */
+  paymentsEnabled: boolean;
+  /** A Stripe subscription pays for your plan. */
+  subscribed: boolean;
+  /** You have paid through Stripe before, so the billing portal has invoices to show. */
+  hasBillingAccount: boolean;
+  /** Your subscription ends at the renew date instead of renewing; you then move to Free. */
+  cancelsAtRenewal: boolean;
 }
 
 export interface ProjectTask {
@@ -145,6 +153,8 @@ export interface AdminUser {
   planType: PlanName;
   planRenewDate: string | null;
   previousPlanType: PlanName | null;
+  /** A Stripe subscription pays for their plan. */
+  subscribed: boolean;
   planExempt: boolean;
   /** Projects they own. */
   projectsCreated: number;

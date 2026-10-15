@@ -48,7 +48,8 @@ const PLANS: PlanOption[] = [
 
 /**
  * The three plans side by side. Choosing one that allows fewer projects than you own freezes all of them (after
- * confirming); Pro unfreezes everything. Emits `changed` after switching. Payment is not wired up yet (Stripe later).
+ * confirming); Pro unfreezes everything. Emits `changed` after switching. With payments on, a paid plan without a
+ * subscription goes to Stripe Checkout, and the plan changes when you come back paid.
  */
 @Component({
   selector: 'app-plan-picker',
@@ -72,6 +73,15 @@ export class PlanPicker {
     return info && info.planType !== 'trial' && !info.planLapsed ? info.planType : null;
   });
 
+  /** Your subscription is set to end at the renew date, so choosing your current plan keeps it instead. */
+  protected readonly ending = computed(() => !!this.info.value()?.cancelsAtRenewal);
+
+  /** Choosing this plan takes you to Stripe to pay first. */
+  protected paysAtCheckout(option: PlanOption): boolean {
+    const info = this.info.value();
+    return !!info && info.paymentsEnabled && !info.planExempt && !info.subscribed && option.name !== 'free';
+  }
+
   /** While you have no plan, the one you had before it ran out, to offer it again. */
   protected readonly previousPlan = computed(() => {
     const info = this.info.value();
@@ -89,9 +99,25 @@ export class PlanPicker {
    * you want from their pages. Renewing the plan you are on keeps everything as it is.
    */
   protected choose(option: PlanOption): void {
-    const owned = this.info.value()?.ownedProjects ?? [];
-    const renewing = option.name === this.info.value()?.planType;
+    const info = this.info.value();
+    const owned = info?.ownedProjects ?? [];
+    const renewing = option.name === info?.planType;
     this.error.set('');
+    // Leaving a subscription for free keeps the paid plan until the renew date; the switch happens then.
+    if (info?.subscribed && option.name === 'free' && !info.planExempt) {
+      const date = info.planRenewDate ? new Date(info.planRenewDate).toLocaleDateString() : 'the renew date';
+      const lapses = owned.length > (option.limit ?? Infinity)
+        ? ` Then, as you own ${owned.length} projects and Free includes ${option.limit}, all of them are frozen for you to unfreeze up to ${option.limit}.`
+        : '';
+      if (!confirm(`Your subscription ends on ${date} and you keep your current plan until then. You then move to Free.${lapses}`)) return;
+      this.submit(option);
+      return;
+    }
+    // Nothing changes until you have paid, so there is nothing to confirm yet.
+    if (this.paysAtCheckout(option)) {
+      this.submit(option);
+      return;
+    }
     // What switching would take away, confirmed before anything changes.
     const warnings: string[] = [];
     const freezesAll = !renewing && option.limit !== null && owned.length > option.limit;
@@ -125,9 +151,18 @@ export class PlanPicker {
       );
     }
     if (warnings.length && !confirm(warnings.join('\n\n'))) return;
+    this.submit(option);
+  }
+
+  private submit(option: PlanOption): void {
     this.busy.set(true);
     this.api.choosePlan(option.name).subscribe({
-      next: () => {
+      next: ({ checkoutUrl }) => {
+        if (checkoutUrl) {
+          // Stays busy while the browser leaves for Stripe.
+          window.location.href = checkoutUrl;
+          return;
+        }
         this.busy.set(false);
         this.info.reload();
         this.changed.emit();

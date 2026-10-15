@@ -222,6 +222,9 @@ namespace backend.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("PlanCancelsAtRenewal")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("PlanRenewDate")
                         .HasColumnType("TEXT");
 
@@ -240,6 +243,12 @@ namespace backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SignupReferrer")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StripeCustomerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StripeSubscriptionId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TeamRole")

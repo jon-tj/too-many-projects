@@ -34,11 +34,18 @@
       <button
         [class]="option.featured ? 'primary' : 'transparent'"
         type="button"
-        [disabled]="busy() || info.isLoading() || current() === option.name"
+        [disabled]="busy() || info.isLoading() || (current() === option.name && !ending())"
         (click)="choose(option)"
       >
-        {{ current() === option.name ? 'Current plan' : (previous ? 'Renew ' : 'Choose ') + option.title }}
+        @if (current() === option.name) {
+          {{ ending() ? 'Keep ' + option.title : 'Current plan' }}
+        } @else {
+          {{ (previous ? 'Renew ' : 'Choose ') + option.title }}
+        }
       </button>
+      @if (paysAtCheckout(option) && current() !== option.name) {
+        <small class="checkout-hint">Pay securely with Stripe</small>
+      }
     </article>
   }
 </div>

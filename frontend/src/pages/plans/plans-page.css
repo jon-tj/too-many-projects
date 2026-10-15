@@ -99,3 +99,7 @@ p {
   color: var(--priority-critical);
   font-size: 12px;
 }
+.billing {
+  align-self: flex-start;
+  margin: 4px 0 0 -12px;
+}
