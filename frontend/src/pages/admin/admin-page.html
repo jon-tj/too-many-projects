@@ -1,0 +1,171 @@
+<header>
+  <h1>Admin</h1>
+</header>
+
+<section class="summary">
+  <div>
+    <span class="label">Members</span>
+    <strong>{{ users.value()?.length ?? '–' }}</strong>
+    <span class="status">{{ lapsedCount() }} with no plan</span>
+  </div>
+  <div>
+    <span class="label">Projects</span>
+    <strong>{{ projects.value()?.length ?? '–' }}</strong>
+    <span class="status">{{ frozenCount() }} frozen</span>
+  </div>
+</section>
+
+<div class="toolbar">
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" [class.is-active]="tab() === 'members'" [attr.aria-selected]="tab() === 'members'" (click)="tab.set('members')">
+      <app-icon name="group" [size]="16" /><span>Members</span>
+    </button>
+    <button type="button" role="tab" [class.is-active]="tab() === 'projects'" [attr.aria-selected]="tab() === 'projects'" (click)="tab.set('projects')">
+      <app-icon name="folder" [size]="16" /><span>Projects</span>
+    </button>
+  </div>
+  <input type="search" placeholder="Search" aria-label="Search" [value]="search()" (input)="search.set($any($event.target).value)" />
+</div>
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (tab() === 'members') {
+  @if (users.error()) {
+    <p class="error" role="alert">Could not load the members.</p>
+  }
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Member</th>
+          <th scope="col">Plan</th>
+          <th scope="col">Runs out</th>
+          <th scope="col" class="number" title="Projects they own">Projects created</th>
+          <th scope="col" class="number" title="Projects they are a member of, their own included">Projects joined</th>
+          <th scope="col" class="number">Tasks created</th>
+          <th scope="col" class="number" title="Done tasks assigned to them">Tasks completed</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of shownUsers(); track user.id) {
+          <tr>
+            <td>
+              <div class="who">
+                <app-avatar class="avatar" [name]="user.displayName" [image]="user.avatarImage" />
+                <div>
+                  <strong>{{ user.displayName }}</strong>
+                  @if (user.isAdmin) { <span class="tag">Admin</span> }
+                  @if (user.pending) { <span class="tag">Invited</span> }
+                  <small>&#64;{{ user.userName }} · {{ user.email }}</small>
+                  <small>Joined {{ user.createdAt | date: 'MMM d, y' }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span [class.lapsed]="user.planType === 'none'">{{ planTitles[user.planType] }}</span>
+              @if (user.planExempt) { <span class="tag">Exempt</span> }
+            </td>
+            <td>{{ expiry(user) }}</td>
+            <td class="number">{{ user.projectsCreated }}</td>
+            <td class="number">{{ user.projectsJoined }}</td>
+            <td class="number">{{ user.tasksCreated }}</td>
+            <td class="number">{{ user.tasksCompleted }}</td>
+            <td>
+              @if (!user.isAdmin) {
+                <div class="actions">
+                  <button class="transparent" type="button" [disabled]="busy() !== null" (click)="setExempt(user, !user.planExempt)">
+                    <span>{{ busy() === 'exempt:' + user.id ? 'Saving…' : user.planExempt ? 'Remove exemption' : 'Exempt' }}</span>
+                  </button>
+                  <button class="transparent" type="button" [disabled]="busy() !== null" (click)="startTrial(user)">
+                    <span>{{ busy() === 'trial:' + user.id ? 'Starting…' : 'New trial' }}</span>
+                  </button>
+                  <button class="transparent danger" type="button" [disabled]="busy() !== null" (click)="deleteUser(user)">
+                    <span>{{ busy() === 'delete-user:' + user.id ? 'Deleting…' : 'Delete' }}</span>
+                  </button>
+                </div>
+              }
+            </td>
+          </tr>
+        } @empty {
+          @if (!users.isLoading()) {
+            <tr><td colspan="8" class="empty">No members match.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+} @else {
+  @if (projects.error()) {
+    <p class="error" role="alert">Could not load the projects.</p>
+  }
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Project</th>
+          <th scope="col">Owner</th>
+          <th scope="col" class="number">Members</th>
+          <th scope="col" class="number">Tasks done</th>
+          <th scope="col">Created</th>
+          <th scope="col">State</th>
+          <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (project of shownProjects(); track project.id) {
+          <tr [class.frozen]="project.frozen">
+            <td>
+              <div class="who">
+                <app-project-icon class="project-mark" [project]="project" />
+                <div>
+                  @if (project.adminIsMember && !project.frozen) {
+                    <a [routerLink]="['/projects', project.id]"><strong>{{ project.name }}</strong></a>
+                  } @else {
+                    <strong>{{ project.name }}</strong>
+                  }
+                  @if (project.description) { <small class="description">{{ project.description }}</small> }
+                </div>
+              </div>
+            </td>
+            <td>
+              {{ project.ownerName }}
+              <small>{{ planTitles[project.ownerPlanType] }}</small>
+            </td>
+            <td class="number">{{ project.memberCount }}</td>
+            <td class="number">{{ project.doneTaskCount }} / {{ project.taskCount }}</td>
+            <td>{{ project.createdAt | date: 'MMM d, y' }}</td>
+            <td>
+              @if (project.frozen) {
+                <span class="state"><app-icon name="ac_unit" [size]="13" /> Frozen</span>
+              } @else {
+                <span class="state">Active</span>
+              }
+            </td>
+            <td>
+              <div class="actions">
+                @if (!project.adminIsMember) {
+                  <button class="transparent" type="button" [disabled]="busy() !== null" (click)="join(project)">
+                    <span>{{ busy() === 'join:' + project.id ? 'Joining…' : 'Add me' }}</span>
+                  </button>
+                }
+                <button class="transparent" type="button" [disabled]="busy() !== null" (click)="setFrozen(project, !project.frozen)">
+                  <span>{{ busy() === 'freeze:' + project.id ? 'Saving…' : project.frozen ? 'Unfreeze' : 'Freeze' }}</span>
+                </button>
+                <button class="transparent danger" type="button" [disabled]="busy() !== null" (click)="deleteProject(project)">
+                  <span>{{ busy() === 'delete-project:' + project.id ? 'Deleting…' : 'Delete' }}</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          @if (!projects.isLoading()) {
+            <tr><td colspan="7" class="empty">No projects match.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+}

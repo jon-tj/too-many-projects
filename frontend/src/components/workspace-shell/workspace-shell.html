@@ -40,6 +40,9 @@
           <div class="account-menu" role="menu">
             <button class="transparent" type="button" routerLink="/plans" role="menuitem" (click)="closeAccountMenu()"><app-icon name="workspace_premium" /><span>Plan</span></button>
             <button class="transparent" type="button" routerLink="/settings" role="menuitem" (click)="closeAccountMenu()"><app-icon name="settings" /><span>Settings</span></button>
+            @if (account()?.isAdmin) {
+              <button class="transparent" type="button" routerLink="/admin" role="menuitem" (click)="closeAccountMenu()"><app-icon name="admin_panel_settings" /><span>Admin</span></button>
+            }
             <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" /><span>Sign out</span></button>
           </div>
         }

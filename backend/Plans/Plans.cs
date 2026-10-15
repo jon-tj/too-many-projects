@@ -118,7 +118,7 @@ public sealed class PlanService(AppDbContext db)
     /// had, and freezes everything they own, in the database and on the given user objects. Returns their ids. Dates are compared in memory, since
     /// SQLite cannot compare DateTimeOffset values in queries.
     /// </summary>
-    private async Task<HashSet<string>> ApplyDueLapses(IEnumerable<ApplicationUser> users, CancellationToken cancellationToken)
+    public async Task<HashSet<string>> ApplyDueLapses(IEnumerable<ApplicationUser> users, CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
         var due = users.Where(user => Plan.IsDue(user, now)).ToList();

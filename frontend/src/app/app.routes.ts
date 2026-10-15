@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, landingGuard, passwordChangeGuard } from '../services/auth.guard';
+import { adminGuard, authGuard, landingGuard, passwordChangeGuard } from '../services/auth.guard';
 import { LoginPage } from '../pages/login/login-page';
 import { SignInForm } from '../pages/login/sign-in/sign-in-form';
 import { RegisterForm } from '../pages/login/register/register-form';
@@ -20,6 +20,7 @@ import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
 import { PlansPage } from '../pages/plans/plans-page';
 import { BillingReportPage } from '../pages/report/billing-report';
+import { AdminPage } from '../pages/admin/admin-page';
 
 export const routes: Routes = [
 	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
@@ -55,6 +56,7 @@ export const routes: Routes = [
 			},
 			{ path: 'settings', component: SettingsPage },
 			{ path: 'plans', component: PlansPage },
+			{ path: 'admin', component: AdminPage, canActivate: [adminGuard] },
 		],
 	},
 	{ path: '**', redirectTo: '' },

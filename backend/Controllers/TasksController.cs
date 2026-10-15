@@ -273,7 +273,7 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
             return BadRequest(new { error = BlockedError });
 
         // Starting an unassigned task makes it yours; tasks already assigned to someone keep their assignee.
-        if (request.Status == "doing" && task.AssigneeUserId is null) task.AssigneeUserId = userId;
+        if ((request.Status == "doing" || request.Status == "done") && task.AssigneeUserId is null) task.AssigneeUserId = userId;
         task.SetStatus(request.Status);
         task.MarkUpdated(userId);
         await db.SaveChangesAsync(cancellationToken);

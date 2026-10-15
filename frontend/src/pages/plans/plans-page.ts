@@ -4,17 +4,9 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { Icon } from '../../components/icon/icon';
 import { PlanPicker } from '../../components/plan-picker/plan-picker';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
-import { PlanName } from '../../services/models';
+import { PLAN_TITLES } from '../../services/models';
 import { unfreezeWarning } from '../../services/unfreeze-warning';
 import { WorkspaceApi } from '../../services/workspace-api';
-
-const PLAN_TITLES: Record<PlanName, string> = {
-  trial: 'Free trial',
-  free: 'Free',
-  plus: 'Plus',
-  pro: 'Pro',
-  none: 'No plan',
-};
 
 /**
  * Your plan in one place: what you are on and until when, which of your projects are active or frozen (unfreezing

@@ -31,6 +31,14 @@ export interface Project {
 /** none is what a trial or paid plan becomes when it runs out: no project slots, everything frozen. */
 export type PlanName = 'trial' | 'free' | 'plus' | 'pro' | 'none';
 
+export const PLAN_TITLES: Record<PlanName, string> = {
+  trial: 'Free trial',
+  free: 'Free',
+  plus: 'Plus',
+  pro: 'Pro',
+  none: 'No plan',
+};
+
 /** The plans you can switch to; trial is only given at registration and none only when a plan runs out. */
 export type ChoosablePlan = Exclude<PlanName, 'trial' | 'none'>;
 
@@ -117,6 +125,52 @@ export interface Account {
   planLapsed: boolean;
   /** The plan you had when it last ran out (trial, plus or pro); null if it never has. */
   previousPlanType: PlanName | null;
+  /** Can open the admin page. */
+  isAdmin: boolean;
+}
+
+/** A user as the admin page lists them. */
+export interface AdminUser {
+  id: string;
+  userName: string;
+  displayName: string;
+  email: string;
+  avatarImage: string | null;
+  createdAt: string;
+  isAdmin: boolean;
+  /** Invited but not signed in yet. */
+  pending: boolean;
+  planType: PlanName;
+  planRenewDate: string | null;
+  previousPlanType: PlanName | null;
+  planExempt: boolean;
+  /** Projects they own. */
+  projectsCreated: number;
+  /** Projects they are a member of, their own included. */
+  projectsJoined: number;
+  tasksCreated: number;
+  /** Done tasks assigned to them. */
+  tasksCompleted: number;
+}
+
+/** A project as the admin page lists it. */
+export interface AdminProject {
+  id: number;
+  name: string;
+  description: string;
+  icon: string | null;
+  iconImage: string | null;
+  createdAt: string;
+  ownerId: string;
+  ownerName: string;
+  ownerUserName: string;
+  ownerPlanType: PlanName;
+  frozen: boolean;
+  memberCount: number;
+  taskCount: number;
+  doneTaskCount: number;
+  /** You are a member, so you can open it. */
+  adminIsMember: boolean;
 }
 
 export type OverviewRange = '7d' | '30d' | '1y';

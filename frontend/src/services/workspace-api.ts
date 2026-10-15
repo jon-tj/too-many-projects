@@ -3,6 +3,8 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   Account,
+  AdminProject,
+  AdminUser,
   CanvasDetail,
   CanvasDocument,
   CanvasPermission,
@@ -308,5 +310,42 @@ export class WorkspaceApi {
       canRead,
       canWrite,
     });
+  }
+
+  adminUsers(): Observable<AdminUser[]> {
+    return this.http.get<AdminUser[]>('/api/admin/users');
+  }
+
+  adminProjects(): Observable<AdminProject[]> {
+    return this.http.get<AdminProject[]>('/api/admin/projects');
+  }
+
+  /** Freezes or unfreezes any project, whatever its owner's plan allows. */
+  adminSetFrozen(projectId: number, frozen: boolean): Observable<void> {
+    return this.http.put<void>(`/api/admin/projects/${projectId}/frozen`, { frozen });
+  }
+
+  adminDeleteProject(projectId: number): Observable<void> {
+    return this.http.delete<void>(`/api/admin/projects/${projectId}`);
+  }
+
+  /** Adds you to the project as an owner. */
+  adminJoinProject(projectId: number): Observable<void> {
+    return this.http.post<void>(`/api/admin/projects/${projectId}/join`, {});
+  }
+
+  /** Refused while the user owns projects other people are still in. */
+  adminDeleteUser(userId: string): Observable<void> {
+    return this.http.delete<void>(`/api/admin/users/${userId}`);
+  }
+
+  /** An exempt user's plan never runs out. */
+  adminSetExempt(userId: string, exempt: boolean): Observable<void> {
+    return this.http.put<void>(`/api/admin/users/${userId}/exempt`, { exempt });
+  }
+
+  /** Starts a new 30-day trial, unfreezing everything the user owns. */
+  adminStartTrial(userId: string): Observable<void> {
+    return this.http.post<void>(`/api/admin/users/${userId}/trial`, {});
   }
 }

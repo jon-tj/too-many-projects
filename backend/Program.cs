@@ -99,8 +99,13 @@ await using (var scope = app.Services.CreateAsyncScope())
         }
     }
 
-    // The admin's plan never lapses.
+    // Jon is the admin, and the admin's plan never lapses.
     var admin = (await userManager.FindByNameAsync("jon"))!;
+    if (!admin.IsAdmin)
+    {
+        admin.IsAdmin = true;
+        await userManager.UpdateAsync(admin);
+    }
     if (!await db.PlanExemptions.AnyAsync(exemption => exemption.UserId == admin.Id))
     {
         db.PlanExemptions.Add(new PlanExemption { UserId = admin.Id, Note = "Admin" });

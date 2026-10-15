@@ -25,3 +25,14 @@ export const passwordChangeGuard: CanActivateFn = () => {
       catchError(() => of(true)),
     );
 };
+
+/** The admin page is only for admins; everyone else goes to their dashboard. */
+export const adminGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  return inject(WorkspaceApi)
+    .currentAccount()
+    .pipe(
+      map((account) => account.isAdmin || router.createUrlTree(['/dashboard'])),
+      catchError(() => of(router.createUrlTree(['/dashboard']))),
+    );
+};

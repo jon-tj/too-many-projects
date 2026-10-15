@@ -23,7 +23,7 @@ public sealed class AccountController(
         var lapsed = await plans.IsLapsed(user, cancellationToken);
         return Ok(new AccountResponse(
             user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage,
-            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType));
+            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType, user.IsAdmin));
     }
 
     /// <summary>The caller's plan and the projects they own, for choosing a plan and which projects stay active.</summary>
@@ -160,7 +160,7 @@ public sealed class AccountController(
 /// <summary>Profile data for the authenticated account.</summary>
 public sealed record AccountResponse(
     string Id, string UserName, string DisplayName, string Email, bool MustChangePassword, string? AvatarImage,
-    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType);
+    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool IsAdmin);
 
 /// <summary>The caller's plan, whether it is exempt from lapsing, its project limit (null for none) and the projects they own.</summary>
 public sealed record PlanResponse(

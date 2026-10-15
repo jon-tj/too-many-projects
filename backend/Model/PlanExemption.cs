@@ -2,7 +2,7 @@ namespace Model;
 
 /// <summary>
 /// A user whose plan never lapses, whatever its renew date, e.g. the admin. Kept apart from the user because very few
-/// users have one; an admin screen to manage them may come later.
+/// users have one. Managed on the admin page (api/admin/users/{id}/exempt).
 /// </summary>
 public sealed class PlanExemption
 {
