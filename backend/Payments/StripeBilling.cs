@@ -55,6 +55,39 @@ public sealed class StripeBilling(
     private string? PlanFor(string? priceId) =>
         priceId == settings.PlusPriceId ? Plan.Plus : priceId == settings.ProPriceId ? Plan.Pro : null;
 
+    /// <summary>The prices last read from Stripe, kept for an hour (a few minutes when one could not be read).</summary>
+    private static (DateTimeOffset Until, IReadOnlyList<PlanPrice> Prices)? cachedPrices;
+
+    /// <summary>
+    /// The paid plans' prices as set in Stripe, for showing them. A plan whose price cannot be read (no secret key, an
+    /// unknown price id, Stripe unreachable) is left out, and the app shows its own fallback price instead.
+    /// </summary>
+    public async Task<IReadOnlyList<PlanPrice>> GetPrices(CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (cachedPrices is { } hit && hit.Until > now) return hit.Prices;
+        if (string.IsNullOrWhiteSpace(settings.SecretKey)) return [];
+
+        var prices = new List<PlanPrice>();
+        foreach (var plan in new[] { Plan.Plus, Plan.Pro })
+        {
+            if (PriceFor(plan) is not { Length: > 0 } priceId) continue;
+            try
+            {
+                var price = await Client.V1.Prices.GetAsync(priceId, cancellationToken: cancellationToken);
+                if (price.UnitAmount is { } amount)
+                    prices.Add(new PlanPrice(plan, amount, price.Currency, price.Recurring?.Interval ?? "month",
+                        price.Recurring?.IntervalCount ?? 1));
+            }
+            catch (StripeException exception)
+            {
+                logger.LogWarning(exception, "Could not read the {Plan} price {Price} from Stripe.", plan, priceId);
+            }
+        }
+        cachedPrices = (now + (prices.Count == 2 ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(5)), prices);
+        return prices;
+    }
+
     /// <summary>
     /// A Checkout page where the user subscribes to the plan. Afterwards Stripe sends them to /plans with the session
     /// id, where <see cref="ConfirmCheckout"/> applies it at once instead of waiting for the webhook.
@@ -218,3 +251,9 @@ public sealed class StripeBilling(
         await db.SaveChangesAsync(cancellationToken);
     }
 }
+
+/// <summary>A paid plan's price as set in Stripe.</summary>
+/// <param name="Amount">In the currency's smallest unit, e.g. cents.</param>
+/// <param name="Currency">Lowercase ISO code, e.g. usd.</param>
+/// <param name="Interval">day, week, month or year; billed every <paramref name="IntervalCount"/> of them.</param>
+public sealed record PlanPrice(string Plan, long Amount, string Currency, string Interval, long IntervalCount);

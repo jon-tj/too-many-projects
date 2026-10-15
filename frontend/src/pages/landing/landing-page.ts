@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Icon } from '../../components/icon/icon';
 import { rememberAttribution, utmParams } from '../../services/attribution';
+import { PLAN_OPTIONS, PlanOption, shownPrice } from '../../services/plans';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const REASONS = [
@@ -48,7 +49,7 @@ const REVIEWS = [
   { quote: 'A third quote from a different kind of team, for example an agency or a freelancer.', name: 'Customer name', role: 'Role, Company', sample: true },
 ];
 
-/** The public front page: what TooManyProjects is, real usage numbers, and the way into the free trial. */
+/** The public front page: what TooManyProjects is, real usage numbers, what it costs, and the way into the free trial. */
 @Component({
   selector: 'app-landing-page',
   imports: [RouterLink, Icon],
@@ -61,6 +62,13 @@ export class LandingPage {
   /** Passed on to the sign-up links, so the campaign that brought the visitor is recorded with the account. */
   protected readonly utm = utmParams(this.route.snapshot.queryParams);
   protected readonly stats = rxResource({ stream: () => this.api.publicStats() });
+  protected readonly PLANS = PLAN_OPTIONS;
+  /** Prices from Stripe; plans missing from it (or all of them, while loading or on an error) show their fallback. */
+  private readonly prices = rxResource({ stream: () => this.api.planPrices() });
+
+  protected price(option: PlanOption) {
+    return shownPrice(option, this.prices.value());
+  }
   protected readonly REASONS = REASONS;
   protected readonly FEATURES = FEATURES;
   protected readonly REVIEWS = REVIEWS;

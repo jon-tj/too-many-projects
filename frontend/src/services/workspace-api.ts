@@ -1,4 +1,5 @@
 import { HttpClient } from '@angular/common/http';
+import { PlanPrice } from './plans';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
@@ -34,6 +35,11 @@ import {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceApi {
   constructor(private readonly http: HttpClient) {}
+
+  /** The paid plans' prices from Stripe; plans it could not read are left out. Needs no sign-in. */
+  planPrices(): Observable<PlanPrice[]> {
+    return this.http.get<PlanPrice[]>('/api/public/plans');
+  }
 
   /** Usage numbers for the landing page; needs no sign-in. */
   publicStats(): Observable<PublicStats> {

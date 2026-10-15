@@ -393,6 +393,72 @@ h1 em {
   font-size: 16px;
 }
 
+/* Pricing */
+.pricing h2 {
+  margin-bottom: 14px;
+}
+.pricing-lede {
+  max-width: 620px;
+  margin-bottom: 40px;
+  color: color-mix(in srgb, var(--primary-text) 75%, transparent);
+  font-size: 16px;
+  line-height: 1.55;
+}
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+}
+.plan-grid article {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 28px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.plan-grid article.featured {
+  border: 2px solid var(--secondary-surface);
+}
+.plan-grid .tag {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+.plan-grid h3 {
+  font-size: 18px;
+}
+.price strong {
+  font-size: 36px;
+  letter-spacing: -0.02em;
+}
+.price span {
+  color: var(--secondary-surface);
+  font-size: 14px;
+}
+.plan-grid ul {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.plan-grid li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+.plan-grid li app-icon {
+  color: var(--done);
+}
+.plan-grid .button {
+  justify-content: center;
+}
+
 /* Reviews */
 .review-grid {
   display: grid;

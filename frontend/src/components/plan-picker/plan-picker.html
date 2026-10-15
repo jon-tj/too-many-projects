@@ -19,11 +19,12 @@
       <p class="price">
         @if (info.value()?.planExempt && option.name !== 'free') {
           <!-- Exempt users switch to any plan without paying. -->
-          <s>{{ option.price }}</s>
+          <s>{{ price(option).amount }}</s>
           <strong>Free for you</strong>
         } @else {
-          <strong>{{ option.price }}</strong>
-          <span>/ month</span>
+          @let shown = price(option);
+          <strong>{{ shown.amount }}</strong>
+          <span>{{ shown.per }}</span>
         }
       </p>
       <ul>

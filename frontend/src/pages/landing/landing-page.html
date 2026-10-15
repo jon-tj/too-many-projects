@@ -6,6 +6,7 @@
   <nav aria-label="Sections">
     <a href="#why" (click)="scrollTo($event, 'why')">Why us</a>
     <a href="#features" (click)="scrollTo($event, 'features')">Features</a>
+    <a href="#pricing" (click)="scrollTo($event, 'pricing')">Pricing</a>
     <a href="#reviews" (click)="scrollTo($event, 'reviews')">Reviews</a>
   </nav>
   <div class="header-actions">
@@ -109,6 +110,34 @@
           <h3>{{ feature.title }}</h3>
           <p>{{ feature.text }}</p>
         </div>
+      </article>
+    }
+  </div>
+</section>
+
+<section id="pricing" class="pricing">
+  <h2>Simple pricing that stays small</h2>
+  <p class="pricing-lede">
+    Every account starts with a 30-day free trial with everything included, no card needed. Afterwards, pick the plan
+    that fits, or stay on Free for as long as you like. Change or cancel any time.
+  </p>
+  <div class="plan-grid">
+    @for (option of PLANS; track option.name) {
+      @let shown = price(option);
+      <article [class.featured]="option.featured">
+        @if (option.featured) {
+          <span class="tag">Most popular</span>
+        }
+        <h3>{{ option.title }}</h3>
+        <p class="price"><strong>{{ shown.amount }}</strong> <span>{{ shown.per }}</span></p>
+        <ul>
+          @for (perk of option.perks; track perk) {
+            <li><app-icon name="check" [size]="16" />{{ perk }}</li>
+          }
+        </ul>
+        <a class="button large" [class.solid]="option.featured" [class.ghost]="!option.featured" routerLink="/register" [queryParams]="utm">
+          Start free trial
+        </a>
       </article>
     }
   </div>

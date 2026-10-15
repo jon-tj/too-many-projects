@@ -1,50 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { ChoosablePlan } from '../../services/models';
+import { PLAN_OPTIONS, PlanOption, shownPrice } from '../../services/plans';
 import { WorkspaceApi } from '../../services/workspace-api';
 import { Icon } from '../icon/icon';
-
-
-interface PlanOption {
-  name: ChoosablePlan;
-  title: string;
-  price: string;
-  /** Active projects allowed; null for no limit. Matches the backend's Plans.Plan. */
-  limit: number | null;
-  /** Members per project, the owner included; null means no limit. Matches the backend's Plans.Plan. */
-  memberLimit: number | null;
-  perks: string[];
-  featured?: boolean;
-}
-
-const PLANS: PlanOption[] = [
-  {
-    name: 'free',
-    title: 'Free',
-    price: '$0',
-    limit: 2,
-    memberLimit: 1,
-    perks: ['Up to 2 projects', 'Boards and tasks', 'Just you, no team members'],
-  },
-  {
-    name: 'plus',
-    title: 'Plus',
-    price: '$3.99',
-    limit: 3,
-    memberLimit: 8,
-    perks: ['Up to 3 projects', 'Up to 8 members per project', 'Roadmap and critical path', 'Canvas, time tracking and billing'],
-    featured: true,
-  },
-  {
-    name: 'pro',
-    title: 'Pro',
-    price: '$8.99',
-    limit: null,
-    memberLimit: null,
-    perks: ['Unlimited projects', 'Unlimited members', 'Everything in Plus'],
-  },
-];
 
 /**
  * The three plans side by side. Choosing one that allows fewer projects than you own freezes all of them (after
@@ -61,7 +20,13 @@ export class PlanPicker {
   readonly changed = output<void>();
   private readonly api = inject(WorkspaceApi);
   protected readonly info = rxResource({ stream: () => this.api.plan() });
-  protected readonly PLANS = PLANS;
+  protected readonly PLANS = PLAN_OPTIONS;
+  /** Prices from Stripe; plans missing from it (or all of them, while loading or on an error) show their fallback. */
+  private readonly prices = rxResource({ stream: () => this.api.planPrices() });
+
+  protected price(option: PlanOption) {
+    return shownPrice(option, this.prices.value());
+  }
   protected readonly busy = signal(false);
   protected readonly error = signal('');
   /**
