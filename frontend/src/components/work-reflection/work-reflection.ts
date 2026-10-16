@@ -29,7 +29,7 @@ import { ResistanceWall } from '../resistance-wall/resistance-wall';
         </div>
         <label>
           Message (optional)
-          <textarea rows="3" maxlength="1000" placeholder="Anything worth remembering about this session?" [value]="message()" (input)="message.set($any($event.target).value)"></textarea>
+          <textarea rows="3" maxlength="1000" placeholder="Anything worth remembering about this session?" [value]="message()" (input)="message.set($any($event.target).value)" (keydown.control.enter)="sendFromKeyboard($event)" (keydown.meta.enter)="sendFromKeyboard($event)"></textarea>
         </label>
         <footer>
           <button class="primary" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Submit' }}</button>
@@ -87,6 +87,12 @@ export class WorkReflection {
       this.resistance.set(5);
       this.message.set('');
     });
+  }
+
+  /** Ctrl+Enter (⌘+Enter on a Mac) in the message submits. */
+  protected sendFromKeyboard(event: Event): void {
+    event.preventDefault();
+    if (!this.busy()) this.send();
   }
 
   protected send(): void {

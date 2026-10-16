@@ -1,11 +1,11 @@
 <form [formGroup]="form" (ngSubmit)="submit()">
   <label>
     Title
-    <input formControlName="title" autofocus />
+    <input formControlName="title" autofocus (keydown.control.enter)="submitFromKeyboard($event)" (keydown.meta.enter)="submitFromKeyboard($event)" />
   </label>
   <label>
     Description
-    <textarea formControlName="description" rows="4" placeholder="A little context (optional)"></textarea>
+    <textarea formControlName="description" rows="4" placeholder="A little context (optional)" (keydown.control.enter)="submitFromKeyboard($event)" (keydown.meta.enter)="submitFromKeyboard($event)"></textarea>
   </label>
   <label>
     Priority

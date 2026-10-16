@@ -159,6 +159,15 @@ export class TaskForm {
     this.form.markAsDirty();
   }
 
+  /**
+   * Ctrl+Enter (⌘+Enter on a Mac) in the title or description submits, as the form's own submit button would, so the
+   * page around it handles it the same way.
+   */
+  protected submitFromKeyboard(event: Event): void {
+    event.preventDefault();
+    (event.target as HTMLElement).closest('form')?.requestSubmit();
+  }
+
   protected submit(): void {
     if (this.form.invalid) return;
     const { title, description, status, priority, assigneeUserId, dueAt, units, dependsOn } = this.form.getRawValue();

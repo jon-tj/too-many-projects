@@ -154,7 +154,8 @@
       </label>
     </td>
     <td>
-      <textarea rows="2" maxlength="1000" aria-label="Message" [value]="editing.message" (input)="change('message', $any($event.target).value)"></textarea>
+      <!-- Ctrl+Enter (⌘+Enter on a Mac) saves, like the Save button. -->
+      <textarea rows="2" maxlength="1000" aria-label="Message" [value]="editing.message" (input)="change('message', $any($event.target).value)" (keydown.control.enter)="$event.preventDefault(); busy() === null && save(session)" (keydown.meta.enter)="$event.preventDefault(); busy() === null && save(session)"></textarea>
     </td>
     <td>
       <div class="actions">
