@@ -244,6 +244,39 @@ public sealed class AdminController(
         return deleted == 0 ? NotFound() : NoContent();
     }
 
+    /// <summary>Every feature request, newest first.</summary>
+    [HttpGet("feature-requests")]
+    public async Task<ActionResult<IReadOnlyList<AdminFeatureRequestResponse>>> GetFeatureRequests(
+        CancellationToken cancellationToken)
+    {
+        var requests = await db.FeatureRequests.AsNoTracking()
+            .Select(request => new AdminFeatureRequestResponse(
+                request.Id, request.UserId, request.User.DisplayName, request.User.UserName ?? "",
+                request.User.Email ?? "", request.User.AvatarImage, request.Title, request.Description,
+                request.CreatedAt, request.Status))
+            .ToListAsync(cancellationToken);
+        // Ordered in memory: SQLite cannot order by DateTimeOffset.
+        return Ok(requests.OrderByDescending(request => request.CreatedAt).ToList());
+    }
+
+    [HttpPut("feature-requests/{id:long}/status")]
+    public async Task<IActionResult> SetFeatureRequestStatus(
+        long id, SetFeatureRequestStatusRequest request, CancellationToken cancellationToken)
+    {
+        if (!FeatureRequest.Statuses.Contains(request.Status))
+            return BadRequest(new { error = "The status must be new, planned, done or declined." });
+        var updated = await db.FeatureRequests.Where(entry => entry.Id == id)
+            .ExecuteUpdateAsync(entry => entry.SetProperty(field => field.Status, request.Status), cancellationToken);
+        return updated == 0 ? NotFound() : NoContent();
+    }
+
+    [HttpDelete("feature-requests/{id:long}")]
+    public async Task<IActionResult> DeleteFeatureRequest(long id, CancellationToken cancellationToken)
+    {
+        var deleted = await db.FeatureRequests.Where(request => request.Id == id).ExecuteDeleteAsync(cancellationToken);
+        return deleted == 0 ? NotFound() : NoContent();
+    }
+
     private static async Task<Dictionary<string, int>> CountBy(IQueryable<string> userIds, CancellationToken cancellationToken) =>
         await userIds.GroupBy(id => id)
             .Select(group => new { group.Key, Count = group.Count() })
@@ -284,6 +317,18 @@ public sealed record AdminProjectResponse(
 public sealed record AdminReviewResponse(
     long Id, string UserId, string DisplayName, string UserName, string? AvatarImage, DateTimeOffset MemberSince,
     int Round, DateTimeOffset CreatedAt, int Stars, string Body, bool MayPublish, string? ProjectName, bool Featured);
+
+/// <summary>A feature request with who sent it.</summary>
+/// <param name="Status">new, planned, done or declined.</param>
+public sealed record AdminFeatureRequestResponse(
+    long Id, string UserId, string DisplayName, string UserName, string Email, string? AvatarImage, string Title,
+    string Description, DateTimeOffset CreatedAt, string Status);
+
+public sealed record SetFeatureRequestStatusRequest
+{
+    [Required]
+    public required string Status { get; init; }
+}
 
 public sealed record SetFeaturedRequest
 {

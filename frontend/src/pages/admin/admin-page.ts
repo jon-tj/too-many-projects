@@ -9,10 +9,24 @@ import { Icon } from '../../components/icon/icon';
 import { ProjectIcon } from '../../components/project-icon/project-icon';
 import { Stars } from '../../components/stars/stars';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
-import { AdminProject, AdminReview, AdminUser, PLAN_TITLES } from '../../services/models';
+import {
+  AdminFeatureRequest,
+  AdminProject,
+  AdminReview,
+  AdminUser,
+  FeatureRequestStatus,
+  PLAN_TITLES,
+} from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
 
-type Tab = 'members' | 'projects' | 'reviews';
+type Tab = 'members' | 'projects' | 'reviews' | 'requests';
+
+const REQUEST_STATUSES: { value: FeatureRequestStatus; label: string }[] = [
+  { value: 'new', label: 'New' },
+  { value: 'planned', label: 'Planned' },
+  { value: 'done', label: 'Done' },
+  { value: 'declined', label: 'Declined' },
+];
 
 /**
  * Every member and project in the database, for the admin: plans and activity per member, and overriding what the
@@ -32,6 +46,8 @@ export class AdminPage {
   protected readonly users = rxResource({ stream: () => this.api.adminUsers() });
   protected readonly projects = rxResource({ stream: () => this.api.adminProjects() });
   protected readonly reviews = rxResource({ stream: () => this.api.adminReviews() });
+  protected readonly requests = rxResource({ stream: () => this.api.adminFeatureRequests() });
+  protected readonly REQUEST_STATUSES = REQUEST_STATUSES;
   protected readonly tab = signal<Tab>('members');
   protected readonly search = signal('');
   /** The action in progress, as "<kind>:<id>", so only its button shows it. */
@@ -52,6 +68,15 @@ export class AdminPage {
     (this.reviews.value() ?? []).filter((review) =>
       this.matches(review.displayName, review.userName, review.body, review.projectName ?? ''),
     ),
+  );
+  protected readonly shownRequests = computed(() =>
+    (this.requests.value() ?? []).filter((request) =>
+      this.matches(request.title, request.description, request.displayName, request.userName, request.status),
+    ),
+  );
+  /** Requests nobody has looked at yet, shown on the tab. */
+  protected readonly newRequestCount = computed(
+    () => (this.requests.value() ?? []).filter((request) => request.status === 'new').length,
   );
   protected readonly featuredCount = computed(
     () => (this.reviews.value() ?? []).filter((review) => review.featured).length,
@@ -111,6 +136,7 @@ export class AdminPage {
     this.run(`delete-user:${user.id}`, this.api.adminDeleteUser(user.id), () => {
       this.stats.reload();
       this.reviews.reload();
+      this.requests.reload();
       this.users.reload();
       this.projects.reload();
     });
@@ -150,6 +176,17 @@ export class AdminPage {
   protected deleteReview(review: AdminReview): void {
     if (!confirm(`Delete ${review.displayName}'s review? This cannot be undone.`)) return;
     this.run(`delete-review:${review.id}`, this.api.adminDeleteReview(review.id), () => this.reviews.reload());
+  }
+
+  protected setRequestStatus(request: AdminFeatureRequest, status: FeatureRequestStatus): void {
+    this.run(`request-status:${request.id}`, this.api.adminSetFeatureRequestStatus(request.id, status), () =>
+      this.requests.reload(),
+    );
+  }
+
+  protected deleteRequest(request: AdminFeatureRequest): void {
+    if (!confirm(`Delete the request "${request.title}"? This cannot be undone.`)) return;
+    this.run(`delete-request:${request.id}`, this.api.adminDeleteFeatureRequest(request.id), () => this.requests.reload());
   }
 
   private run(key: string, request: Observable<void>, done: () => void): void {

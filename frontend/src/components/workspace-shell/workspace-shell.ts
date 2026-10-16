@@ -10,6 +10,7 @@ import { Modal } from '../modal/modal';
 import { ProjectIcon } from '../project-icon/project-icon';
 import { Tour, TourStep } from '../tour/tour';
 import { ReviewPrompt } from '../review-prompt/review-prompt';
+import { FeatureRequest } from '../feature-request/feature-request';
 import { AuthService } from '../../services/auth.service';
 import { Account, Project } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -23,7 +24,7 @@ type Theme = (typeof THEMES)[number]['name'];
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar, Tour, ReviewPrompt],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar, Tour, ReviewPrompt, FeatureRequest],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })
@@ -39,6 +40,10 @@ export class WorkspaceShell implements OnInit {
   protected readonly onboarding = signal(false);
   private readonly createButton = viewChild.required<ElementRef<HTMLElement>>('createButton');
   private readonly themeButton = viewChild.required<ElementRef<HTMLElement>>('themeButton');
+  private readonly accountButton = viewChild.required<ElementRef<HTMLElement>>('accountButton');
+  private readonly featureButton = viewChild.required<ElementRef<HTMLElement>>('featureButton');
+  /** The "Suggest a feature" dialog. */
+  protected readonly suggesting = signal(false);
   protected readonly tourSteps = computed((): TourStep[] => [
     {
       target: this.createButton().nativeElement,
@@ -49,6 +54,18 @@ export class WorkspaceShell implements OnInit {
       target: this.themeButton().nativeElement,
       title: 'Make it yours',
       text: 'Switch between the day, night and coffee themes whenever you like.',
+    },
+    {
+      target: this.accountButton().nativeElement,
+      title: 'Your plan lives in your profile',
+      text:
+        'Click your name and choose Plan to see what your plan includes, upgrade when you need more projects or ' +
+        'team members, and pick which projects stay active. Only project owners need a plan.',
+    },
+    {
+      target: this.featureButton().nativeElement,
+      title: 'Missing something? Tell us',
+      text: 'Use Suggest a feature to ask for anything you would like TooManyProjects to do. We read every request.',
     },
   ]);
   private readonly formBuilder = inject(FormBuilder);

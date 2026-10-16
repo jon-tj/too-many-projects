@@ -39,6 +39,10 @@
     <button type="button" role="tab" [class.is-active]="tab() === 'reviews'" [attr.aria-selected]="tab() === 'reviews'" (click)="tab.set('reviews')">
       <app-icon name="reviews" [size]="16" /><span>Reviews</span>
     </button>
+    <button type="button" role="tab" [class.is-active]="tab() === 'requests'" [attr.aria-selected]="tab() === 'requests'" (click)="tab.set('requests')">
+      <app-icon name="lightbulb" [size]="16" /><span>Requests</span>
+      @if (newRequestCount()) { <span class="count">{{ newRequestCount() }}</span> }
+    </button>
   </div>
   <input type="search" placeholder="Search" aria-label="Search" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
@@ -115,6 +119,47 @@
         }
       </tbody>
     </table>
+  </div>
+} @else if (tab() === 'requests') {
+  @if (requests.error()) {
+    <p class="error" role="alert">Could not load the feature requests.</p>
+  }
+  <div class="review-list">
+    @for (request of shownRequests(); track request.id) {
+      <article [class.featured]="request.status === 'new'">
+        <header>
+          <app-avatar class="avatar" [name]="request.displayName" [image]="request.avatarImage" />
+          <div>
+            <strong>{{ request.title }}</strong>
+            <small>{{ request.displayName }} · &#64;{{ request.userName }} · {{ request.email }} · {{ request.createdAt | date: 'MMM d, y' }}</small>
+          </div>
+          <select
+            aria-label="Status"
+            [value]="request.status"
+            [disabled]="busy() !== null"
+            (change)="setRequestStatus(request, $any($event.target).value)"
+          >
+            @for (status of REQUEST_STATUSES; track status.value) {
+              <option [value]="status.value" [selected]="status.value === request.status">{{ status.label }}</option>
+            }
+          </select>
+        </header>
+        @if (request.description) {
+          <p class="body">{{ request.description }}</p>
+        }
+        <footer>
+          <div class="actions">
+            <button class="transparent danger" type="button" [disabled]="busy() !== null" (click)="deleteRequest(request)">
+              <span>{{ busy() === 'delete-request:' + request.id ? 'Deleting…' : 'Delete' }}</span>
+            </button>
+          </div>
+        </footer>
+      </article>
+    } @empty {
+      @if (!requests.isLoading()) {
+        <p class="empty">No feature requests yet. Members send them with "Suggest a feature" in the sidebar.</p>
+      }
+    }
   </div>
 } @else if (tab() === 'reviews') {
   @if (reviews.error()) {

@@ -405,6 +405,40 @@ namespace backend.Migrations
                     b.ToTable("CanvasPermissions");
                 });
 
+            modelBuilder.Entity("Model.FeatureRequest", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("FeatureRequests");
+                });
+
             modelBuilder.Entity("Model.PlanExemption", b =>
                 {
                     b.Property<string>("UserId")
@@ -774,6 +808,17 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Canvas");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Model.FeatureRequest", b =>
+                {
+                    b.HasOne("Model.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

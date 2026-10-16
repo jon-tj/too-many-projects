@@ -25,6 +25,7 @@
 .project-link-name { overflow: hidden; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-bottom { position: relative; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--primary-active-surface); }
 .account-menu-wrap { position: relative; display: grid; }
+.suggest { width: 100%; margin-bottom: 6px; }
 .avatar { width: 31px; height: 31px; flex: 0 0 31px; font-size: 12px; }
 .profile-copy { overflow: hidden; }
 .profile-copy strong,.profile-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

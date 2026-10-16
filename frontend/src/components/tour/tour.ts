@@ -44,18 +44,23 @@ export class Tour {
     };
   });
 
-  /** Beside the element when there is room on the right, otherwise below it; always kept on screen. */
+  /**
+   * Beside the element when there is room on the right, otherwise below it; always kept on screen. Elements in the
+   * lower half of the screen (like the account button) anchor the card by its bottom instead, beside or above them,
+   * so it grows upwards rather than off the screen.
+   */
   protected readonly card = computed(() => {
     const rect = this.rect();
     if (!rect) return null;
     const fitsRight = rect.right + GAP + CARD_WIDTH <= window.innerWidth - 8;
-    const left = fitsRight ? rect.right + GAP : rect.left;
+    const left = Math.max(8, Math.min(fitsRight ? rect.right + GAP : rect.left, window.innerWidth - CARD_WIDTH - 8));
+    const low = rect.top + rect.height / 2 > window.innerHeight / 2;
+    if (low) {
+      const bottom = fitsRight ? window.innerHeight - rect.bottom - 8 : window.innerHeight - rect.top + GAP;
+      return { left, top: null, bottom: Math.max(8, bottom), width: CARD_WIDTH };
+    }
     const top = fitsRight ? rect.top - 8 : rect.bottom + GAP;
-    return {
-      left: Math.max(8, Math.min(left, window.innerWidth - CARD_WIDTH - 8)),
-      top: Math.max(8, top),
-      width: CARD_WIDTH,
-    };
+    return { left, top: Math.max(8, top), bottom: null, width: CARD_WIDTH };
   });
 
   constructor() {

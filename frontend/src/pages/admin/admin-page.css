@@ -248,3 +248,16 @@ button.transparent.danger {
   color: var(--secondary-surface);
   font-size: 13px;
 }
+.tabs .count {
+  min-width: 18px;
+  padding: 1px 5px;
+  color: var(--secondary-text);
+  background: var(--secondary-surface);
+  border-radius: 999px;
+  font-size: 10px;
+  text-align: center;
+}
+.review-list header select {
+  padding: 4px 8px;
+  font-size: 12px;
+}

@@ -217,6 +217,23 @@ export interface AdminReview {
   featured: boolean;
 }
 
+/** Where a feature request stands, set by the admin. */
+export type FeatureRequestStatus = 'new' | 'planned' | 'done' | 'declined';
+
+/** A feature request as the admin page lists it. */
+export interface AdminFeatureRequest {
+  id: number;
+  userId: string;
+  displayName: string;
+  userName: string;
+  email: string;
+  avatarImage: string | null;
+  title: string;
+  description: string;
+  createdAt: string;
+  status: FeatureRequestStatus;
+}
+
 /** A review on the landing page. */
 export interface PublicReview {
   stars: number;

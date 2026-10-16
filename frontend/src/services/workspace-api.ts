@@ -4,6 +4,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   Account,
+  AdminFeatureRequest,
   AdminProject,
   AdminReview,
   AdminStats,
@@ -26,6 +27,7 @@ import {
   ProjectTask,
   ProjectWorkSession,
   ChoosablePlan,
+  FeatureRequestStatus,
   PlanInfo,
   PlanName,
   PublicReview,
@@ -44,6 +46,11 @@ export class WorkspaceApi {
   /** The paid plans' prices from Stripe; plans it could not read are left out. Needs no sign-in. */
   planPrices(): Observable<PlanPrice[]> {
     return this.http.get<PlanPrice[]>('/api/public/plans');
+  }
+
+  /** Asks for a feature; it is saved for the admin and emailed to them. */
+  requestFeature(title: string, description: string): Observable<void> {
+    return this.http.post<void>('/api/feature-requests', { title, description });
   }
 
   /** The reviews chosen for the landing page; needs no sign-in. */
@@ -389,6 +396,18 @@ export class WorkspaceApi {
 
   adminStats(): Observable<AdminStats> {
     return this.http.get<AdminStats>('/api/admin/stats');
+  }
+
+  adminFeatureRequests(): Observable<AdminFeatureRequest[]> {
+    return this.http.get<AdminFeatureRequest[]>('/api/admin/feature-requests');
+  }
+
+  adminSetFeatureRequestStatus(id: number, status: FeatureRequestStatus): Observable<void> {
+    return this.http.put<void>(`/api/admin/feature-requests/${id}/status`, { status });
+  }
+
+  adminDeleteFeatureRequest(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/admin/feature-requests/${id}`);
   }
 
   adminReviews(): Observable<AdminReview[]> {

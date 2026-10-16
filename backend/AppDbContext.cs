@@ -17,6 +17,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<Bill> Bills => Set<Bill>();
 	public DbSet<PlanExemption> PlanExemptions => Set<PlanExemption>();
 	public DbSet<Review> Reviews => Set<Review>();
+	public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -54,6 +55,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.WithOne()
 			.HasForeignKey<PlanExemption>(exemption => exemption.UserId);
 		builder.Entity<WorkSession>().Property(session => session.Message).HasMaxLength(1000);
+		builder.Entity<FeatureRequest>()
+			.HasOne(request => request.User)
+			.WithMany()
+			.HasForeignKey(request => request.UserId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<FeatureRequest>().Property(request => request.Title).HasMaxLength(120);
+		builder.Entity<FeatureRequest>().Property(request => request.Description).HasMaxLength(2000);
 		builder.Entity<Review>()
 			.HasOne(review => review.User)
 			.WithMany()

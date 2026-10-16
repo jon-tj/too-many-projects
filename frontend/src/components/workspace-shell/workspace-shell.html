@@ -38,6 +38,9 @@
     </nav>
 
     <div class="sidebar-bottom" (click)="$event.stopPropagation()">
+      <button #featureButton class="transparent suggest" type="button" (click)="closeAccountMenu(); suggesting.set(true)">
+        <app-icon name="lightbulb" /><span>Suggest a feature</span>
+      </button>
       <div class="account-menu-wrap">
         @if (accountMenuOpen()) {
           <div class="account-menu" role="menu">
@@ -46,7 +49,7 @@
             <button class="transparent" type="button" role="menuitem" (click)="logout()"><app-icon name="logout" /><span>Sign out</span></button>
           </div>
         }
-        <button class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
+        <button #accountButton class="transparent" type="button" (click)="toggleAccountMenu()" [attr.aria-expanded]="accountMenuOpen()" aria-haspopup="menu" aria-label="Open account menu">
           <app-avatar class="avatar" [name]="account()?.displayName ?? ''" [image]="account()?.avatarImage" />
           <span class="profile-copy"><strong>{{ account()?.displayName ?? 'Account' }}</strong><small>{{ account()?.email ?? '' }}</small></span>
         </button>
@@ -63,6 +66,8 @@
   <!-- Asks for a review 10, 40 and 150 days after sign-up; never on top of the first-run tour. -->
   <app-review-prompt />
 }
+
+<app-feature-request [(open)]="suggesting" />
 
 <app-modal heading="Create a project" [(open)]="creating">
   @if (createBlocked()) {
