@@ -123,6 +123,17 @@
     Every account starts with a 30-day free trial with everything included, no card needed. Afterwards, pick the plan
     that fits, or stay on Free for as long as you like. Change or cancel any time.
   </p>
+  <p class="team-note">
+    <app-icon name="coffee" [size]="22" />
+    <span>
+      <strong>Only the project owner needs a plan.</strong> Everyone they invite joins for free.
+      @if (teamShare(); as share) {
+        On Plus, a team of {{ TEAM_SIZE }} works out to {{ share.amount }} per person a month{{
+          share.underOne ? ', cheaper than a coffee!' : '.'
+        }}
+      }
+    </span>
+  </p>
   <div class="plan-grid">
     @for (option of PLANS; track option.name) {
       <article [class.featured]="option.featured">

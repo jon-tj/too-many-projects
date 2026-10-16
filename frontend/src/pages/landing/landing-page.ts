@@ -6,7 +6,7 @@ import { Avatar } from '../../components/avatar/avatar';
 import { Icon } from '../../components/icon/icon';
 import { Stars } from '../../components/stars/stars';
 import { rememberAttribution, utmParams } from '../../services/attribution';
-import { PLAN_OPTIONS, PlanOption, shownPrice } from '../../services/plans';
+import { PLAN_OPTIONS, PlanOption, perPersonPrice, shownPrice } from '../../services/plans';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const REASONS = [
@@ -62,6 +62,16 @@ export class LandingPage {
   protected price(option: PlanOption) {
     return shownPrice(option, this.prices.error() ? [] : this.prices.value());
   }
+
+  /** The team the pricing note works the cost out for: Plus split between five people. */
+  protected readonly TEAM_SIZE = 5;
+  protected readonly teamShare = computed(() =>
+    perPersonPrice(
+      PLAN_OPTIONS.find((option) => option.name === 'plus')!,
+      this.prices.error() ? [] : this.prices.value(),
+      this.TEAM_SIZE,
+    ),
+  );
   protected readonly REASONS = REASONS;
   protected readonly FEATURES = FEATURES;
   /** Reviews the admin chose; the section and its link are hidden while there are none. */
