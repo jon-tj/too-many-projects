@@ -57,8 +57,12 @@ export class ProjectHours {
     defaultValue: [],
   });
   protected readonly onlyMine = signal(false);
+  /** More than one person logged hours in the period, so it is worth telling yours apart. */
+  protected readonly severalPeople = computed(
+    () => new Set(this.sessions.value().map((session) => session.userId)).size > 1,
+  );
   protected readonly shown = computed(() =>
-    this.sessions.value().filter((session) => !this.onlyMine() || session.mine),
+    this.sessions.value().filter((session) => !this.severalPeople() || !this.onlyMine() || session.mine),
   );
   /** Showing every row, scrolling inside the table, instead of only the newest few. */
   protected readonly expanded = signal(false);

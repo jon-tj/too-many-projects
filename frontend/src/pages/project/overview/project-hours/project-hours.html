@@ -3,10 +3,12 @@
   <button class="transparent add" type="button" [disabled]="draft()?.id === NEW" (click)="add()">
     <app-icon name="add" /><span>Add hours</span>
   </button>
-  <div class="toggle" role="group" aria-label="Whose hours">
-    <button class="transparent" type="button" [class.active]="!onlyMine()" (click)="onlyMine.set(false)"><span>Everyone</span></button>
-    <button class="transparent" type="button" [class.active]="onlyMine()" (click)="onlyMine.set(true)"><span>Only me</span></button>
-  </div>
+  @if (severalPeople()) {
+    <div class="toggle" role="group" aria-label="Whose hours">
+      <button class="transparent" type="button" [class.active]="!onlyMine()" (click)="onlyMine.set(false)"><span>Everyone</span></button>
+      <button class="transparent" type="button" [class.active]="onlyMine()" (click)="onlyMine.set(true)"><span>Only me</span></button>
+    </div>
+  }
 </header>
 
 @if (sessions.error()) {
