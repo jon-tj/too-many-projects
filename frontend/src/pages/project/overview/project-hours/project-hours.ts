@@ -81,6 +81,11 @@ export class ProjectHours {
     this.sessions.reload();
   }
 
+  /** The session has not started yet: planned or pre-filled work. */
+  protected upcoming(session: ProjectWorkSession): boolean {
+    return new Date(session.startedAt).getTime() > Date.now();
+  }
+
   /** Hours of the session; running sessions count up to now. */
   protected hours(session: ProjectWorkSession): number {
     const end = session.endedAt ? new Date(session.endedAt).getTime() : Date.now();

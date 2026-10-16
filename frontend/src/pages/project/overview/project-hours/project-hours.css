@@ -107,6 +107,10 @@ small {
   color: var(--doing);
   font-weight: 600;
 }
+.upcoming {
+  color: var(--todo);
+  font-weight: 600;
+}
 .empty {
   padding: 20px 10px;
   color: var(--secondary-surface);

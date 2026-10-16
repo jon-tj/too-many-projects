@@ -186,7 +186,6 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         var start = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1));
         var nextMonth = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1).AddMonths(1));
         var now = DateTimeOffset.UtcNow;
-        var until = nextMonth < now ? nextMonth : now;
 
         // Filtered in memory: SQLite cannot compare DateTimeOffset values in queries.
         var sessions = await db.WorkSessions.AsNoTracking()
@@ -199,7 +198,10 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         foreach (var session in sessions)
         {
             var from = session.StartedAt;
-            var to = session.EndedAt is { } ended && ended < until ? ended : until;
+            // Finished sessions count in full, even ones entered ahead of time; running ones up to now. Nothing counts
+            // past the end of the month.
+            var sessionEnd = session.EndedAt ?? now;
+            var to = sessionEnd < nextMonth ? sessionEnd : nextMonth;
             while (from < to)
             {
                 var localDay = TimeZoneInfo.ConvertTime(from, zone).Date;

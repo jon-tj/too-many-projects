@@ -67,8 +67,8 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
 
     /// <summary>
     /// Corrects one of the caller's sessions: its start and end, and how it went. A finished session must keep an end; a
-    /// running one may be given one, which stops it. Times cannot be in the future, and sessions cannot overlap the
-    /// caller's other sessions in the same project (sessions in different projects may).
+    /// running one may be given one, which stops it. Sessions may lie in the future (planned or pre-filled work), but
+    /// cannot overlap the caller's other sessions in the same project (sessions in different projects may).
     /// </summary>
     [RequiresProject(ProjectFeature.Full, ProjectKey.WorkSessionId)]
     [HttpPatch("{id:long}")]
@@ -99,8 +99,9 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// Logs a finished session for the caller after the fact, e.g. work done away from the app. The same rules apply as
-    /// for correcting one: no future times, and no overlap with the caller's other sessions in the project.
+    /// Logs a session for the caller that was not tracked live: work done away from the app, or planned ahead. The same
+    /// rules apply as for correcting one: the end after the start, and no overlap with the caller's other sessions in
+    /// the project.
     /// </summary>
     [RequiresProject(ProjectFeature.Full)]
     [HttpPost("by-project/{projectId:long}")]
@@ -147,8 +148,7 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// Why the times are not allowed, or null when they are: they cannot be in the future, the end must come after the
-    /// start, and they cannot overlap the user's other sessions in the project (other than <paramref name="exceptId"/>),
+    /// Why the times are not allowed, or null when they are: the end must come after the start, and they cannot overlap the user's other sessions in the project (other than <paramref name="exceptId"/>),
     /// which would count the same hours twice. Sessions in different projects may overlap.
     /// </summary>
     private async Task<string?> CheckTimes(
@@ -156,7 +156,6 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
         CancellationToken cancellationToken)
     {
         var now = DateTimeOffset.UtcNow;
-        if (start > now || end > now) return "Times cannot be in the future.";
         if (end is { } finish && finish <= start) return "The end must be after the start.";
 
         // Compared in memory: SQLite cannot compare DateTimeOffset values in queries.

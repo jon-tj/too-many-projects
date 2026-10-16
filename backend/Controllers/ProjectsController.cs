@@ -349,11 +349,12 @@ public sealed class ProjectsController(
         {
             var bucketStart = start.AddDays(index * bucketing.DaysPerBucket);
             var bucketEnd = bucketStart.AddDays(bucketing.DaysPerBucket);
-            var until = bucketEnd < now ? bucketEnd : now;
             var hours = sessions.Sum(session =>
             {
                 var from = session.StartedAt > start ? session.StartedAt : start;
-                var to = session.EndedAt is { } ended && ended < until ? ended : until;
+                // Finished sessions count in full, even ones entered ahead of time; running ones up to now.
+                var end = session.EndedAt ?? now;
+                var to = end < bucketEnd ? end : bucketEnd;
                 return to > from ? (to - from).TotalHours : 0;
             });
             return new OverviewPoint(bucketStart, completed.Count(at => at < bucketEnd), Math.Round(hours, 2));

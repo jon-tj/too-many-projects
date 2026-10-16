@@ -56,7 +56,11 @@
             </td>
             <td class="number">
               {{ formatHours(hours(session)) }}
-              @if (!session.endedAt) { <small class="running">Running</small> }
+              @if (!session.endedAt) {
+                <small class="running">Running</small>
+              } @else if (upcoming(session)) {
+                <small class="upcoming">Upcoming</small>
+              }
             </td>
             <td class="number" [class.none]="session.mood === null" [title]="session.mood === null ? 'No mood given' : 'Mood ' + session.mood + ' / 10'">
               {{ session.mood ?? '–' }}
