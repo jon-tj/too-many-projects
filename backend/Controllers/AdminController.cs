@@ -209,6 +209,41 @@ public sealed class AdminController(
         return NoContent();
     }
 
+    /// <summary>Every review (not dismissals), newest first.</summary>
+    [HttpGet("reviews")]
+    public async Task<ActionResult<IReadOnlyList<AdminReviewResponse>>> GetReviews(CancellationToken cancellationToken)
+    {
+        var reviews = await db.Reviews.AsNoTracking()
+            .Where(review => !review.Dismissed)
+            .Select(review => new AdminReviewResponse(
+                review.Id, review.UserId, review.User.DisplayName, review.User.UserName ?? "", review.User.AvatarImage,
+                review.User.CreatedAt, review.Round, review.CreatedAt, review.Stars ?? 0, review.Body, review.MayPublish,
+                review.ProjectName, review.Featured))
+            .ToListAsync(cancellationToken);
+        // Ordered in memory: SQLite cannot order by DateTimeOffset.
+        return Ok(reviews.OrderByDescending(review => review.CreatedAt).ToList());
+    }
+
+    /// <summary>Shows the review on the landing page, or stops showing it. Only reviews the user allowed to be published.</summary>
+    [HttpPut("reviews/{id:long}/featured")]
+    public async Task<IActionResult> SetFeatured(long id, SetFeaturedRequest request, CancellationToken cancellationToken)
+    {
+        var review = await db.Reviews.SingleOrDefaultAsync(review => review.Id == id && !review.Dismissed, cancellationToken);
+        if (review is null) return NotFound();
+        if (request.Featured && !review.MayPublish)
+            return BadRequest(new { error = "This user did not allow their review to be published." });
+        review.Featured = request.Featured;
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("reviews/{id:long}")]
+    public async Task<IActionResult> DeleteReview(long id, CancellationToken cancellationToken)
+    {
+        var deleted = await db.Reviews.Where(review => review.Id == id).ExecuteDeleteAsync(cancellationToken);
+        return deleted == 0 ? NotFound() : NoContent();
+    }
+
     private static async Task<Dictionary<string, int>> CountBy(IQueryable<string> userIds, CancellationToken cancellationToken) =>
         await userIds.GroupBy(id => id)
             .Select(group => new { group.Key, Count = group.Count() })
@@ -240,6 +275,21 @@ public sealed record AdminProjectResponse(
     long Id, string Name, string Description, string? Icon, string? IconImage, DateTimeOffset CreatedAt,
     string OwnerId, string OwnerName, string OwnerUserName, string OwnerPlanType, bool Frozen,
     int MemberCount, int TaskCount, int DoneTaskCount, bool AdminIsMember);
+
+/// <summary>A review with who wrote it.</summary>
+/// <param name="Round">Days after creating their account that the user was asked (10, 40 or 150).</param>
+/// <param name="MayPublish">The user allows it on the landing page, with their name.</param>
+/// <param name="ProjectName">The project the user allows to be named with it; null for none.</param>
+/// <param name="Featured">Shown on the landing page.</param>
+public sealed record AdminReviewResponse(
+    long Id, string UserId, string DisplayName, string UserName, string? AvatarImage, DateTimeOffset MemberSince,
+    int Round, DateTimeOffset CreatedAt, int Stars, string Body, bool MayPublish, string? ProjectName, bool Featured);
+
+public sealed record SetFeaturedRequest
+{
+    [Required]
+    public required bool Featured { get; init; }
+}
 
 public sealed record SetFrozenRequest
 {

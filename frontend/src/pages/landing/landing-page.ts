@@ -1,7 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
+import { Avatar } from '../../components/avatar/avatar';
 import { Icon } from '../../components/icon/icon';
+import { Stars } from '../../components/stars/stars';
 import { rememberAttribution, utmParams } from '../../services/attribution';
 import { PLAN_OPTIONS, PlanOption, shownPrice } from '../../services/plans';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -39,20 +42,10 @@ const FEATURES = [
   { icon: 'group', title: 'Made for teams', text: 'Invite people by email, assign work and see who is working on what.' },
 ];
 
-/**
- * TODO: replace with real customer quotes (with their permission) before launch. Until then each one is shown with a
- * visible "Sample" tag so nobody mistakes them for real reviews.
- */
-const REVIEWS = [
-  { quote: 'A short quote from a real customer about what changed for their team goes here.', name: 'Customer name', role: 'Role, Company', sample: true },
-  { quote: 'A second quote, ideally mentioning a concrete result such as hours saved or projects delivered on time.', name: 'Customer name', role: 'Role, Company', sample: true },
-  { quote: 'A third quote from a different kind of team, for example an agency or a freelancer.', name: 'Customer name', role: 'Role, Company', sample: true },
-];
-
 /** The public front page: what TooManyProjects is, real usage numbers, what it costs, and the way into the free trial. */
 @Component({
   selector: 'app-landing-page',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Avatar, Stars, DatePipe],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.css',
 })
@@ -63,15 +56,17 @@ export class LandingPage {
   protected readonly utm = utmParams(this.route.snapshot.queryParams);
   protected readonly stats = rxResource({ stream: () => this.api.publicStats() });
   protected readonly PLANS = PLAN_OPTIONS;
-  /** Prices from Stripe; plans missing from it (or all of them, while loading or on an error) show their fallback. */
+  /** Prices from Stripe; plans missing from it (or all of them, when loading fails) show their fallback. */
   private readonly prices = rxResource({ stream: () => this.api.planPrices() });
 
   protected price(option: PlanOption) {
-    return shownPrice(option, this.prices.value());
+    return shownPrice(option, this.prices.error() ? [] : this.prices.value());
   }
   protected readonly REASONS = REASONS;
   protected readonly FEATURES = FEATURES;
-  protected readonly REVIEWS = REVIEWS;
+  /** Reviews the admin chose; the section and its link are hidden while there are none. */
+  protected readonly reviews = rxResource({ stream: () => this.api.publicReviews() });
+  protected readonly hasReviews = computed(() => (this.reviews.value()?.length ?? 0) > 0);
   protected readonly year = new Date().getFullYear();
 
   constructor() {

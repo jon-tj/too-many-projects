@@ -9,6 +9,7 @@ import { Avatar } from '../avatar/avatar';
 import { Modal } from '../modal/modal';
 import { ProjectIcon } from '../project-icon/project-icon';
 import { Tour, TourStep } from '../tour/tour';
+import { ReviewPrompt } from '../review-prompt/review-prompt';
 import { AuthService } from '../../services/auth.service';
 import { Account, Project } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -22,7 +23,7 @@ type Theme = (typeof THEMES)[number]['name'];
 
 @Component({
   selector: 'app-workspace-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar, Tour],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ReactiveFormsModule, Icon, Modal, ProjectIcon, Avatar, Tour, ReviewPrompt],
   templateUrl: './workspace-shell.html',
   styleUrl: './workspace-shell.css',
 })

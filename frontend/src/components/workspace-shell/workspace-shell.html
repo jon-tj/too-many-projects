@@ -59,6 +59,9 @@
 
 @if (onboarding()) {
   <app-tour [steps]="tourSteps()" (done)="finishOnboarding()" />
+} @else {
+  <!-- Asks for a review 10, 40 and 150 days after sign-up; never on top of the first-run tour. -->
+  <app-review-prompt />
 }
 
 <app-modal heading="Create a project" [(open)]="creating">

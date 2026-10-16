@@ -61,15 +61,17 @@ export interface ShownPrice {
 
 /**
  * The plan's price from Stripe when it could be read, otherwise its fallback. Free costs nothing, shown in the
- * currency the paid plans are in.
+ * currency the paid plans are in. Null while the prices are loading, so a fallback never flashes up before the real
+ * price; pass an empty list when loading them failed.
  */
-export function shownPrice(option: PlanOption, prices: PlanPrice[] | undefined): ShownPrice {
-  const price = prices?.find((entry) => entry.plan === option.name);
+export function shownPrice(option: PlanOption, prices: PlanPrice[] | undefined): ShownPrice | null {
+  if (!prices) return null;
+  const price = prices.find((entry) => entry.plan === option.name);
   if (price) {
     const per = price.intervalCount === 1 ? price.interval : `${price.intervalCount} ${price.interval}s`;
     return { amount: formatMoney(price.amount, price.currency), per: `/ ${per}` };
   }
-  if (option.name === 'free' && prices?.length) return { amount: formatMoney(0, prices[0].currency), per: '/ month' };
+  if (option.name === 'free' && prices.length) return { amount: formatMoney(0, prices[0].currency), per: '/ month' };
   return { amount: option.fallbackPrice, per: '/ month' };
 }
 

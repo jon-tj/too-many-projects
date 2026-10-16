@@ -476,23 +476,33 @@ h1 em {
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-.review-grid .tag {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-}
 blockquote {
   font-size: 16px;
   line-height: 1.55;
 }
+.review-grid blockquote {
+  flex: 1;
+  white-space: pre-line;
+}
 figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+figcaption > span {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 13px;
 }
-figcaption span {
+figcaption > span > span {
   color: var(--secondary-surface);
+}
+figcaption .avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  font-size: 15px;
 }
 
 /* Closing call to action */
@@ -565,4 +575,12 @@ figcaption span {
   .button:hover {
     transform: none;
   }
+}
+.price .loading {
+  display: inline-block;
+  width: 3.2em;
+  height: 1em;
+  vertical-align: middle;
+  background: var(--border);
+  border-radius: 4px;
 }

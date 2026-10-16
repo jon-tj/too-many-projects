@@ -36,6 +36,9 @@
     <button type="button" role="tab" [class.is-active]="tab() === 'projects'" [attr.aria-selected]="tab() === 'projects'" (click)="tab.set('projects')">
       <app-icon name="folder" [size]="16" /><span>Projects</span>
     </button>
+    <button type="button" role="tab" [class.is-active]="tab() === 'reviews'" [attr.aria-selected]="tab() === 'reviews'" (click)="tab.set('reviews')">
+      <app-icon name="reviews" [size]="16" /><span>Reviews</span>
+    </button>
   </div>
   <input type="search" placeholder="Search" aria-label="Search" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
@@ -112,6 +115,55 @@
         }
       </tbody>
     </table>
+  </div>
+} @else if (tab() === 'reviews') {
+  @if (reviews.error()) {
+    <p class="error" role="alert">Could not load the reviews.</p>
+  }
+  <p class="hint">
+    {{ featuredCount() }} shown on the landing page. Only reviews whose writers allowed it can be shown there; the
+    reviews section stays hidden while none are.
+  </p>
+  <div class="review-list">
+    @for (review of shownReviews(); track review.id) {
+      <article [class.featured]="review.featured">
+        <header>
+          <app-avatar class="avatar" [name]="review.displayName" [image]="review.avatarImage" />
+          <div>
+            <strong>{{ review.displayName }}</strong>
+            <small>&#64;{{ review.userName }} · member since {{ review.memberSince | date: 'MMMM y' }}</small>
+          </div>
+          <app-stars [value]="review.stars" />
+        </header>
+        <p class="body">{{ review.body }}</p>
+        <footer>
+          <small>
+            {{ review.round }}-day review · {{ review.createdAt | date: 'MMM d, y' }}
+            @if (review.projectName) { · about <strong>{{ review.projectName }}</strong> }
+          </small>
+          @if (review.mayPublish) {
+            <span class="tag">May be published</span>
+          } @else {
+            <span class="tag muted">Private</span>
+          }
+          @if (review.featured) { <span class="tag">On landing page</span> }
+          <div class="actions">
+            @if (review.mayPublish) {
+              <button class="transparent" type="button" [disabled]="busy() !== null" (click)="setFeatured(review, !review.featured)">
+                <span>{{ busy() === 'feature:' + review.id ? 'Saving…' : review.featured ? 'Remove from landing page' : 'Show on landing page' }}</span>
+              </button>
+            }
+            <button class="transparent danger" type="button" [disabled]="busy() !== null" (click)="deleteReview(review)">
+              <span>{{ busy() === 'delete-review:' + review.id ? 'Deleting…' : 'Delete' }}</span>
+            </button>
+          </div>
+        </footer>
+      </article>
+    } @empty {
+      @if (!reviews.isLoading()) {
+        <p class="empty">No reviews yet. Members are asked 10, 40 and 150 days after they sign up.</p>
+      }
+    }
   </div>
 } @else {
   @if (projects.error()) {

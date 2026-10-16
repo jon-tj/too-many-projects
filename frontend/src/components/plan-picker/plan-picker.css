@@ -101,3 +101,11 @@ article button {
   font-size: 11px;
   text-align: center;
 }
+.price .loading {
+  display: inline-block;
+  width: 3.2em;
+  height: 1em;
+  vertical-align: middle;
+  background: var(--border);
+  border-radius: 4px;
+}

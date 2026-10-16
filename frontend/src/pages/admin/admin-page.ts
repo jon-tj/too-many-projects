@@ -7,11 +7,12 @@ import { Observable } from 'rxjs';
 import { Avatar } from '../../components/avatar/avatar';
 import { Icon } from '../../components/icon/icon';
 import { ProjectIcon } from '../../components/project-icon/project-icon';
+import { Stars } from '../../components/stars/stars';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
-import { AdminProject, AdminUser, PLAN_TITLES } from '../../services/models';
+import { AdminProject, AdminReview, AdminUser, PLAN_TITLES } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
 
-type Tab = 'members' | 'projects';
+type Tab = 'members' | 'projects' | 'reviews';
 
 /**
  * Every member and project in the database, for the admin: plans and activity per member, and overriding what the
@@ -19,7 +20,7 @@ type Tab = 'members' | 'projects';
  */
 @Component({
   selector: 'app-admin-page',
-  imports: [Avatar, Icon, ProjectIcon, DatePipe, RouterLink],
+  imports: [Avatar, Icon, ProjectIcon, Stars, DatePipe, RouterLink],
   templateUrl: './admin-page.html',
   styleUrl: './admin-page.css',
 })
@@ -30,6 +31,7 @@ export class AdminPage {
   protected readonly stats = rxResource({ stream: () => this.api.adminStats() });
   protected readonly users = rxResource({ stream: () => this.api.adminUsers() });
   protected readonly projects = rxResource({ stream: () => this.api.adminProjects() });
+  protected readonly reviews = rxResource({ stream: () => this.api.adminReviews() });
   protected readonly tab = signal<Tab>('members');
   protected readonly search = signal('');
   /** The action in progress, as "<kind>:<id>", so only its button shows it. */
@@ -45,6 +47,14 @@ export class AdminPage {
     (this.projects.value() ?? []).filter((project) =>
       this.matches(project.name, project.ownerName, project.ownerUserName),
     ),
+  );
+  protected readonly shownReviews = computed(() =>
+    (this.reviews.value() ?? []).filter((review) =>
+      this.matches(review.displayName, review.userName, review.body, review.projectName ?? ''),
+    ),
+  );
+  protected readonly featuredCount = computed(
+    () => (this.reviews.value() ?? []).filter((review) => review.featured).length,
   );
   protected readonly frozenCount = computed(
     () => (this.projects.value() ?? []).filter((project) => project.frozen).length,
@@ -100,6 +110,7 @@ export class AdminPage {
     if (!confirm(`Permanently delete ${user.displayName} (@${user.userName})?${owned} This cannot be undone.`)) return;
     this.run(`delete-user:${user.id}`, this.api.adminDeleteUser(user.id), () => {
       this.stats.reload();
+      this.reviews.reload();
       this.users.reload();
       this.projects.reload();
     });
@@ -130,6 +141,15 @@ export class AdminPage {
       this.users.reload();
       this.shell.refreshProjects();
     });
+  }
+
+  protected setFeatured(review: AdminReview, featured: boolean): void {
+    this.run(`feature:${review.id}`, this.api.adminSetFeatured(review.id, featured), () => this.reviews.reload());
+  }
+
+  protected deleteReview(review: AdminReview): void {
+    if (!confirm(`Delete ${review.displayName}'s review? This cannot be undone.`)) return;
+    this.run(`delete-review:${review.id}`, this.api.adminDeleteReview(review.id), () => this.reviews.reload());
   }
 
   private run(key: string, request: Observable<void>, done: () => void): void {

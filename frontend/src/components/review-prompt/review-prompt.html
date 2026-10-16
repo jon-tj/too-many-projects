@@ -1,0 +1,72 @@
+<app-modal [heading]="thanks() ? 'Thank you' : heading()" [open]="open()" (openChange)="openChange($event)">
+  @if (thanks(); as message) {
+    <div class="thanks">
+      <app-icon name="favorite" [size]="28" />
+      <p>{{ message }}</p>
+      <footer>
+        <button class="primary" type="button" (click)="open.set(false)">Close</button>
+      </footer>
+    </div>
+  } @else if (prompt(); as current) {
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <p class="intro">
+        You have been using TooManyProjects for {{ current.round }} days. We would love to hear how it is going.
+      </p>
+      @if (current.trialBonusDays) {
+        <p class="bonus">
+          <app-icon name="redeem" [size]="18" />
+          <span>Leave a review and we add {{ current.trialBonusDays }} days to your free trial.</span>
+        </p>
+      }
+
+      <fieldset class="stars" (mouseleave)="hovered.set(0)">
+        <legend>Your rating</legend>
+        @for (star of [1, 2, 3, 4, 5]; track star) {
+          <button
+            class="transparent"
+            type="button"
+            [class.lit]="star <= lit()"
+            [attr.aria-label]="star + (star === 1 ? ' star' : ' stars')"
+            [attr.aria-pressed]="star === form.controls.stars.value"
+            (mouseenter)="hovered.set(star)"
+            (click)="setStars(star)"
+          >
+            <app-icon name="star" [size]="28" />
+          </button>
+        }
+      </fieldset>
+
+      <label>
+        Your experience
+        <textarea formControlName="body" rows="4" maxlength="2000" placeholder="What works well? What could be better?"></textarea>
+      </label>
+
+      <label>
+        <input type="checkbox" formControlName="mayPublish" />
+        TooManyProjects may show this review on its website, with my name
+      </label>
+      @if (form.controls.mayPublish.value && current.projectNames.length) {
+        <label>
+          Mention one of your projects (optional)
+          <select formControlName="projectName">
+            <option value="">Don't mention a project</option>
+            @for (name of current.projectNames; track name) {
+              <option [value]="name">{{ name }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <footer>
+        <button class="primary" type="submit" [disabled]="busy() || form.invalid">
+          {{ busy() ? 'Sending…' : 'Send review' }}
+        </button>
+        <button class="transparent" type="button" (click)="notNow()">Not now</button>
+        <button class="transparent" type="button" (click)="noThanks()">No thanks</button>
+      </footer>
+    </form>
+  }
+</app-modal>

@@ -55,7 +55,10 @@ public sealed class StripeBilling(
     private string? PlanFor(string? priceId) =>
         priceId == settings.PlusPriceId ? Plan.Plus : priceId == settings.ProPriceId ? Plan.Pro : null;
 
-    /// <summary>The prices last read from Stripe, kept for an hour (a few minutes when one could not be read).</summary>
+    /// <summary>
+    /// The prices last read from Stripe, kept for ten minutes (two when one could not be read), and forgotten as soon as
+    /// a webhook says a price or product changed.
+    /// </summary>
     private static (DateTimeOffset Until, IReadOnlyList<PlanPrice> Prices)? cachedPrices;
 
     /// <summary>
@@ -84,7 +87,7 @@ public sealed class StripeBilling(
                 logger.LogWarning(exception, "Could not read the {Plan} price {Price} from Stripe.", plan, priceId);
             }
         }
-        cachedPrices = (now + (prices.Count == 2 ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(5)), prices);
+        cachedPrices = (now + (prices.Count == 2 ? TimeSpan.FromMinutes(10) : TimeSpan.FromMinutes(2)), prices);
         return prices;
     }
 
@@ -196,6 +199,12 @@ public sealed class StripeBilling(
                 when stripeEvent.Data.Object is Stripe.Checkout.Session { SubscriptionId: { } subscriptionId } session:
                 var subscription = await Client.V1.Subscriptions.GetAsync(subscriptionId, cancellationToken: cancellationToken);
                 await Sync(subscription, session.ClientReferenceId, cancellationToken);
+                break;
+            case EventTypes.PriceCreated:
+            case EventTypes.PriceUpdated:
+            case EventTypes.PriceDeleted:
+            case EventTypes.ProductUpdated:
+                cachedPrices = null;
                 break;
             case EventTypes.CustomerSubscriptionCreated:
             case EventTypes.CustomerSubscriptionUpdated:

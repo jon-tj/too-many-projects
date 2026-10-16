@@ -16,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
 	public DbSet<Bill> Bills => Set<Bill>();
 	public DbSet<PlanExemption> PlanExemptions => Set<PlanExemption>();
+	public DbSet<Review> Reviews => Set<Review>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -52,6 +53,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.HasOne(exemption => exemption.User)
 			.WithOne()
 			.HasForeignKey<PlanExemption>(exemption => exemption.UserId);
+		builder.Entity<Review>()
+			.HasOne(review => review.User)
+			.WithMany()
+			.HasForeignKey(review => review.UserId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<Review>().HasIndex(review => new { review.UserId, review.Round }).IsUnique();
+		builder.Entity<Review>().Property(review => review.Body).HasMaxLength(2000);
+		builder.Entity<Review>().Property(review => review.ProjectName).HasMaxLength(120);
 		builder.Entity<TaskDependency>().HasKey(dependency => new { dependency.TaskId, dependency.DependsOnTaskId });
 		builder.Entity<TaskDependency>()
 			.HasOne(dependency => dependency.Task)

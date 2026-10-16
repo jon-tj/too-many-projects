@@ -21,11 +21,11 @@ export class PlanPicker {
   private readonly api = inject(WorkspaceApi);
   protected readonly info = rxResource({ stream: () => this.api.plan() });
   protected readonly PLANS = PLAN_OPTIONS;
-  /** Prices from Stripe; plans missing from it (or all of them, while loading or on an error) show their fallback. */
+  /** Prices from Stripe; plans missing from it (or all of them, when loading fails) show their fallback. */
   private readonly prices = rxResource({ stream: () => this.api.planPrices() });
 
   protected price(option: PlanOption) {
-    return shownPrice(option, this.prices.value());
+    return shownPrice(option, this.prices.error() ? [] : this.prices.value());
   }
   protected readonly busy = signal(false);
   protected readonly error = signal('');

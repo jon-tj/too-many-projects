@@ -7,7 +7,9 @@
     <a href="#why" (click)="scrollTo($event, 'why')">Why us</a>
     <a href="#features" (click)="scrollTo($event, 'features')">Features</a>
     <a href="#pricing" (click)="scrollTo($event, 'pricing')">Pricing</a>
-    <a href="#reviews" (click)="scrollTo($event, 'reviews')">Reviews</a>
+    @if (hasReviews()) {
+      <a href="#reviews" (click)="scrollTo($event, 'reviews')">Reviews</a>
+    }
   </nav>
   <div class="header-actions">
     <a class="button ghost" routerLink="/login" [queryParams]="utm">Log in</a>
@@ -123,13 +125,18 @@
   </p>
   <div class="plan-grid">
     @for (option of PLANS; track option.name) {
-      @let shown = price(option);
       <article [class.featured]="option.featured">
         @if (option.featured) {
           <span class="tag">Most popular</span>
         }
         <h3>{{ option.title }}</h3>
-        <p class="price"><strong>{{ shown.amount }}</strong> <span>{{ shown.per }}</span></p>
+        <p class="price">
+          @if (price(option); as shown) {
+            <strong>{{ shown.amount }}</strong> <span>{{ shown.per }}</span>
+          } @else {
+            <strong class="loading" aria-label="Loading price"></strong>
+          }
+        </p>
         <ul>
           @for (perk of option.perks; track perk) {
             <li><app-icon name="check" [size]="16" />{{ perk }}</li>
@@ -143,23 +150,29 @@
   </div>
 </section>
 
-<section id="reviews" class="reviews">
-  <h2>What teams say</h2>
-  <div class="review-grid">
-    @for (review of REVIEWS; track $index) {
-      <figure>
-        @if (review.sample) {
-          <span class="tag">Sample</span>
-        }
-        <blockquote>“{{ review.quote }}”</blockquote>
-        <figcaption>
-          <strong>{{ review.name }}</strong>
-          <span>{{ review.role }}</span>
-        </figcaption>
-      </figure>
-    }
-  </div>
-</section>
+@if (hasReviews()) {
+  <section id="reviews" class="reviews">
+    <h2>What teams say</h2>
+    <div class="review-grid">
+      @for (review of reviews.value(); track $index) {
+        <figure>
+          <app-stars [value]="review.stars" [size]="18" />
+          <blockquote>“{{ review.body }}”</blockquote>
+          <figcaption>
+            <app-avatar class="avatar" [name]="review.name" [image]="review.avatarImage" />
+            <span>
+              <strong>{{ review.name }}</strong>
+              <span>
+                @if (review.projectName) { {{ review.projectName }} · }
+                Member since {{ review.memberSince | date: 'MMMM y' }}
+              </span>
+            </span>
+          </figcaption>
+        </figure>
+      }
+    </div>
+  </section>
+}
 
 <section class="final-cta">
   <h2>Ready to get your projects under control?</h2>

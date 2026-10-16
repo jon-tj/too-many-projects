@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import {
   Account,
   AdminProject,
+  AdminReview,
   AdminStats,
   AdminUser,
   CanvasDetail,
@@ -26,7 +27,9 @@ import {
   ChoosablePlan,
   PlanInfo,
   PlanName,
+  PublicReview,
   PublicStats,
+  ReviewPrompt,
   TaskPriority,
   UserSummary,
   WorkSession,
@@ -39,6 +42,32 @@ export class WorkspaceApi {
   /** The paid plans' prices from Stripe; plans it could not read are left out. Needs no sign-in. */
   planPrices(): Observable<PlanPrice[]> {
     return this.http.get<PlanPrice[]>('/api/public/plans');
+  }
+
+  /** The reviews chosen for the landing page; needs no sign-in. */
+  publicReviews(): Observable<PublicReview[]> {
+    return this.http.get<PublicReview[]>('/api/public/reviews');
+  }
+
+  /** The review round to ask you about now; null when there is none. */
+  reviewPrompt(): Observable<ReviewPrompt | null> {
+    return this.http.get<ReviewPrompt | null>('/api/reviews/prompt');
+  }
+
+  /** Saves your review; trialEndsAt is the trial's new end when it was extended. */
+  submitReview(review: {
+    round: number;
+    stars: number;
+    body: string;
+    mayPublish: boolean;
+    projectName: string | null;
+  }): Observable<{ trialEndsAt: string | null }> {
+    return this.http.post<{ trialEndsAt: string | null }>('/api/reviews', review);
+  }
+
+  /** You would rather not review this round; you are asked again at the next one. */
+  dismissReview(round: number): Observable<void> {
+    return this.http.post<void>('/api/reviews/dismiss', { round });
   }
 
   /** Usage numbers for the landing page; needs no sign-in. */
@@ -332,6 +361,19 @@ export class WorkspaceApi {
 
   adminStats(): Observable<AdminStats> {
     return this.http.get<AdminStats>('/api/admin/stats');
+  }
+
+  adminReviews(): Observable<AdminReview[]> {
+    return this.http.get<AdminReview[]>('/api/admin/reviews');
+  }
+
+  /** Shows the review on the landing page, or stops showing it. */
+  adminSetFeatured(reviewId: number, featured: boolean): Observable<void> {
+    return this.http.put<void>(`/api/admin/reviews/${reviewId}/featured`, { featured });
+  }
+
+  adminDeleteReview(reviewId: number): Observable<void> {
+    return this.http.delete<void>(`/api/admin/reviews/${reviewId}`);
   }
 
   adminUsers(): Observable<AdminUser[]> {

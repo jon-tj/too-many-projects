@@ -573,6 +573,51 @@ namespace backend.Migrations
                     b.ToTable("ProjectTasks");
                 });
 
+            modelBuilder.Entity("Model.Review", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Dismissed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Featured")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("MayPublish")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ProjectName")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Stars")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Round")
+                        .IsUnique();
+
+                    b.ToTable("Reviews");
+                });
+
             modelBuilder.Entity("Model.TaskDependency", b =>
                 {
                     b.Property<long>("TaskId")
@@ -767,6 +812,17 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Model.Review", b =>
+                {
+                    b.HasOne("Model.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Model.TaskDependency", b =>

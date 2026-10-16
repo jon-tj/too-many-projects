@@ -165,6 +165,48 @@ export interface AdminUser {
   tasksCompleted: number;
 }
 
+/** Asking you about your experience (GET api/reviews/prompt). */
+export interface ReviewPrompt {
+  /** Days since you created your account: 10, 40 or 150. */
+  round: number;
+  /** Days a review adds to your trial; null when you are not on one. */
+  trialBonusDays: number | null;
+  /** Your projects, to optionally name one with the review. */
+  projectNames: string[];
+}
+
+/** A review as the admin page lists it. */
+export interface AdminReview {
+  id: number;
+  userId: string;
+  displayName: string;
+  userName: string;
+  avatarImage: string | null;
+  memberSince: string;
+  /** Days after creating their account that the user was asked: 10, 40 or 150. */
+  round: number;
+  createdAt: string;
+  stars: number;
+  body: string;
+  /** The user allows it on the landing page, with their name. */
+  mayPublish: boolean;
+  /** The project the user allows to be named with it. */
+  projectName: string | null;
+  /** Shown on the landing page. */
+  featured: boolean;
+}
+
+/** A review on the landing page. */
+export interface PublicReview {
+  stars: number;
+  body: string;
+  name: string;
+  avatarImage: string | null;
+  /** When the reviewer created their account. */
+  memberSince: string;
+  projectName: string | null;
+}
+
 /** Usage over the last 7 and 30 days, for the admin page. */
 export interface AdminStats {
   /** Users who opened the app in the last 7 days. */

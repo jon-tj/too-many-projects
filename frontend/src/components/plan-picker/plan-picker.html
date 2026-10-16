@@ -19,12 +19,15 @@
       <p class="price">
         @if (info.value()?.planExempt && option.name !== 'free') {
           <!-- Exempt users switch to any plan without paying. -->
-          <s>{{ price(option).amount }}</s>
+          <s>{{ price(option)?.amount }}</s>
           <strong>Free for you</strong>
         } @else {
-          @let shown = price(option);
-          <strong>{{ shown.amount }}</strong>
-          <span>{{ shown.per }}</span>
+          @if (price(option); as shown) {
+            <strong>{{ shown.amount }}</strong>
+            <span>{{ shown.per }}</span>
+          } @else {
+            <strong class="loading" aria-label="Loading price"></strong>
+          }
         }
       </p>
       <ul>

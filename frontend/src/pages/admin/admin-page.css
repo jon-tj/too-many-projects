@@ -190,3 +190,61 @@ button.transparent.danger {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+.hint {
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+.review-list {
+  display: grid;
+  gap: 12px;
+  max-width: 920px;
+}
+.review-list article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.review-list article.featured {
+  border-color: var(--secondary-surface);
+}
+.review-list header,
+.review-list footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.review-list header > div {
+  flex: 1;
+  font-size: 13px;
+}
+.review-list header small,
+.review-list footer small {
+  display: block;
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.review-list .body {
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.review-list .tag {
+  margin-left: 0;
+}
+.tag.muted {
+  color: var(--secondary-surface);
+  background: var(--border);
+}
+.review-list .actions {
+  margin-left: auto;
+}
+.review-list .empty {
+  color: var(--secondary-surface);
+  font-size: 13px;
+}

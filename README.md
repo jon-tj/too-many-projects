@@ -67,7 +67,7 @@ Plus and Pro are monthly Stripe subscriptions. Choosing one opens Stripe Checkou
 3. **Webhook**: Developers > Webhooks > Add endpoint:
    - URL: `https://<your-render-domain>/api/stripe/webhook`
    - API version: `2026-09-30.endive` (the version the Stripe.net package in the backend uses)
-   - Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`
+   - Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, and `price.created`, `price.updated`, `price.deleted`, `product.updated` (so a changed price shows at once; otherwise the app picks it up within 10 minutes)
 
    Copy its **signing secret** (`whsec_...`).
 4. **Customer portal**: Settings > Billing > Customer portal: activate it, allow updating payment methods, showing invoices and cancelling (at the end of the billing period). To let people switch plan there too, add both products under *Subscriptions*.
