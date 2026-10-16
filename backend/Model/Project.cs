@@ -19,8 +19,8 @@ public sealed class Project
     public bool Frozen { get; set; }
     public bool BillingEnabled { get; set; }
     public string BillingClientName { get; set; } = string.Empty;
-    /// <summary>Our side's point of contact for the client.</summary>
-    public string BillingContactName { get; set; } = string.Empty;
+    /// <summary>Who does the work for the client, shown on reports and bills.</summary>
+    public string BillingContractorName { get; set; } = string.Empty;
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }

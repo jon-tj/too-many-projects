@@ -47,7 +47,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
 
         project.BillingEnabled = request.Enabled;
         project.BillingClientName = request.ClientName.Trim();
-        project.BillingContactName = request.ContactName.Trim();
+        project.BillingContractorName = request.ContractorName.Trim();
         project.BillingCostPerHour = request.CostPerHour;
         project.BillingMinHoursPerDay = request.MinHoursPerDay;
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
@@ -279,7 +279,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     {
         Enabled = project.BillingEnabled,
         ClientName = project.BillingClientName,
-        ContactName = project.BillingContactName,
+        ContractorName = project.BillingContractorName,
         CostPerHour = project.BillingCostPerHour,
         MinHoursPerDay = project.BillingMinHoursPerDay,
         MaxHoursPerDay = project.BillingMaxHoursPerDay,
@@ -294,9 +294,9 @@ public sealed record BillingSettings
     [StringLength(200)]
     public string ClientName { get; init; } = string.Empty;
 
-    /// <summary>Our side's point of contact for the client.</summary>
+    /// <summary>Who does the work for the client.</summary>
     [StringLength(200)]
-    public string ContactName { get; init; } = string.Empty;
+    public string ContractorName { get; init; } = string.Empty;
 
     [Range(0, 1_000_000)]
     public decimal CostPerHour { get; init; }

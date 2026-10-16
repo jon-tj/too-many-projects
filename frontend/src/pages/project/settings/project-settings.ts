@@ -41,7 +41,7 @@ export class ProjectSettings {
   protected readonly billingForm = inject(FormBuilder).nonNullable.group({
     enabled: [false],
     clientName: ['', Validators.maxLength(200)],
-    contactName: ['', Validators.maxLength(200)],
+    contractorName: ['', Validators.maxLength(200)],
     costPerHour: [0, [Validators.required, Validators.min(0)]],
     minHoursPerDay: [0, [Validators.required, Validators.min(0), Validators.max(24)]],
     /** 0 or 24+ means no cap. */

@@ -306,8 +306,8 @@ export type BillableFraction = (typeof BILLABLE_FRACTIONS)[number];
 export interface BillingSettings {
   enabled: boolean;
   clientName: string;
-  /** Our side's point of contact for the client. */
-  contactName: string;
+  /** Who does the work for the client. */
+  contractorName: string;
   costPerHour: number;
   minHoursPerDay: number;
   maxHoursPerDay: number;

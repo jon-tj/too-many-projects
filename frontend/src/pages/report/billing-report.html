@@ -27,8 +27,8 @@
   <dl>
     <dt>Client</dt>
     <dd>{{ r.settings.clientName || '—' }}</dd>
-    <dt>Point of contact</dt>
-    <dd>{{ r.settings.contactName || '—' }}</dd>
+    <dt>Contractor</dt>
+    <dd>{{ r.settings.contractorName || '—' }}</dd>
     <dt>Cost per hour</dt>
     <dd>{{ r.settings.costPerHour | number: '1.2-2' }}</dd>
     @if (hoursPerDay(r.settings); as limits) {

@@ -432,7 +432,7 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("BillingContactName")
+                    b.Property<string>("BillingContractorName")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
