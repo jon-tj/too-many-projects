@@ -420,6 +420,10 @@ h1 em {
   font-size: 15px;
   line-height: 1.5;
 }
+/* Two notes in a row sit close together; only the last keeps the space above the plans. */
+.team-note:has(+ .team-note) {
+  margin-bottom: 12px;
+}
 .team-note app-icon {
   color: var(--secondary-surface);
 }

@@ -65,6 +65,8 @@ export class LandingPage {
 
   /** The team the pricing note works the cost out for: Plus split between five people. */
   protected readonly TEAM_SIZE = 5;
+  /** The free plan, for the note on what happens when a plan runs out. */
+  protected readonly FREE = PLAN_OPTIONS.find((option) => option.name === 'free')!;
   protected readonly teamShare = computed(() =>
     perPersonPrice(
       PLAN_OPTIONS.find((option) => option.name === 'plus')!,
