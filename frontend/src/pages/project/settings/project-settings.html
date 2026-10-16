@@ -91,10 +91,23 @@
           Maximum hours per day
           <input type="number" min="0" step="0.5" formControlName="maxHoursPerDay" />
         </label>
+        <label>
+          Time zone
+          <input formControlName="timeZone" list="billing-time-zones" placeholder="e.g. Europe/Oslo (empty counts in UTC)" />
+          <datalist id="billing-time-zones">
+            @for (zone of timeZones; track zone) {
+              <option [value]="zone"></option>
+            }
+          </datalist>
+        </label>
         <p>
           Each member's billable hours per day: hours worked, raised to the minimum on days with work and capped at
           the maximum, times their billable share (set on the Members tab). A minimum of 0 means no minimum; a maximum
-          of 0 or 24 and above means no cap.
+          of 0 or 24 and above means no cap. Days and months start at midnight in the time zone, so work after
+          midnight counts on the day it was done there.
+          @if (billingForm.controls.timeZone.dirty && billingForm.controls.timeZone.value === browserTimeZone) {
+            <strong>Your time zone ({{ browserTimeZone }}) was filled in: save to use it.</strong>
+          }
         </p>
       }
       @if (billingMessage()) {

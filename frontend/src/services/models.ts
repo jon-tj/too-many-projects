@@ -311,6 +311,8 @@ export interface BillingSettings {
   costPerHour: number;
   minHoursPerDay: number;
   maxHoursPerDay: number;
+  /** IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC. */
+  timeZone: string;
 }
 
 export interface BillingMemberTotal {

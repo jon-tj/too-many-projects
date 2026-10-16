@@ -46,7 +46,12 @@ export class ProjectSettings {
     minHoursPerDay: [0, [Validators.required, Validators.min(0), Validators.max(24)]],
     /** 0 or 24+ means no cap. */
     maxHoursPerDay: [8, [Validators.required, Validators.min(0)]],
+    timeZone: ['', Validators.maxLength(64)],
   });
+  /** Your browser's time zone, offered for billing. */
+  protected readonly browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  /** Every time zone the browser knows, for picking another. */
+  protected readonly timeZones: string[] = Intl.supportedValuesOf?.('timeZone') ?? [];
   protected readonly icons = PROJECT_ICONS;
   protected readonly busy = signal(false);
   protected readonly message = signal('');
@@ -71,7 +76,13 @@ export class ProjectSettings {
   constructor() {
     effect(() => {
       const billing = this.billing.value();
-      if (billing) this.billingForm.reset(billing);
+      if (!billing) return;
+      this.billingForm.reset(billing);
+      // Projects from before billing had a time zone count in UTC: suggest yours, saved with the next save.
+      if (!billing.timeZone && this.browserTimeZone) {
+        this.billingForm.controls.timeZone.setValue(this.browserTimeZone);
+        this.billingForm.controls.timeZone.markAsDirty();
+      }
     });
     effect(() => {
       const project = this.project.value();

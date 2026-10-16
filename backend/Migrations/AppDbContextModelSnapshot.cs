@@ -448,6 +448,10 @@ namespace backend.Migrations
                     b.Property<decimal>("BillingMinHoursPerDay")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BillingTimeZone")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 

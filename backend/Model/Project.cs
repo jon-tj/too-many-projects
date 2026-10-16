@@ -21,6 +21,10 @@ public sealed class Project
     public string BillingClientName { get; set; } = string.Empty;
     /// <summary>Who does the work for the client, shown on reports and bills.</summary>
     public string BillingContractorName { get; set; } = string.Empty;
+    /// <summary>
+    /// The IANA time zone (e.g. Europe/Oslo) whose midnights start each billed day and month; empty counts in UTC.
+    /// </summary>
+    public string BillingTimeZone { get; set; } = string.Empty;
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }

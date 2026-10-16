@@ -15,6 +15,8 @@ RUN dotnet publish backend/backend.csproj --configuration Release --output /app/
 COPY --from=frontend-build /src/frontend/dist/frontend/browser/ /app/publish/wwwroot/
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+# Time zone data, so billing can count days in the project's time zone (e.g. Europe/Oslo).
+RUN apk add --no-cache tzdata
 WORKDIR /app
 COPY --from=backend-build /app/publish/ ./
 ENV ASPNETCORE_ENVIRONMENT=Production

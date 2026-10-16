@@ -42,6 +42,9 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     {
         if (IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
+        var timeZone = request.TimeZone.Trim();
+        if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
+            return BadRequest(new { error = $"Unknown time zone: {timeZone}. Use a name such as Europe/Oslo." });
         var project = await GetOwnedProject(projectId, cancellationToken);
         if (project is null) return NotFound();
 
@@ -51,6 +54,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         project.BillingCostPerHour = request.CostPerHour;
         project.BillingMinHoursPerDay = request.MinHoursPerDay;
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
+        project.BillingTimeZone = timeZone;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -157,12 +161,32 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     private static BillSummary ToSummary(Bill bill) =>
         new(bill.Id, bill.Month, bill.CreatedAt, bill.Status, bill.Amount, bill.AmountPaid, bill.Overdue);
 
+    /// <summary>The project's billing time zone; UTC when none is set or it is not known on this server.</summary>
+    private static TimeZoneInfo BillingZone(Project project) =>
+        project.BillingTimeZone != "" && TimeZoneInfo.TryFindSystemTimeZoneById(project.BillingTimeZone, out var zone)
+            ? zone
+            : TimeZoneInfo.Utc;
+
+    /// <summary>
+    /// The moment the given day starts in the zone: local midnight, or the first moment after it on the rare days
+    /// clocks jump forward at midnight, when midnight itself never happens.
+    /// </summary>
+    private static DateTimeOffset MidnightIn(TimeZoneInfo zone, DateTime day)
+    {
+        var local = DateTime.SpecifyKind(day.Date, DateTimeKind.Unspecified);
+        while (zone.IsInvalidTime(local)) local = local.AddMinutes(30);
+        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone), TimeSpan.Zero);
+    }
+
     private async Task<BillingReport> BuildReport(Project project, string month, DateTime parsed, CancellationToken cancellationToken)
     {
         var projectId = project.Id;
-        var start = new DateTimeOffset(parsed.Year, parsed.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        // Days and months start at midnight in the project's billing time zone, as the people working there count them.
+        var zone = BillingZone(project);
+        var start = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1));
+        var nextMonth = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1).AddMonths(1));
         var now = DateTimeOffset.UtcNow;
-        var until = start.AddMonths(1) < now ? start.AddMonths(1) : now;
+        var until = nextMonth < now ? nextMonth : now;
 
         // Filtered in memory: SQLite cannot compare DateTimeOffset values in queries.
         var sessions = await db.WorkSessions.AsNoTracking()
@@ -178,9 +202,10 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
             var to = session.EndedAt is { } ended && ended < until ? ended : until;
             while (from < to)
             {
-                var dayEnd = new DateTimeOffset(from.UtcDateTime.Date.AddDays(1), TimeSpan.Zero);
+                var localDay = TimeZoneInfo.ConvertTime(from, zone).Date;
+                var dayEnd = MidnightIn(zone, localDay.AddDays(1));
                 var end = dayEnd < to ? dayEnd : to;
-                var key = (session.UserId, DateOnly.FromDateTime(from.UtcDateTime));
+                var key = (session.UserId, DateOnly.FromDateTime(localDay));
                 hours[key] = hours.GetValueOrDefault(key) + (decimal)(end - from).TotalHours;
                 from = end;
             }
@@ -214,7 +239,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
 
         // Daily limits apply to the day's full total; what was billed before is then subtracted,
         // so a day never gets the minimum twice nor more than the maximum in total.
-        var monthStart = DateOnly.FromDateTime(start.UtcDateTime);
+        var monthStart = new DateOnly(parsed.Year, parsed.Month, 1);
         var days = hours
             .Select(entry =>
             {
@@ -283,6 +308,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         CostPerHour = project.BillingCostPerHour,
         MinHoursPerDay = project.BillingMinHoursPerDay,
         MaxHoursPerDay = project.BillingMaxHoursPerDay,
+        TimeZone = project.BillingTimeZone,
     };
 }
 
@@ -307,11 +333,15 @@ public sealed record BillingSettings
     /// <summary>0 or 24+ means no cap.</summary>
     [Range(0, 1000)]
     public decimal MaxHoursPerDay { get; init; } = 8;
+
+    /// <summary>IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC.</summary>
+    [StringLength(64)]
+    public string TimeZone { get; init; } = string.Empty;
 }
 
 public sealed record SetFractionRequest(string Fraction);
 
-/// <summary>One member's billing for one (UTC) day.</summary>
+/// <summary>One member's billing for one day, in the project's billing time zone.</summary>
 /// <param name="CarriedOver">Worked before the bill's month but not billed before.</param>
 public sealed record BillingDay(
     DateOnly Date, string UserId, string Name, string Fraction, decimal HoursWorked, decimal BillableHours,
