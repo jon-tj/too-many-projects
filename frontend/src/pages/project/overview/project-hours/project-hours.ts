@@ -23,6 +23,8 @@ interface Draft {
 }
 
 const RANGE_DAYS: Record<OverviewRange, number> = { '7d': 7, '30d': 30, '1y': 365 };
+/** Rows shown until the table is expanded. */
+const COLLAPSED_ROWS = 3;
 const pad = (value: number) => String(value).padStart(2, '0');
 
 /** The local "YYYY-MM-DDTHH:mm" a datetime-local input expects. */
@@ -58,6 +60,13 @@ export class ProjectHours {
   protected readonly shown = computed(() =>
     this.sessions.value().filter((session) => !this.onlyMine() || session.mine),
   );
+  /** Showing every row, scrolling inside the table, instead of only the newest few. */
+  protected readonly expanded = signal(false);
+  protected readonly COLLAPSED_ROWS = COLLAPSED_ROWS;
+  protected readonly visible = computed(() =>
+    this.expanded() ? this.shown() : this.shown().slice(0, COLLAPSED_ROWS),
+  );
+  /** Covers every row in the period, not only the visible ones. */
   protected readonly total = computed(() => this.shown().reduce((sum, session) => sum + this.hours(session), 0));
   protected readonly draft = signal<Draft | null>(null);
   protected readonly busy = signal<number | null>(null);
@@ -82,6 +91,17 @@ export class ProjectHours {
     const start = new Date(draft.start).getTime();
     const end = draft.end ? new Date(draft.end).getTime() : Date.now();
     return isNaN(start) || isNaN(end) || end <= start ? null : (end - start) / 3_600_000;
+  }
+
+  /** Collapsing hides an older row being edited, so its unsaved edit is dropped rather than left out of sight. */
+  protected toggleExpanded(): void {
+    const draft = this.draft();
+    if (this.expanded() && draft && !this.visibleWhenCollapsed(draft.id)) this.draft.set(null);
+    this.expanded.update((expanded) => !expanded);
+  }
+
+  private visibleWhenCollapsed(id: number): boolean {
+    return id === NEW || this.shown().slice(0, COLLAPSED_ROWS).some((session) => session.id === id);
   }
 
   protected edit(session: ProjectWorkSession): void {

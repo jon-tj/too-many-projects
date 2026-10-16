@@ -16,7 +16,7 @@
   <p class="error" role="alert">{{ error() }}</p>
 }
 
-<div class="table-wrap">
+<div class="table-wrap" [class.expanded]="expanded()">
   <table>
     <thead>
       <tr>
@@ -33,7 +33,7 @@
       @if (draft()?.id === NEW) {
         <ng-container *ngTemplateOutlet="editor; context: { $implicit: draft(), session: null }" />
       }
-      @for (session of shown(); track session.id) {
+      @for (session of visible(); track session.id) {
         @let editing = draft()?.id === session.id ? draft() : null;
         @if (editing) {
           <ng-container *ngTemplateOutlet="editor; context: { $implicit: editing, session }" />
@@ -88,7 +88,7 @@
     @if (shown().length) {
       <tfoot>
         <tr>
-          <th scope="row" colspan="2">Total</th>
+          <th scope="row" colspan="2">Total <small>{{ shown().length }} {{ shown().length === 1 ? 'session' : 'sessions' }}</small></th>
           <td class="number"><strong>{{ formatHours(total()) }}</strong></td>
           <td colspan="4"></td>
         </tr>
@@ -96,6 +96,12 @@
     }
   </table>
 </div>
+@if (shown().length > COLLAPSED_ROWS) {
+  <button class="transparent more" type="button" [attr.aria-expanded]="expanded()" (click)="toggleExpanded()">
+    <app-icon [name]="expanded() ? 'expand_less' : 'expand_more'" />
+    <span>{{ expanded() ? 'Show only the latest ' + COLLAPSED_ROWS : 'Show all ' + shown().length + ' sessions' }}</span>
+  </button>
+}
 
 <!-- The row being edited or added; session is null for a new one, which is yours and needs an end. -->
 <ng-template #editor let-editing let-session="session">

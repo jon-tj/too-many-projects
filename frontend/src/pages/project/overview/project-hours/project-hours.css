@@ -35,6 +35,36 @@ h2 {
   border: 1px solid var(--border);
   border-radius: 6px;
 }
+/* Expanded, the rows scroll inside the table while the headings and the total stay in view. */
+.table-wrap.expanded {
+  max-height: 440px;
+  overflow-y: auto;
+}
+.table-wrap.expanded thead th,
+.table-wrap.expanded tfoot th,
+.table-wrap.expanded tfoot td {
+  position: sticky;
+  z-index: 1;
+  background: var(--primary-surface);
+}
+.table-wrap.expanded thead th {
+  top: 0;
+  box-shadow: inset 0 -1px var(--border);
+}
+.table-wrap.expanded tfoot th,
+.table-wrap.expanded tfoot td {
+  bottom: 0;
+  box-shadow: inset 0 1px var(--border);
+}
+tfoot small {
+  display: inline;
+  margin-left: 6px;
+  font-weight: 400;
+}
+.more {
+  display: flex;
+  margin: 6px auto 0;
+}
 table {
   width: 100%;
   border-collapse: collapse;
