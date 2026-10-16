@@ -53,6 +53,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.HasOne(exemption => exemption.User)
 			.WithOne()
 			.HasForeignKey<PlanExemption>(exemption => exemption.UserId);
+		builder.Entity<WorkSession>().Property(session => session.Message).HasMaxLength(1000);
 		builder.Entity<Review>()
 			.HasOne(review => review.User)
 			.WithMany()

@@ -15,10 +15,13 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProjectPage } from '../project-page';
+import { ProjectHours } from './project-hours/project-hours';
+import { WorkReflection } from '../../../components/work-reflection/work-reflection';
 import {
   BILL_STATUSES,
   BillStatus,
   BillSummary,
+  WorkReflectionValues,
   OverviewPoint,
   OverviewRange,
   ProjectOverview as Overview,
@@ -47,7 +50,7 @@ const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
 
 @Component({
   selector: 'app-project-overview',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, ProjectHours, WorkReflection],
   templateUrl: './project-overview.html',
   styleUrl: './project-overview.css',
 })
@@ -170,12 +173,32 @@ export class ProjectOverview implements OnDestroy {
     return `${month}-01T00:00:00Z`;
   }
 
+  private readonly hoursTable = viewChild(ProjectHours);
+  /** The "How did it go?" dialog, shown when finishing work. */
+  protected readonly reflecting = signal(false);
+
+  /** Finishing work first asks how it went; starting, or going idle while not working, needs no questions. */
   protected setWorking(working: boolean): void {
+    if (!working && this.shown()?.working) {
+      this.reflecting.set(true);
+      return;
+    }
+    this.sendWorking(working);
+  }
+
+  /** Finishes work with the answers from the dialog, or without them when skipped. */
+  protected finishWork(reflection?: WorkReflectionValues): void {
+    this.sendWorking(false, reflection);
+  }
+
+  private sendWorking(working: boolean, reflection?: WorkReflectionValues): void {
     this.busy.set(true);
-    this.api.setWorking(this.projectId(), working).subscribe({
+    this.api.setWorking(this.projectId(), working, reflection).subscribe({
       next: () => {
         this.busy.set(false);
+        this.reflecting.set(false);
         this.overview.reload();
+        this.hoursTable()?.reload();
       },
       error: () => this.busy.set(false),
     });

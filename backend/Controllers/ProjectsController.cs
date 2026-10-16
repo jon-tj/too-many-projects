@@ -367,7 +367,7 @@ public sealed class ProjectsController(
         return Ok(new ProjectOverviewResponse(points, open is not null, open));
     }
 
-    /// <summary>"Working" opens a work session for the caller; "Idle" closes it.</summary>
+    /// <summary>"Working" opens a work session for the caller; "Idle" closes it, with how it went if given.</summary>
     [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpPut("{id:long}/work")]
     public async Task<IActionResult> SetWorking(long id, SetWorkingRequest request, CancellationToken cancellationToken)
@@ -380,7 +380,12 @@ public sealed class ProjectsController(
         if (request.Working && open is null)
             db.WorkSessions.Add(new WorkSession { ProjectId = id, UserId = userId });
         else if (!request.Working && open is not null)
+        {
             open.EndedAt = DateTimeOffset.UtcNow;
+            open.Mood = request.Mood;
+            open.Resistance = request.Resistance;
+            open.Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim();
+        }
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -648,4 +653,17 @@ public sealed record OverviewPoint(DateTimeOffset Date, int TasksCompleted, doub
 /// <summary>The overview chart data and the caller's working status.</summary>
 public sealed record ProjectOverviewResponse(IReadOnlyList<OverviewPoint> Points, bool Working, DateTimeOffset? WorkingSince);
 
-public sealed record SetWorkingRequest(bool Working);
+/// <summary>Working or idle; going idle may say how the session went (see WorkSession).</summary>
+public sealed record SetWorkingRequest
+{
+    public bool Working { get; init; }
+
+    [Range(0, 10)]
+    public int? Mood { get; init; }
+
+    [Range(0, 10)]
+    public int? Resistance { get; init; }
+
+    [StringLength(1000)]
+    public string? Message { get; init; }
+}

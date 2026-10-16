@@ -124,7 +124,16 @@ export class WorkLog {
     }
     this.error.set('');
     this.saving.set(session.id);
-    this.api.updateWorkSession(session.id, start.toISOString(), end?.toISOString() ?? null).subscribe({
+    const { mood, resistance, message } = session;
+    this.api
+      .updateWorkSession(session.id, {
+        startedAt: start.toISOString(),
+        endedAt: end?.toISOString() ?? null,
+        mood,
+        resistance,
+        message,
+      })
+      .subscribe({
       next: (updated) => {
         this.saving.set(null);
         this.sessions.update((sessions) => sessions.map((item) => (item.id === updated.id ? updated : item)));

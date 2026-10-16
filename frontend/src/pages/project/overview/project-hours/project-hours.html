@@ -1,0 +1,160 @@
+<header>
+  <h2>Hours</h2>
+  <button class="transparent add" type="button" [disabled]="draft()?.id === NEW" (click)="add()">
+    <app-icon name="add" /><span>Add hours</span>
+  </button>
+  <div class="toggle" role="group" aria-label="Whose hours">
+    <button class="transparent" type="button" [class.active]="!onlyMine()" (click)="onlyMine.set(false)"><span>Everyone</span></button>
+    <button class="transparent" type="button" [class.active]="onlyMine()" (click)="onlyMine.set(true)"><span>Only me</span></button>
+  </div>
+</header>
+
+@if (sessions.error()) {
+  <p class="error" role="alert">Could not load the hours.</p>
+}
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Who</th>
+        <th scope="col">When</th>
+        <th scope="col" class="number">Hours</th>
+        <th scope="col" class="number">Mood</th>
+        <th scope="col" class="number">Resistance</th>
+        <th scope="col">Message</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (draft()?.id === NEW) {
+        <ng-container *ngTemplateOutlet="editor; context: { $implicit: draft(), session: null }" />
+      }
+      @for (session of shown(); track session.id) {
+        @let editing = draft()?.id === session.id ? draft() : null;
+        @if (editing) {
+          <ng-container *ngTemplateOutlet="editor; context: { $implicit: editing, session }" />
+        } @else {
+          <tr [class.mine]="session.mine">
+            <td>
+              <div class="who">
+                <app-avatar class="avatar" [name]="session.displayName" [image]="session.avatarImage" />
+                <span>{{ session.displayName }}</span>
+              </div>
+            </td>
+            <td class="when">
+              {{ session.startedAt | date: 'EEE MMM d' }}
+              <small>
+                {{ session.startedAt | date: 'shortTime' }} –
+                {{ session.endedAt ? (session.endedAt | date: 'shortTime') : 'now' }}
+              </small>
+            </td>
+            <td class="number">
+              {{ formatHours(hours(session)) }}
+              @if (!session.endedAt) { <small class="running">Running</small> }
+            </td>
+            <td class="number" [class.none]="session.mood === null" [title]="session.mood === null ? 'No mood given' : 'Mood ' + session.mood + ' / 10'">
+              {{ session.mood ?? '–' }}
+            </td>
+            <td class="number" [class.none]="session.resistance === null" [title]="session.resistance === null ? 'No resistance given' : 'Resistance ' + session.resistance + ' / 10'">
+              {{ session.resistance ?? '–' }}
+            </td>
+            <td class="message">{{ session.message }}</td>
+            <td>
+              @if (session.mine) {
+                <div class="actions">
+                  <button class="transparent" type="button" title="Edit" aria-label="Edit" [disabled]="busy() !== null" (click)="edit(session)">
+                    <app-icon name="edit" />
+                  </button>
+                  <button class="transparent danger" type="button" title="Delete" aria-label="Delete" [disabled]="busy() !== null" (click)="remove(session)">
+                    <app-icon name="delete" />
+                  </button>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      } @empty {
+        @if (draft()?.id !== NEW) {
+        <tr>
+          <td colspan="7" class="empty">{{ sessions.isLoading() ? 'Loading…' : 'No hours logged in this period.' }}</td>
+        </tr>
+        }
+      }
+    </tbody>
+    @if (shown().length) {
+      <tfoot>
+        <tr>
+          <th scope="row" colspan="2">Total</th>
+          <td class="number"><strong>{{ formatHours(total()) }}</strong></td>
+          <td colspan="4"></td>
+        </tr>
+      </tfoot>
+    }
+  </table>
+</div>
+
+<!-- The row being edited or added; session is null for a new one, which is yours and needs an end. -->
+<ng-template #editor let-editing let-session="session">
+  <tr class="editing">
+    <td>
+      <div class="who">
+        @if (session) {
+          <app-avatar class="avatar" [name]="session.displayName" [image]="session.avatarImage" />
+          <span>{{ session.displayName }}</span>
+        } @else {
+          <span class="new-label">New session</span>
+        }
+      </div>
+    </td>
+    <td>
+      <div class="times">
+        <label>
+          Start
+          <input type="datetime-local" [value]="editing.start" (input)="change('start', $any($event.target).value)" />
+        </label>
+        @if (!session || session.endedAt) {
+          <label>
+            End
+            <input type="datetime-local" [value]="editing.end" (input)="change('end', $any($event.target).value)" />
+          </label>
+        } @else {
+          <small>Still running</small>
+        }
+      </div>
+    </td>
+    <td class="number">
+      @if (draftHours(editing); as hours) {
+        {{ formatHours(hours) }}
+      } @else {
+        <span class="none" title="The end must be after the start">–</span>
+      }
+    </td>
+    <td class="number">
+      <label class="gauge">
+        <output>{{ editing.mood ?? '–' }}</output>
+        <input type="range" min="0" max="10" step="1" aria-label="Mood" [value]="editing.mood ?? 5" (input)="change('mood', +$any($event.target).value)" />
+      </label>
+    </td>
+    <td class="number">
+      <label class="gauge">
+        <output>{{ editing.resistance ?? '–' }}</output>
+        <input type="range" min="0" max="10" step="1" aria-label="Resistance" [value]="editing.resistance ?? 5" (input)="change('resistance', +$any($event.target).value)" />
+      </label>
+    </td>
+    <td>
+      <textarea rows="2" maxlength="1000" aria-label="Message" [value]="editing.message" (input)="change('message', $any($event.target).value)"></textarea>
+    </td>
+    <td>
+      <div class="actions">
+        <button class="primary" type="button" [disabled]="busy() !== null" (click)="save(session)">
+          {{ busy() === editing.id ? 'Saving…' : session ? 'Save' : 'Add' }}
+        </button>
+        <button class="transparent" type="button" (click)="draft.set(null)"><span>Cancel</span></button>
+      </div>
+    </td>
+  </tr>
+</ng-template>

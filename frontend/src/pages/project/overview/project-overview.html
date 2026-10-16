@@ -107,6 +107,15 @@
   </table>
 </details>
 
+<app-project-hours [projectId]="projectId()" [range]="range()" />
+
+<app-work-reflection
+  [(open)]="reflecting"
+  [busy]="busy()"
+  (submitted)="finishWork($event)"
+  (skipped)="finishWork()"
+/>
+
 @if (billing.value(); as reports) {
   <section class="billing" aria-label="Billing">
     <h2>Billing</h2>

@@ -1,0 +1,164 @@
+:host {
+  display: block;
+  margin-top: 32px;
+}
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+h2 {
+  margin: 0;
+  font-size: 16px;
+}
+h2 {
+  margin-right: auto;
+}
+.toggle {
+  display: flex;
+  gap: 4px;
+}
+.new-label {
+  font-weight: 600;
+}
+.error {
+  color: var(--priority-critical);
+  font-size: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th,
+td {
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+thead th {
+  color: var(--secondary-surface);
+  font:
+    600 10px 'IBM Plex Mono',
+    monospace;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+tfoot th,
+tfoot td {
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+}
+.number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+small {
+  display: block;
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.running {
+  color: var(--doing);
+  font-weight: 600;
+}
+.empty {
+  padding: 20px 10px;
+  color: var(--secondary-surface);
+  text-align: center;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.avatar {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+.when {
+  white-space: nowrap;
+}
+/* No value given: a dash, dimmed, in the same column position as the numbers. */
+td.none,
+span.none {
+  color: var(--secondary-surface);
+}
+.gauge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-weight: 400;
+}
+output {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.message {
+  min-width: 160px;
+  max-width: 280px;
+  white-space: pre-line;
+}
+
+tr.editing td {
+  background: var(--primary-active-surface);
+}
+tr.editing input[type='range'] {
+  width: 96px;
+  accent-color: var(--secondary-surface);
+}
+.times {
+  display: grid;
+  gap: 6px;
+}
+.times label {
+  font-size: 11px;
+}
+.times input {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+textarea {
+  width: 100%;
+  min-width: 160px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+button.transparent.danger {
+  color: var(--priority-critical);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

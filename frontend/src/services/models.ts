@@ -104,13 +104,34 @@ export interface PublicStats {
 }
 
 /** A stretch of time someone marked themselves as working on a project. */
-export interface WorkSession {
+export interface WorkSession extends WorkReflectionValues {
   id: number;
   projectId: number;
   projectName: string;
   startedAt: string;
   /** Null while the session is still running. */
   endedAt: string | null;
+}
+
+/** How a work session went, given when finishing it; each part is optional. */
+export interface WorkReflectionValues {
+  /** 0 (awful) to 10 (great). */
+  mood: number | null;
+  /** How much the work pushed back: 0 (none) to 10 (a wall). */
+  resistance: number | null;
+  message: string | null;
+}
+
+/** A work session in a project's hours table, with who did it. */
+export interface ProjectWorkSession extends WorkReflectionValues {
+  id: number;
+  userId: string;
+  displayName: string;
+  avatarImage: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  /** Yours, so you can correct or delete it. */
+  mine: boolean;
 }
 
 export type TaskPriority = 'low' | 'high' | 'critical';

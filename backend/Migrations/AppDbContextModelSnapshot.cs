@@ -642,7 +642,17 @@ namespace backend.Migrations
                     b.Property<DateTimeOffset?>("EndedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Message")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("Mood")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Resistance")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTimeOffset>("StartedAt")

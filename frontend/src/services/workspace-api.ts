@@ -24,6 +24,7 @@ import {
   OverviewRange,
   ProjectRole,
   ProjectTask,
+  ProjectWorkSession,
   ChoosablePlan,
   PlanInfo,
   PlanName,
@@ -32,6 +33,7 @@ import {
   ReviewPrompt,
   TaskPriority,
   UserSummary,
+  WorkReflectionValues,
   WorkSession,
 } from './models';
 
@@ -139,8 +141,8 @@ export class WorkspaceApi {
   }
 
   /** Working opens a work session for you in the project; idle closes it. */
-  setWorking(id: number, working: boolean): Observable<void> {
-    return this.http.put<void>(`/api/projects/${id}/work`, { working });
+  setWorking(id: number, working: boolean, reflection?: WorkReflectionValues): Observable<void> {
+    return this.http.put<void>(`/api/projects/${id}/work`, { working, ...reflection });
   }
 
   billing(projectId: number): Observable<BillingSettings> {
@@ -278,9 +280,35 @@ export class WorkspaceApi {
     return this.http.get<WorkSession[]>('/api/work-sessions', { params });
   }
 
-  /** Corrects a session's times; a null end keeps a running session running. */
-  updateWorkSession(id: number, startedAt: string, endedAt: string | null): Observable<WorkSession> {
-    return this.http.patch<WorkSession>(`/api/work-sessions/${id}`, { startedAt, endedAt });
+  /**
+   * Corrects one of your sessions. A null end keeps a running session running; null mood, resistance or message
+   * clear them, so pass the current values of anything that should stay.
+   */
+  updateWorkSession(
+    id: number,
+    session: { startedAt: string; endedAt: string | null } & WorkReflectionValues,
+  ): Observable<WorkSession> {
+    return this.http.patch<WorkSession>(`/api/work-sessions/${id}`, session);
+  }
+
+  /** Logs a finished session of yours after the fact, e.g. work done away from the app. */
+  createWorkSession(
+    projectId: number,
+    session: { startedAt: string; endedAt: string } & WorkReflectionValues,
+  ): Observable<ProjectWorkSession> {
+    return this.http.post<ProjectWorkSession>(`/api/work-sessions/by-project/${projectId}`, session);
+  }
+
+  /** Deletes one of your sessions; its hours no longer count anywhere. */
+  deleteWorkSession(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/work-sessions/${id}`);
+  }
+
+  /** Everyone's sessions in the project still running at or after `from`, newest first. */
+  projectWorkSessions(projectId: number, from: Date): Observable<ProjectWorkSession[]> {
+    return this.http.get<ProjectWorkSession[]>(`/api/work-sessions/by-project/${projectId}`, {
+      params: { from: from.toISOString() },
+    });
   }
 
   /** Sets the priority of several of the project's tasks at once. */

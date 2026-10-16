@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Plans;
 
-/// <summary>The caller's own work sessions, for the work log: listing them and correcting their times.</summary>
+/// <summary>
+/// Work sessions: the caller's own for the work log, and everyone's in a project for its hours table. Only the caller's
+/// own sessions can be corrected or deleted.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("api/work-sessions")]
@@ -26,7 +29,8 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
                 && (projectId == null || session.ProjectId == projectId)
                 && session.Project.Members.Any(member => member.UserId == userId))
             .Select(session => new WorkSessionResponse(
-                session.Id, session.ProjectId, session.Project.Name, session.StartedAt, session.EndedAt))
+                session.Id, session.ProjectId, session.Project.Name, session.StartedAt, session.EndedAt,
+                session.Mood, session.Resistance, session.Message))
             .ToListAsync(cancellationToken);
 
         return Ok(sessions
@@ -36,9 +40,35 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// Corrects a session's start and end. A finished session must keep an end; a running one may be given one, which
-    /// stops it. Times cannot be in the future, and sessions cannot overlap the caller's other sessions in the same
-    /// project (sessions in different projects may).
+    /// Everyone's sessions in the project that were still running at or after <paramref name="from"/>, for members of
+    /// the project. Newest first.
+    /// </summary>
+    [RequiresProject(ProjectFeature.Full)]
+    [HttpGet("by-project/{projectId:long}")]
+    public async Task<ActionResult<IReadOnlyList<ProjectWorkSessionResponse>>> GetProject(
+        long projectId, [FromQuery] DateTimeOffset from, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        if (!await db.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == userId, cancellationToken))
+            return NotFound();
+
+        var sessions = await db.WorkSessions.AsNoTracking()
+            .Where(session => session.ProjectId == projectId)
+            .Select(session => new ProjectWorkSessionResponse(
+                session.Id, session.UserId, session.User.DisplayName, session.User.AvatarImage, session.StartedAt,
+                session.EndedAt, session.Mood, session.Resistance, session.Message, session.UserId == userId))
+            .ToListAsync(cancellationToken);
+        // Filtered and ordered in memory: SQLite cannot compare or order DateTimeOffset values in queries.
+        return Ok(sessions
+            .Where(session => session.EndedAt is not { } ended || ended >= from)
+            .OrderByDescending(session => session.StartedAt)
+            .ToList());
+    }
+
+    /// <summary>
+    /// Corrects one of the caller's sessions: its start and end, and how it went. A finished session must keep an end; a
+    /// running one may be given one, which stops it. Times cannot be in the future, and sessions cannot overlap the
+    /// caller's other sessions in the same project (sessions in different projects may).
     /// </summary>
     [RequiresProject(ProjectFeature.Full, ProjectKey.WorkSessionId)]
     [HttpPatch("{id:long}")]
@@ -52,40 +82,142 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
                 && session.Project.Members.Any(member => member.UserId == userId), cancellationToken);
         if (session is null) return NotFound();
 
-        var now = DateTimeOffset.UtcNow;
         if (request.EndedAt is null && session.EndedAt is not null)
             return BadRequest(new { error = "A finished session needs an end time." });
-        if (request.StartedAt > now || request.EndedAt > now)
-            return BadRequest(new { error = "Times cannot be in the future." });
-        if (request.EndedAt is { } end && end <= request.StartedAt)
-            return BadRequest(new { error = "The end must be after the start." });
-
-        // Overlapping sessions in the same project would count the same hours twice; other projects may overlap freely.
-        var others = await db.WorkSessions.AsNoTracking()
-            .Where(other => other.UserId == userId && other.ProjectId == session.ProjectId && other.Id != id)
-            .Select(other => new { other.StartedAt, other.EndedAt })
-            .ToListAsync(cancellationToken);
-        var until = request.EndedAt ?? now;
-        if (others.Any(other => other.StartedAt < until && (other.EndedAt ?? now) > request.StartedAt))
-            return BadRequest(new { error = "That overlaps another session in this project." });
+        if (await CheckTimes(userId, session.ProjectId, id, request.StartedAt, request.EndedAt, cancellationToken) is { } error)
+            return BadRequest(new { error });
 
         session.StartedAt = request.StartedAt;
         session.EndedAt = request.EndedAt;
+        session.Mood = request.Mood;
+        session.Resistance = request.Resistance;
+        session.Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim();
         await db.SaveChangesAsync(cancellationToken);
         return Ok(new WorkSessionResponse(
-            session.Id, session.ProjectId, session.Project.Name, session.StartedAt, session.EndedAt));
+            session.Id, session.ProjectId, session.Project.Name, session.StartedAt, session.EndedAt,
+            session.Mood, session.Resistance, session.Message));
+    }
+
+    /// <summary>
+    /// Logs a finished session for the caller after the fact, e.g. work done away from the app. The same rules apply as
+    /// for correcting one: no future times, and no overlap with the caller's other sessions in the project.
+    /// </summary>
+    [RequiresProject(ProjectFeature.Full)]
+    [HttpPost("by-project/{projectId:long}")]
+    public async Task<ActionResult<ProjectWorkSessionResponse>> Create(
+        long projectId, CreateWorkSessionRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var user = await db.ProjectMembers
+            .Where(member => member.ProjectId == projectId && member.UserId == userId)
+            .Select(member => new { member.User.DisplayName, member.User.AvatarImage })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (user is null) return NotFound();
+        if (await CheckTimes(userId, projectId, null, request.StartedAt, request.EndedAt, cancellationToken) is { } error)
+            return BadRequest(new { error });
+
+        var session = new Model.WorkSession
+        {
+            ProjectId = projectId,
+            UserId = userId,
+            StartedAt = request.StartedAt,
+            EndedAt = request.EndedAt,
+            Mood = request.Mood,
+            Resistance = request.Resistance,
+            Message = string.IsNullOrWhiteSpace(request.Message) ? null : request.Message.Trim(),
+        };
+        db.WorkSessions.Add(session);
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new ProjectWorkSessionResponse(
+            session.Id, userId, user.DisplayName, user.AvatarImage, session.StartedAt, session.EndedAt,
+            session.Mood, session.Resistance, session.Message, true));
+    }
+
+    /// <summary>Deletes one of the caller's sessions, running or finished; its hours no longer count anywhere.</summary>
+    [RequiresProject(ProjectFeature.Full, ProjectKey.WorkSessionId)]
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var deleted = await db.WorkSessions
+            .Where(session => session.Id == id && session.UserId == userId
+                && session.Project.Members.Any(member => member.UserId == userId))
+            .ExecuteDeleteAsync(cancellationToken);
+        return deleted == 0 ? NotFound() : NoContent();
+    }
+
+    /// <summary>
+    /// Why the times are not allowed, or null when they are: they cannot be in the future, the end must come after the
+    /// start, and they cannot overlap the user's other sessions in the project (other than <paramref name="exceptId"/>),
+    /// which would count the same hours twice. Sessions in different projects may overlap.
+    /// </summary>
+    private async Task<string?> CheckTimes(
+        string userId, long projectId, long? exceptId, DateTimeOffset start, DateTimeOffset? end,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (start > now || end > now) return "Times cannot be in the future.";
+        if (end is { } finish && finish <= start) return "The end must be after the start.";
+
+        // Compared in memory: SQLite cannot compare DateTimeOffset values in queries.
+        var others = await db.WorkSessions.AsNoTracking()
+            .Where(other => other.UserId == userId && other.ProjectId == projectId && other.Id != exceptId)
+            .Select(other => new { other.StartedAt, other.EndedAt })
+            .ToListAsync(cancellationToken);
+        var until = end ?? now;
+        return others.Any(other => other.StartedAt < until && (other.EndedAt ?? now) > start)
+            ? "That overlaps another session of yours in this project."
+            : null;
     }
 }
 
-/// <summary>A stretch of work; EndedAt is null while it is still running.</summary>
+/// <summary>A stretch of work; EndedAt is null while it is still running. Mood, resistance and message are optional.</summary>
 public sealed record WorkSessionResponse(
-    long Id, long ProjectId, string ProjectName, DateTimeOffset StartedAt, DateTimeOffset? EndedAt);
+    long Id, long ProjectId, string ProjectName, DateTimeOffset StartedAt, DateTimeOffset? EndedAt,
+    int? Mood, int? Resistance, string? Message);
 
-/// <summary>New times for a work session; a null end keeps a running session running.</summary>
+/// <summary>A stretch of work in a project, with who did it.</summary>
+/// <param name="Mine">The caller's own, so they can correct or delete it.</param>
+public sealed record ProjectWorkSessionResponse(
+    long Id, string UserId, string DisplayName, string? AvatarImage, DateTimeOffset StartedAt, DateTimeOffset? EndedAt,
+    int? Mood, int? Resistance, string? Message, bool Mine);
+
+/// <summary>A finished session to log after the fact; mood, resistance and message are optional.</summary>
+public sealed record CreateWorkSessionRequest
+{
+    [Required]
+    public required DateTimeOffset StartedAt { get; init; }
+
+    [Required]
+    public required DateTimeOffset EndedAt { get; init; }
+
+    [Range(0, 10)]
+    public int? Mood { get; init; }
+
+    [Range(0, 10)]
+    public int? Resistance { get; init; }
+
+    [StringLength(1000)]
+    public string? Message { get; init; }
+}
+
+/// <summary>
+/// The session as it should be: a null end keeps a running session running, and null mood, resistance or message
+/// clear them. Send the current values of anything that should stay.
+/// </summary>
 public sealed record UpdateWorkSessionRequest
 {
     [Required]
     public required DateTimeOffset StartedAt { get; init; }
 
     public DateTimeOffset? EndedAt { get; init; }
+
+    [Range(0, 10)]
+    public int? Mood { get; init; }
+
+    [Range(0, 10)]
+    public int? Resistance { get; init; }
+
+    [StringLength(1000)]
+    public string? Message { get; init; }
 }
