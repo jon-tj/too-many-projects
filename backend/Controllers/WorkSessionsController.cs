@@ -134,6 +134,82 @@ public sealed class WorkSessionsController(AppDbContext db) : ControllerBase
             session.Mood, session.Resistance, session.Message, true));
     }
 
+    /// <summary>
+    /// Creates many finished sessions at once from a time tracker's CSV export (Toggl, Clockify, Harvest) read in the
+    /// browser. Each row's person is matched to a project member by email, username, name or first name; rows without a
+    /// person are the caller's. Project owners may import anyone's hours, other members only their own. Rows that match
+    /// nobody, or overlap a session the person already has in the project (or an earlier row), are skipped and counted,
+    /// so importing the same file twice adds nothing.
+    /// </summary>
+    [RequiresProject(ProjectFeature.Full)]
+    [HttpPost("by-project/{projectId:long}/import")]
+    public async Task<ActionResult<ImportSessionsResponse>> Import(
+        long projectId, ImportSessionsRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var members = await db.ProjectMembers.AsNoTracking()
+            .Where(member => member.ProjectId == projectId)
+            .Select(member => new { member.UserId, member.Role, member.User.Email, member.User.UserName, member.User.DisplayName })
+            .ToListAsync(cancellationToken);
+        var caller = members.FirstOrDefault(member => member.UserId == userId);
+        if (caller is null) return NotFound();
+        if (request.Sessions.Count is 0 or > 5000)
+            return BadRequest(new { error = "Import between 1 and 5000 time entries at a time." });
+
+        string? Match(string? who)
+        {
+            if (string.IsNullOrWhiteSpace(who)) return userId;
+            who = who.Trim();
+            bool Same(string? value) => string.Equals(value?.Trim(), who, StringComparison.OrdinalIgnoreCase);
+            var match = members.FirstOrDefault(member => Same(member.Email))
+                ?? members.FirstOrDefault(member => Same(member.UserName))
+                ?? members.FirstOrDefault(member => Same(member.DisplayName));
+            if (match is not null) return match.UserId;
+            // Harvest exports first and last names apart; a first name alone counts if only one member has it.
+            var byFirstName = members.Where(member => Same(member.DisplayName.Split(' ')[0])).ToList();
+            return byFirstName.Count == 1 ? byFirstName[0].UserId : null;
+        }
+
+        // Compared in memory: SQLite cannot compare DateTimeOffset values in queries.
+        var taken = (await db.WorkSessions.AsNoTracking()
+                .Where(session => session.ProjectId == projectId)
+                .Select(session => new { session.UserId, session.StartedAt, session.EndedAt })
+                .ToListAsync(cancellationToken))
+            .Select(session => (session.UserId, Start: session.StartedAt, End: session.EndedAt ?? DateTimeOffset.MaxValue))
+            .ToList();
+        int imported = 0, unmatched = 0, overlapping = 0;
+        foreach (var row in request.Sessions)
+        {
+            if (row.EndedAt <= row.StartedAt) return BadRequest(new { error = "Every time entry must end after it starts." });
+            var person = Match(row.Person);
+            if (person is null)
+            {
+                unmatched++;
+                continue;
+            }
+            if (person != userId && caller.Role != "Owner")
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { error = "Only project owners can import other people's hours. Import only your own rows, or ask an owner." });
+            if (taken.Any(other => other.UserId == person && other.Start < row.EndedAt && other.End > row.StartedAt))
+            {
+                overlapping++;
+                continue;
+            }
+            taken.Add((person, row.StartedAt, row.EndedAt));
+            db.WorkSessions.Add(new Model.WorkSession
+            {
+                ProjectId = projectId,
+                UserId = person,
+                StartedAt = row.StartedAt,
+                EndedAt = row.EndedAt,
+                Message = string.IsNullOrWhiteSpace(row.Message) ? null : row.Message.Trim()[..Math.Min(row.Message.Trim().Length, 1000)],
+            });
+            imported++;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new ImportSessionsResponse(imported, unmatched, overlapping));
+    }
+
     /// <summary>Deletes one of the caller's sessions, running or finished; its hours no longer count anywhere.</summary>
     [RequiresProject(ProjectFeature.Full, ProjectKey.WorkSessionId)]
     [HttpDelete("{id:long}")]
@@ -180,6 +256,16 @@ public sealed record WorkSessionResponse(
 public sealed record ProjectWorkSessionResponse(
     long Id, string UserId, string DisplayName, string? AvatarImage, DateTimeOffset StartedAt, DateTimeOffset? EndedAt,
     int? Mood, int? Resistance, string? Message, bool Mine);
+
+/// <summary>Time entries read from a CSV file and mapped in the browser.</summary>
+public sealed record ImportSessionsRequest(IReadOnlyList<ImportedSession> Sessions);
+
+/// <param name="Person">An email, username or name to match to a project member; null for the caller.</param>
+public sealed record ImportedSession(string? Person, DateTimeOffset StartedAt, DateTimeOffset EndedAt, string? Message);
+
+/// <param name="Unmatched">Rows whose person is not in the project.</param>
+/// <param name="Overlapping">Rows overlapping a session the person already had (e.g. imported before).</param>
+public sealed record ImportSessionsResponse(int Imported, int Unmatched, int Overlapping);
 
 /// <summary>A finished session to log after the fact; mood, resistance and message are optional.</summary>
 public sealed record CreateWorkSessionRequest

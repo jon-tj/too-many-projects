@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, input, model, output, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, model, output, signal, untracked } from '@angular/core';
 import { CsvTable, DateOrder, detectDateOrder, guessColumn, hasNumericDates, parseCsv, parseDate } from '../../services/csv';
 import { TaskPriority, TaskStatus } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
@@ -106,14 +106,17 @@ export class TaskImport {
   });
   protected readonly preview = computed(() => this.tasks().slice(0, 8));
 
-  /** Starts over each time the dialog opens. */
-  protected reset(open: boolean): void {
-    this.open.set(open);
-    if (!open) return;
-    this.table.set(null);
-    this.fileName.set('');
-    this.error.set('');
-    this.done.set('');
+  constructor() {
+    // Starts over each time the dialog opens, however it was opened.
+    effect(() => {
+      if (!this.open()) return;
+      untracked(() => {
+        this.table.set(null);
+        this.fileName.set('');
+        this.error.set('');
+        this.done.set('');
+      });
+    });
   }
 
   protected async choose(file: File | undefined): Promise<void> {

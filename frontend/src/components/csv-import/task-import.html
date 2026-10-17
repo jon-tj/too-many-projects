@@ -1,4 +1,4 @@
-<app-modal heading="Import tasks from CSV" [width]="760" [open]="open()" (openChange)="reset($event)">
+<app-modal heading="Import tasks from CSV" [width]="760" [(open)]="open">
   <div class="import">
     @if (done()) {
       <p class="done" role="status">{{ done() }}</p>

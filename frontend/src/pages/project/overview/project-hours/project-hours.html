@@ -3,6 +3,9 @@
   <button class="transparent add" type="button" [disabled]="draft()?.id === NEW" (click)="add()">
     <app-icon name="add" /><span>Add hours</span>
   </button>
+  <button class="transparent" type="button" title="Import hours from Toggl, Clockify or Harvest" (click)="importing.set(true)">
+    <app-icon name="upload_file" /><span>Import</span>
+  </button>
   @if (severalPeople()) {
     <div class="toggle" role="group" aria-label="Whose hours">
       <button class="transparent" type="button" [class.active]="!onlyMine()" (click)="onlyMine.set(false)"><span>Everyone</span></button>
@@ -171,3 +174,5 @@
     </td>
   </tr>
 </ng-template>
+
+<app-time-import [projectId]="projectId()" [projectName]="projectName()" [(open)]="importing" (imported)="reload()" />

@@ -350,6 +350,20 @@ export class WorkspaceApi {
     return this.http.post<ProjectWorkSession>(`/api/work-sessions/by-project/${projectId}`, session);
   }
 
+  /**
+   * Adds many sessions at once from a time tracker's CSV export. Rows for people not in the project, or overlapping hours
+   * already logged, are skipped and counted.
+   */
+  importWorkSessions(
+    projectId: number,
+    sessions: { person: string | null; startedAt: string; endedAt: string; message: string | null }[],
+  ): Observable<{ imported: number; unmatched: number; overlapping: number }> {
+    return this.http.post<{ imported: number; unmatched: number; overlapping: number }>(
+      `/api/work-sessions/by-project/${projectId}/import`,
+      { sessions },
+    );
+  }
+
   /** Deletes one of your sessions; its hours no longer count anywhere. */
   deleteWorkSession(id: number): Observable<void> {
     return this.http.delete<void>(`/api/work-sessions/${id}`);

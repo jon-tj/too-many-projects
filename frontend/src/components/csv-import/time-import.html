@@ -1,0 +1,96 @@
+<app-modal heading="Import hours from CSV" [width]="760" [(open)]="open">
+  <div class="import">
+    @if (done()) {
+      <p class="done" role="status">{{ done() }}</p>
+      <footer>
+        <button class="primary" type="button" (click)="open.set(false)">Close</button>
+      </footer>
+    } @else {
+      <p class="intro">
+        Export your time entries as CSV from Toggl, Clockify or Harvest (or a spreadsheet) and choose the file here. They
+        are added to this project; nothing is saved until you confirm.
+      </p>
+      <label>
+        CSV file
+        <input type="file" accept=".csv,text/csv,.tsv,.txt" (change)="choose($any($event.target).files?.[0])" />
+      </label>
+
+      @if (table(); as t) {
+        <h3>Columns in {{ fileName() }}</h3>
+        <div class="mapping">
+          @for (field of FIELDS; track field.key) {
+            <label>
+              {{ field.label }}
+              <select (change)="setColumn(field.key, +$any($event.target).value)">
+                <option value="-1" [selected]="columns()[field.key] === -1">Not in the file</option>
+                @for (header of t.headers; track $index) {
+                  <option [value]="$index" [selected]="columns()[field.key] === $index">{{ header || 'Column ' + ($index + 1) }}</option>
+                }
+              </select>
+            </label>
+          }
+        </div>
+
+        @if (projects().length) {
+          <label class="order">
+            Rows to import
+            <select (change)="projectFilter.set($any($event.target).value)">
+              <option value="" [selected]="projectFilter() === ''">All projects in the file</option>
+              @for (name of projects(); track name) {
+                <option [value]="name" [selected]="projectFilter() === name">Only "{{ name }}"</option>
+              }
+            </select>
+          </label>
+        }
+
+        @if (dateOrderNeeded()) {
+          <label class="order">
+            Dates like 04/10/2026 mean
+            <select (change)="dateOrder.set($any($event.target).value)">
+              <option value="dmy" [selected]="dateOrder() === 'dmy'">4 October (day first)</option>
+              <option value="mdy" [selected]="dateOrder() === 'mdy'">April 10 (month first)</option>
+            </select>
+          </label>
+        }
+
+        <h3>Preview</h3>
+        <div class="preview">
+          <table>
+            <thead>
+              <tr><th>Person</th><th>Start</th><th>End</th><th>Hours</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              @for (session of preview(); track $index) {
+                <tr>
+                  <td>{{ session.person ?? 'You' }}</td>
+                  <td>{{ session.startedAt | date: 'MMM d, y HH:mm' }}</td>
+                  <td>{{ session.endedAt | date: 'HH:mm' }}</td>
+                  <td>{{ hours(session) }}</td>
+                  <td>{{ session.message ?? '' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5">No rows with a start and an end or duration in the chosen columns.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">
+          {{ sessions().length }} {{ sessions().length === 1 ? 'entry' : 'entries' }}, {{ formatHours(totalHours()) }} in
+          total{{ unreadable() ? ', ' + unreadable() + ' rows without readable times left out' : '' }}. People are matched to
+          members of this project by email, username or name; only project owners can import other people's hours. Entries
+          overlapping hours already logged are skipped, so importing the same file twice adds nothing.
+        </p>
+      }
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <footer>
+        <button class="primary" type="button" [disabled]="busy() || !sessions().length" (click)="run()">
+          {{ busy() ? 'Importing…' : 'Import ' + (sessions().length || '') + ' entries' }}
+        </button>
+        <button class="transparent" type="button" (click)="open.set(false)">Cancel</button>
+      </footer>
+    }
+  </div>
+</app-modal>

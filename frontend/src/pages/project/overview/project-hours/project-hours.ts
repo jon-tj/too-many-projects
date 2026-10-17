@@ -6,6 +6,8 @@ import { Observable } from 'rxjs';
 import { Avatar } from '../../../../components/avatar/avatar';
 import { formatHours } from '../../../../components/activity-grid/work-hours';
 import { Icon } from '../../../../components/icon/icon';
+import { TimeImport } from '../../../../components/csv-import/time-import';
+import { ProjectPage } from '../../project-page';
 import { OverviewRange, ProjectWorkSession } from '../../../../services/models';
 import { WorkspaceApi } from '../../../../services/workspace-api';
 
@@ -39,7 +41,7 @@ function toLocalInput(iso: string): string {
  */
 @Component({
   selector: 'app-project-hours',
-  imports: [Avatar, Icon, DatePipe, NgTemplateOutlet],
+  imports: [Avatar, Icon, DatePipe, NgTemplateOutlet, TimeImport],
   templateUrl: './project-hours.html',
   styleUrl: './project-hours.css',
 })
@@ -49,6 +51,11 @@ export class ProjectHours {
   private readonly api = inject(WorkspaceApi);
   protected readonly formatHours = formatHours;
   protected readonly NEW = NEW;
+  /** The CSV import dialog. */
+  protected readonly importing = signal(false);
+  /** Picks this project's rows when an imported file holds several projects. */
+  private readonly project = inject(ProjectPage).project;
+  protected readonly projectName = computed(() => this.project.value()?.name ?? '');
 
   protected readonly sessions = rxResource({
     params: () => ({ projectId: this.projectId(), range: this.range() }),
