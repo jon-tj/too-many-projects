@@ -103,3 +103,6 @@ p {
   align-self: flex-start;
   margin: 4px 0 0 -12px;
 }
+.team-note {
+  margin-bottom: 12px;
+}

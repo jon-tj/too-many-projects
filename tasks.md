@@ -49,7 +49,7 @@ slack, notion, discord
 i also want you to specify in the pricing that only the project owner needs to subscribe to a plan, which for a team of 5 works out to less than $1 per month, cheaper than a coffee!
 
 - **Decision:** already on the landing page; add the same note to the in-app plans page.
-- **Status:** todo (order 1)
+- **Status:** done: the plans page shows the same owner-pays note above the plan cards.
 
 ## Time and task import as CSV
 

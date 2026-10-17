@@ -6,6 +6,7 @@ import { Icon } from '../../components/icon/icon';
 import { PlanPicker } from '../../components/plan-picker/plan-picker';
 import { WorkspaceShell } from '../../components/workspace-shell/workspace-shell';
 import { PLAN_TITLES } from '../../services/models';
+import { PLAN_OPTIONS, perPersonPrice } from '../../services/plans';
 import { unfreezeWarning } from '../../services/unfreeze-warning';
 import { WorkspaceApi } from '../../services/workspace-api';
 
@@ -26,6 +27,16 @@ export class PlansPage implements OnInit {
   private readonly shell = inject(WorkspaceShell);
   private readonly picker = viewChild(PlanPicker);
   protected readonly info = rxResource({ stream: () => this.api.plan() });
+  private readonly prices = rxResource({ stream: () => this.api.planPrices() });
+  /** The team the note works the cost out for, as on the landing page: Plus split between five people. */
+  protected readonly TEAM_SIZE = 5;
+  protected readonly teamShare = computed(() =>
+    perPersonPrice(
+      PLAN_OPTIONS.find((option) => option.name === 'plus')!,
+      this.prices.error() ? [] : this.prices.value(),
+      this.TEAM_SIZE,
+    ),
+  );
   protected readonly title = computed(() => {
     const plan = this.info.value()?.planType;
     return plan ? PLAN_TITLES[plan] : '';
