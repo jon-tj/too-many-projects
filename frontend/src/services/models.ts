@@ -391,6 +391,19 @@ export interface BillDetail {
   report: BillingReport;
 }
 
+/** A secret link to a bill, or to a month's live report ("yyyy-MM"). */
+export interface ShareLink {
+  token: string;
+  billId: number | null;
+  month: string | null;
+}
+
+/** What a share link shows: a bill, or a live report (bill is null). */
+export interface SharedBilling {
+  bill: BillSummary | null;
+  report: BillingReport;
+}
+
 export interface BillingDay {
   date: string;
   userId: string;

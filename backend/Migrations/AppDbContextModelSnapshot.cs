@@ -681,6 +681,32 @@ namespace backend.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("Model.ShareLink", b =>
+                {
+                    b.Property<string>("Token")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("BillId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Month")
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Token");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("ShareLinks");
+                });
+
             modelBuilder.Entity("Model.TaskDependency", b =>
                 {
                     b.Property<long>("TaskId")
@@ -907,6 +933,17 @@ namespace backend.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Model.ShareLink", b =>
+                {
+                    b.HasOne("Model.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Model.TaskDependency", b =>

@@ -25,6 +25,8 @@ import { AdminPage } from '../pages/admin/admin-page';
 export const routes: Routes = [
 	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
 	{ path: 'bill/:projectId/:billId', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
+	// A bill or report shared by secret link: anyone with the link, no account needed.
+	{ path: 'shared/:token', component: BillingReportPage },
 	// Signed-in visitors skip the landing page and go straight to the dashboard.
 	{ path: '', pathMatch: 'full', component: LandingPage, canActivate: [landingGuard] },
 	{ path: 'register', component: LoginPage, children: [{ path: '', component: RegisterForm }] },

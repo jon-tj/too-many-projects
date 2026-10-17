@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,7 @@ using Model;
 /// Project billing, for project owners only: settings, member fractions and monthly reports.
 /// Billable hours per member per day = worked hours raised to the daily minimum (on days with work) and capped at
 /// the daily maximum, times the member's billable fraction. A maximum of 0 or 24+ means no cap; a minimum of 0 means
-/// no minimum. Days are UTC days, like the overview.
+/// no minimum. Days start at midnight in the project's billing time zone.
 /// Every hour is billed exactly once: a report covers all recorded work up to the end of its month, minus what earlier
 /// (not canceled) bills already billed for each member-day. Earlier days left unbilled are marked CarriedOver.
 /// </summary>
@@ -129,6 +130,78 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         var bills = await db.Bills.AsNoTracking().Where(bill => bill.ProjectId == projectId).ToListAsync(cancellationToken);
         return Ok(bills.OrderByDescending(bill => bill.Month).ThenByDescending(bill => bill.Id).Select(ToSummary).ToList());
     }
+
+    /// <summary>The project's share links, so the owner sees what is shared and can turn it off.</summary>
+    [HttpGet("shares")]
+    public async Task<ActionResult<IReadOnlyList<ShareLinkResponse>>> Shares(long projectId, CancellationToken cancellationToken)
+    {
+        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
+        return Ok(await db.ShareLinks.AsNoTracking()
+            .Where(link => link.ProjectId == projectId)
+            .Select(link => new ShareLinkResponse(link.Token, link.BillId, link.Month))
+            .ToListAsync(cancellationToken));
+    }
+
+    /// <summary>
+    /// Shares a bill, or a month's live report, by secret link; returns the existing link if it is shared already.
+    /// </summary>
+    [HttpPost("shares")]
+    public async Task<ActionResult<ShareLinkResponse>> Share(long projectId, CreateShareRequest request, CancellationToken cancellationToken)
+    {
+        if ((request.BillId is null) == (request.Month is null))
+            return BadRequest(new { error = "Share either a bill or a month's report." });
+        if (request.Month is not null && !TryParseMonth(request.Month, out _))
+            return BadRequest(new { error = "The month must look like 2026-10." });
+        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
+        if (request.BillId is { } billId
+            && !await db.Bills.AnyAsync(bill => bill.Id == billId && bill.ProjectId == projectId, cancellationToken))
+            return NotFound();
+
+        var existing = await db.ShareLinks.AsNoTracking().FirstOrDefaultAsync(link => link.ProjectId == projectId
+            && link.BillId == request.BillId && link.Month == request.Month, cancellationToken);
+        if (existing is not null) return Ok(new ShareLinkResponse(existing.Token, existing.BillId, existing.Month));
+
+        var token = Base64Url(RandomNumberGenerator.GetBytes(16));
+        db.ShareLinks.Add(new ShareLink { Token = token, ProjectId = projectId, BillId = request.BillId, Month = request.Month });
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new ShareLinkResponse(token, request.BillId, request.Month));
+    }
+
+    /// <summary>Turns a share link off: it stops working at once.</summary>
+    [HttpDelete("shares/{token}")]
+    public async Task<IActionResult> Unshare(long projectId, string token, CancellationToken cancellationToken)
+    {
+        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
+        var deleted = await db.ShareLinks
+            .Where(link => link.Token == token && link.ProjectId == projectId)
+            .ExecuteDeleteAsync(cancellationToken);
+        return deleted == 0 ? NotFound() : NoContent();
+    }
+
+    /// <summary>
+    /// What a share link shows, for anyone holding it: the bill as finalized, or the month's live report. Read only;
+    /// 404 once the link is turned off.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("/api/public/shared/{token}")]
+    public async Task<ActionResult<SharedBillingResponse>> Shared(string token, CancellationToken cancellationToken)
+    {
+        var link = await db.ShareLinks.AsNoTracking().Include(link => link.Project)
+            .SingleOrDefaultAsync(link => link.Token == token, cancellationToken);
+        if (link is null) return NotFound();
+        if (link.BillId is { } billId)
+        {
+            var bill = await db.Bills.AsNoTracking().SingleOrDefaultAsync(bill => bill.Id == billId, cancellationToken);
+            if (bill is null) return NotFound();
+            var report = JsonSerializer.Deserialize<BillingReport>(bill.ReportJson, JsonSerializerOptions.Web)!;
+            return Ok(new SharedBillingResponse(ToSummary(bill), report));
+        }
+        if (!TryParseMonth(link.Month!, out var parsed)) return NotFound();
+        return Ok(new SharedBillingResponse(null, await BuildReport(link.Project, link.Month!, parsed, cancellationToken)));
+    }
+
+    private static string Base64Url(byte[] bytes) =>
+        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     /// <summary>A bill with its report as it was when finalized.</summary>
     [HttpGet("bills/{billId:long}")]
@@ -417,5 +490,14 @@ public sealed record BillSummary(
     long Id, string Month, DateTimeOffset CreatedAt, string Status, decimal Amount, decimal AmountPaid, decimal Overdue);
 
 public sealed record BillDetail(BillSummary Bill, BillingReport Report);
+
+/// <summary>A share link: to a bill, or to a month's live report.</summary>
+public sealed record ShareLinkResponse(string Token, long? BillId, string? Month);
+
+/// <summary>Share a bill (BillId) or a month's live report (Month, "yyyy-MM"); exactly one of them.</summary>
+public sealed record CreateShareRequest(long? BillId, string? Month);
+
+/// <summary>What a share link shows: a bill (with its summary) or a live report (Bill is null).</summary>
+public sealed record SharedBillingResponse(BillSummary? Bill, BillingReport Report);
 
 public sealed record SetBillStatusRequest(string Status, decimal? AmountPaid);

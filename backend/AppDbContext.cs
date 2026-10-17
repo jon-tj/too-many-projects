@@ -18,6 +18,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<PlanExemption> PlanExemptions => Set<PlanExemption>();
 	public DbSet<Review> Reviews => Set<Review>();
 	public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
+	public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -55,6 +56,15 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.WithOne()
 			.HasForeignKey<PlanExemption>(exemption => exemption.UserId);
 		builder.Entity<WorkSession>().Property(session => session.Message).HasMaxLength(1000);
+		builder.Entity<ShareLink>().HasKey(link => link.Token);
+		builder.Entity<ShareLink>().Property(link => link.Token).HasMaxLength(32);
+		builder.Entity<ShareLink>().Property(link => link.Month).HasMaxLength(7);
+		builder.Entity<ShareLink>()
+			.HasOne(link => link.Project)
+			.WithMany()
+			.HasForeignKey(link => link.ProjectId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<ShareLink>().HasIndex(link => link.ProjectId);
 		builder.Entity<FeatureRequest>()
 			.HasOne(request => request.User)
 			.WithMany()

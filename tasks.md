@@ -68,7 +68,7 @@ Since bills and reports are the single largest source of word of mouth for this 
 ## Share bill and report by link with customer
 
 - **Decision:** unguessable read-only link that works without an account; the owner can turn it off at any time.
-- **Status:** todo (order 8)
+- **Status:** done: "Share with client" on a bill or report preview creates a secret link (/shared/…) that opens read only without an account; Copy link and Turn off link next to it. A shared preview stays live and updates as work is logged; a shared bill shows it as finalized, with its status.
 
 ## VAT on bills
 

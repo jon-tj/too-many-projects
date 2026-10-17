@@ -16,6 +16,8 @@ import {
   Project,
   BillableFraction,
   BillDetail,
+  SharedBilling,
+  ShareLink,
   BillStatus,
   BillSummary,
   BillingReport,
@@ -180,6 +182,25 @@ export class WorkspaceApi {
 
   bill(projectId: number, billId: number): Observable<BillDetail> {
     return this.http.get<BillDetail>(`/api/projects/${projectId}/billing/bills/${billId}`);
+  }
+
+  shareLinks(projectId: number): Observable<ShareLink[]> {
+    return this.http.get<ShareLink[]>(`/api/projects/${projectId}/billing/shares`);
+  }
+
+  /** Shares a bill or a month's live report by secret link; returns the existing link when already shared. */
+  share(projectId: number, target: { billId: number } | { month: string }): Observable<ShareLink> {
+    return this.http.post<ShareLink>(`/api/projects/${projectId}/billing/shares`, target);
+  }
+
+  /** Turns a share link off; it stops working at once. */
+  unshare(projectId: number, token: string): Observable<void> {
+    return this.http.delete<void>(`/api/projects/${projectId}/billing/shares/${token}`);
+  }
+
+  /** What a share link shows; needs no sign-in. */
+  sharedBilling(token: string): Observable<SharedBilling> {
+    return this.http.get<SharedBilling>(`/api/public/shared/${token}`);
   }
 
   /** amountPaid is only used for partially paid bills. */

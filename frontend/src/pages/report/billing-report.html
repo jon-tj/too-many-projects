@@ -1,7 +1,13 @@
 @if (loading()) {
   <p class="state">Loading report...</p>
 } @else if (failed()) {
-  <p class="state" role="alert">This report could not be loaded. Only project owners can see billing, and billing must be enabled.</p>
+  <p class="state" role="alert">
+    @if (isShared()) {
+      This link does not work any more. Ask whoever sent it for a new one.
+    } @else {
+      This report could not be loaded. Only project owners can see billing, and billing must be enabled.
+    }
+  </p>
 } @else if (report(); as r) {
   @let cur = r.settings.currency || 'USD';
   @let total = r.amountWithVat ?? r.amount + (r.vat ?? 0);
@@ -9,18 +15,36 @@
   <!-- On screen only: what you can do with the document. -->
   <div class="toolbar">
     <span>
-      {{ isPreview() ? 'Preview: changes with new hours and settings until it is finalized' : 'Bill' }}
+      @if (isShared()) {
+        {{ isPreview() ? 'Report so far: it updates as work is logged' : 'Bill' }}
+      } @else {
+        {{ isPreview() ? 'Preview: changes with new hours and settings until it is finalized' : 'Bill' }}
+      }
       @if (!isPreview()) {
         · <span class="badge">{{ statusLabel() }}</span>
       }
     </span>
     <div class="actions">
-      @if (isPreview()) {
+      @if (isPreview() && !isShared()) {
         <button class="primary" type="button" (click)="finalize()"><span>Finalize bill</span></button>
       }
       <button class="transparent" type="button" (click)="print()"><span>Print or save as PDF</span></button>
     </div>
   </div>
+  @if (!isShared()) {
+    <!-- The owner shares what is shown with the client by secret link, and can turn it off again. -->
+    <div class="share">
+      @if (shareLink()) {
+        <span>Shared by link: anyone with it can view this {{ isPreview() ? 'report as it updates' : 'bill' }}.</span>
+        <input readonly aria-label="Share link" [value]="shareUrl()" (focus)="$any($event.target).select()" />
+        <button class="transparent" type="button" (click)="copyShareUrl()"><span>{{ copied() ? 'Copied' : 'Copy link' }}</span></button>
+        <button class="transparent" type="button" (click)="unshare()"><span>Turn off link</span></button>
+      } @else {
+        <span>Send your client a link to this {{ isPreview() ? 'report' : 'bill' }}; they need no account.</span>
+        <button class="transparent" type="button" (click)="share()"><span>Share with client</span></button>
+      }
+    </div>
+  }
   @if (message()) {
     <p class="state" role="alert">{{ message() }}</p>
   }
@@ -42,9 +66,9 @@
       <div class="title">
         <h1>{{ isPreview() ? 'Billing report' : 'Bill' }}</h1>
         <dl>
-          @if (bill.value(); as b) {
+          @if (billSummary(); as b) {
             <dt>Bill no.</dt>
-            <dd>{{ b.bill.id }}</dd>
+            <dd>{{ b.id }}</dd>
           }
           <dt>Period</dt>
           <dd>{{ monthStart(r.month) | date: 'MMMM y' : 'UTC' }}</dd>
@@ -125,8 +149,8 @@
         <div class="pay">
           <span class="label">Payment details</span>
           <span class="lines">{{ r.settings.paymentDetails }}</span>
-          @if (bill.value(); as b) {
-            <span>Reference: bill {{ b.bill.id }}</span>
+          @if (billSummary(); as b) {
+            <span>Reference: bill {{ b.id }}</span>
           }
         </div>
       }

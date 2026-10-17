@@ -11,7 +11,8 @@ const optionalNumber = (value: string | undefined) => (value ? Number(value) : n
 
 /**
  * A month's billing as a print-friendly page (outside the workspace layout). At /report/:projectId/:month it is a
- * live preview that can be finalized; at /bill/:projectId/:billId it shows the bill as it was finalized.
+ * live preview that can be finalized; at /bill/:projectId/:billId it shows the bill as it was finalized. Both can be
+ * shared with the client by secret link, which opens at /shared/:token without an account.
  */
 @Component({
   selector: 'app-billing-report',
@@ -20,7 +21,10 @@ const optionalNumber = (value: string | undefined) => (value ? Number(value) : n
   styleUrl: './billing-report.css',
 })
 export class BillingReportPage {
-  readonly projectId = input.required({ transform: numberAttribute });
+  /** 0 on a shared link, which needs no project. */
+  readonly projectId = input(0, { transform: numberAttribute });
+  /** A share link's secret: shows what it shares, read only. */
+  readonly token = input<string>();
   /** "yyyy-MM": a preview of this month. */
   readonly month = input<string>();
   /** A finalized bill. */
@@ -35,19 +39,47 @@ export class BillingReportPage {
     params: () => (this.billId() !== null ? { projectId: this.projectId(), billId: this.billId()! } : undefined),
     stream: ({ params }) => this.api.bill(params.projectId, params.billId),
   });
-  protected readonly report = computed(() => this.bill.value()?.report ?? this.preview.value());
-  protected readonly loading = computed(() => this.preview.isLoading() || this.bill.isLoading());
-  protected readonly failed = computed(() => !!this.preview.error() || !!this.bill.error());
-  protected readonly isPreview = computed(() => !this.billId());
-  protected readonly statusLabel = computed(
-    () => BILL_STATUSES.find((status) => status.value === this.bill.value()?.bill.status)?.label ?? '',
+  private readonly shared = rxResource({
+    params: () => this.token(),
+    stream: ({ params }) => this.api.sharedBilling(params),
+  });
+  /** Opened by the client through a share link: read only. */
+  protected readonly isShared = computed(() => !!this.token());
+  protected readonly report = computed(
+    () => this.shared.value()?.report ?? this.bill.value()?.report ?? this.preview.value(),
   );
+  /** The bill shown; null for a live report. */
+  protected readonly billSummary = computed(() => (this.isShared() ? this.shared.value()?.bill : this.bill.value()?.bill) ?? null);
+  protected readonly loading = computed(() => this.preview.isLoading() || this.bill.isLoading() || this.shared.isLoading());
+  protected readonly failed = computed(() => !!this.preview.error() || !!this.bill.error() || !!this.shared.error());
+  protected readonly isPreview = computed(() => !this.billSummary());
+  protected readonly statusLabel = computed(
+    () => BILL_STATUSES.find((status) => status.value === this.billSummary()?.status)?.label ?? '',
+  );
+
+  /** The owner's share links for this project, to find the one for what is shown. */
+  private readonly shareLinks = rxResource({
+    params: () => (this.isShared() ? undefined : this.projectId()),
+    stream: ({ params }) => this.api.shareLinks(params),
+  });
+  protected readonly shareLink = computed(() => {
+    const billId = this.billId();
+    return (
+      this.shareLinks.value()?.find((link) => (billId !== null ? link.billId === billId : link.month === this.month())) ??
+      null
+    );
+  });
+  protected readonly shareUrl = computed(() => {
+    const link = this.shareLink();
+    return link ? `${location.origin}/shared/${link.token}` : '';
+  });
+  protected readonly copied = signal(false);
   protected readonly message = signal('');
   /** The site's address, written out so the link still says where to go on paper. */
   protected readonly host = location.host;
   protected readonly madeWithUrl = `${location.origin}/?utm_source=bill&utm_medium=referral&utm_campaign=made-with`;
   /** When the bill was issued; a preview counts as issued today. */
-  protected readonly issuedAt = computed(() => this.bill.value()?.bill.createdAt ?? new Date().toISOString());
+  protected readonly issuedAt = computed(() => this.billSummary()?.createdAt ?? new Date().toISOString());
   /** The payment terms after issuing; older bills without terms count 14 days. */
   protected readonly dueAt = computed(() => {
     const issued = new Date(this.issuedAt());
@@ -66,6 +98,32 @@ export class BillingReportPage {
     this.api.finalizeBill(this.projectId(), month).subscribe({
       next: (bill) => void this.router.navigate(['/bill', this.projectId(), bill.id], { replaceUrl: true }),
       error: (error: HttpErrorResponse) => this.message.set(error.error?.error ?? 'Could not finalize the bill.'),
+    });
+  }
+
+  /** Creates the share link for what is shown (or finds the existing one). */
+  protected share(): void {
+    const billId = this.billId();
+    const target = billId !== null ? { billId } : { month: this.month()! };
+    this.api.share(this.projectId(), target).subscribe({
+      next: () => this.shareLinks.reload(),
+      error: (error: HttpErrorResponse) => this.message.set(error.error?.error ?? 'Could not create the link.'),
+    });
+  }
+
+  protected unshare(): void {
+    const link = this.shareLink();
+    if (!link || !confirm('Turn this link off? Anyone who has it will no longer be able to open it.')) return;
+    this.api.unshare(this.projectId(), link.token).subscribe({
+      next: () => this.shareLinks.reload(),
+      error: () => this.message.set('Could not turn the link off.'),
+    });
+  }
+
+  protected copyShareUrl(): void {
+    void navigator.clipboard.writeText(this.shareUrl()).then(() => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 1500);
     });
   }
 
