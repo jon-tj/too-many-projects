@@ -9,6 +9,7 @@ import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
 import { BILLING_CURRENCIES } from '../../../services/models';
+import { findRevolutLink } from '../../../services/revolut';
 import { fittedImageDataUrl, squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
@@ -85,6 +86,11 @@ export class ProjectSettings {
     initialValue: this.form.getRawValue(),
   });
   protected readonly billingEnabled = toSignal(this.billingForm.controls.enabled.valueChanges, { initialValue: false });
+  /** A revolut.me link in the payment details, which bills turn into a QR code. */
+  protected readonly revolut = toSignal(
+    this.billingForm.controls.paymentDetails.valueChanges.pipe(map((details) => findRevolutLink(details))),
+    { initialValue: null },
+  );
 
   constructor() {
     effect(() => {

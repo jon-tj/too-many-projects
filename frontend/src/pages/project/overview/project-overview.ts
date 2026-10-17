@@ -75,6 +75,10 @@ export class ProjectOverview implements OnDestroy {
     },
     stream: ({ params }) => forkJoin(this.months.map((month) => this.api.billingReport(params, month))),
   });
+  /** How much each month's amount just changed, shown for a few seconds after hours change; keyed by "yyyy-MM". */
+  protected readonly billingChange = signal<Record<string, number>>({});
+  private lastAmounts: Record<string, number> | null = null;
+  private billingChangeTimer?: ReturnType<typeof setTimeout>;
   protected readonly ranges = RANGES;
   protected readonly range = signal<OverviewRange>('30d');
   protected readonly overview = rxResource({
@@ -112,6 +116,24 @@ export class ProjectOverview implements OnDestroy {
     effect(() => {
       const value = this.overview.value();
       if (value) this.shown.set(value);
+    });
+    // Compares each reload with the one before; the first load has nothing to compare with.
+    effect(() => {
+      const reports = this.billing.value();
+      if (!reports) return;
+      const amounts = Object.fromEntries(reports.map((report) => [report.month, report.amountWithVat ?? report.amount]));
+      const previous = this.lastAmounts;
+      this.lastAmounts = amounts;
+      if (!previous) return;
+      const changes = Object.fromEntries(
+        Object.entries(amounts)
+          .map(([month, amount]) => [month, Math.round((amount - (previous[month] ?? 0)) * 100) / 100])
+          .filter(([, change]) => change !== 0),
+      );
+      if (!Object.keys(changes).length) return;
+      this.billingChange.set(changes);
+      clearTimeout(this.billingChangeTimer);
+      this.billingChangeTimer = setTimeout(() => this.billingChange.set({}), 5000);
     });
     effect(() => {
       const frame = this.frame()?.nativeElement;
@@ -194,6 +216,14 @@ export class ProjectOverview implements OnDestroy {
     this.sendWorking(false, reflection);
   }
 
+  /** Hours changed in the table below: the chart and the billing totals follow. */
+  protected hoursChanged(): void {
+    this.overview.reload();
+    this.billing.reload();
+  }
+
+  protected readonly abs = Math.abs;
+
   /** Switches straight away, without waiting for the server, and switches back if it refuses. */
   private sendWorking(working: boolean, reflection?: WorkReflectionValues): void {
     const before = this.shown();
@@ -206,6 +236,7 @@ export class ProjectOverview implements OnDestroy {
       next: () => {
         this.overview.reload();
         this.hoursTable()?.reload();
+        this.billing.reload();
       },
       error: () => {
         this.shown.set(before);

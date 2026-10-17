@@ -72,3 +72,11 @@ nav {
   border: 1px solid var(--border);
   border-radius: 4px;
 }
+
+.detected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--primary-active-text);
+  font-weight: 400;
+}

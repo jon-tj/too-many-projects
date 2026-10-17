@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
 import { Avatar } from '../../../../components/avatar/avatar';
@@ -48,6 +48,8 @@ function toLocalInput(iso: string): string {
 export class ProjectHours {
   readonly projectId = input.required<number>();
   readonly range = input.required<OverviewRange>();
+  /** Hours were added, changed, deleted or imported here, so totals elsewhere on the page are out of date. */
+  readonly changed = output<void>();
   private readonly api = inject(WorkspaceApi);
   protected readonly formatHours = formatHours;
   protected readonly NEW = NEW;
@@ -187,6 +189,7 @@ export class ProjectHours {
           this.busy.set(null);
           this.draft.set(null);
           this.sessions.reload();
+          this.changed.emit();
         },
         error: (response: HttpErrorResponse) => {
           this.busy.set(null);
@@ -204,6 +207,7 @@ export class ProjectHours {
       next: () => {
         this.busy.set(null);
         this.sessions.update((sessions) => sessions.filter((item) => item.id !== session.id));
+        this.changed.emit();
       },
       error: (response: HttpErrorResponse) => {
         this.busy.set(null);

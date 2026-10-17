@@ -1,10 +1,11 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { BILL_STATUSES, BillingDay } from '../../services/models';
 import { MoneyPipe } from '../../services/money.pipe';
+import { findRevolutLink } from '../../services/revolut';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const optionalNumber = (value: string | undefined) => (value ? Number(value) : null);
@@ -74,6 +75,24 @@ export class BillingReportPage {
     return link ? `${location.origin}/shared/${link.token}` : '';
   });
   protected readonly copied = signal(false);
+  /** A revolut.me link in the payment details, shown as a QR code the client can scan to pay. */
+  protected readonly revolut = computed(() => findRevolutLink(this.report()?.settings.paymentDetails));
+  /** The QR code as a PNG data URL; drawn by a library that is only loaded for bills with a Revolut link. */
+  protected readonly revolutQr = signal<string | null>(null);
+
+  constructor() {
+    effect(() => {
+      const link = this.revolut();
+      this.revolutQr.set(null);
+      if (!link) return;
+      void import('qrcode')
+        // An old-style (CommonJS) package: its functions sit on the default export.
+        .then(({ default: qr }) => qr.toDataURL(link.url, { width: 360, margin: 1, color: { dark: '#1f2722', light: '#ffffff' } }))
+        .then((image) => {
+          if (this.revolut()?.url === link.url) this.revolutQr.set(image);
+        });
+    });
+  }
   protected readonly message = signal('');
   /** The site's address, written out so the link still says where to go on paper. */
   protected readonly host = location.host;

@@ -154,6 +154,14 @@
           }
         </div>
       }
+      @if (revolut(); as link) {
+        <a class="revolut" [href]="link.url" target="_blank" rel="noopener">
+          @if (revolutQr(); as qr) {
+            <img [src]="qr" alt="QR code to pay with Revolut" />
+          }
+          <span>Scan to pay with Revolut<br /><strong>revolut.me/{{ link.handle }}</strong></span>
+        </a>
+      }
     </section>
 
     @if (r.overdue.length) {

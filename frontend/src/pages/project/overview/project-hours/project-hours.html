@@ -175,4 +175,4 @@
   </tr>
 </ng-template>
 
-<app-time-import [projectId]="projectId()" [projectName]="projectName()" [(open)]="importing" (imported)="reload()" />
+<app-time-import [projectId]="projectId()" [projectName]="projectName()" [(open)]="importing" (imported)="reload(); changed.emit()" />

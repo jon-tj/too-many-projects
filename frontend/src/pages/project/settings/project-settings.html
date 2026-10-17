@@ -117,7 +117,13 @@
         </label>
         <label>
           Payment details
-          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, or IBAN and BIC"></textarea>
+          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, IBAN and BIC, or https://revolut.me/yourname"></textarea>
+          @if (revolut(); as link) {
+            <span class="detected">
+              <app-icon name="qr_code_2" [size]="16" />
+              Revolut link for &#64;{{ link.handle }}: bills will show a QR code your client can scan to pay you.
+            </span>
+          }
         </label>
         <label>
           Payment terms (days)
