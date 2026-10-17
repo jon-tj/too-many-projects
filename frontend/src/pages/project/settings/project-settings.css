@@ -80,3 +80,14 @@ nav {
   color: var(--primary-active-text);
   font-weight: 400;
 }
+
+/* Related fields side by side, e.g. currency and cost per hour; stacked again on narrow screens. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.pair input,
+.pair select {
+  height: 40px;
+}
