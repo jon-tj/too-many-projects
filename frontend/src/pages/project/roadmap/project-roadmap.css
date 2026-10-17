@@ -55,6 +55,8 @@
   position: relative;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
+  /* Pin the row to the box, or the full list of labels stretches it and the chart under-reports its height. */
+  grid-template-rows: minmax(0, 1fr);
   height: 70vh;
   min-height: 400px;
   overflow: hidden;
@@ -68,6 +70,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   border-right: 1px solid var(--border);
 }
 .labels-head {
