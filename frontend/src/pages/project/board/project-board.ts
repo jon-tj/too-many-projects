@@ -205,14 +205,22 @@ export class ProjectBoard {
     });
   }
 
+  /** The card that just arrived in to do, playing its drop-in animation. */
+  protected readonly arrived = signal<number | null>(null);
+  private arrivedTimer?: ReturnType<typeof setTimeout>;
+
+  /** Closes the dialog straight away; the card drops into to do when the server has saved it. */
   protected createTask(value: TaskFormValue): void {
+    this.addingTask.set(false);
+    this.taskError.set('');
     this.api.createTask(this.projectId(), value).subscribe({
       next: (task) => {
         this.tasks.update((tasks) => [task, ...tasks]);
-        this.addingTask.set(false);
-        this.taskError.set('');
+        clearTimeout(this.arrivedTimer);
+        this.arrived.set(task.id);
+        this.arrivedTimer = setTimeout(() => this.arrived.set(null), 1200);
       },
-      error: () => this.taskError.set('Could not create the task. Please try again.'),
+      error: () => this.taskError.set(`Could not create "${value.title}". Please try again.`),
     });
   }
 

@@ -295,3 +295,67 @@
     outline: 2px solid var(--priority-critical);
   }
 }
+
+/* A new task drops into to do from above, and three stars shoot out from behind it as it lands. */
+.task-card.arrived {
+  animation: drop-in 0.45s cubic-bezier(0.3, 1.4, 0.6, 1) both;
+}
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.stars {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  pointer-events: none;
+}
+.stars i {
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  color: var(--doing);
+  font-size: 14px;
+  font-style: normal;
+  opacity: 0;
+  animation: shoot 0.65s ease-out 0.3s both;
+}
+.stars i:nth-child(1) {
+  --to: translate(-58px, -26px) rotate(-70deg);
+}
+.stars i:nth-child(2) {
+  --to: translate(2px, -44px) rotate(40deg);
+  animation-delay: 0.36s;
+}
+.stars i:nth-child(3) {
+  --to: translate(60px, -22px) rotate(90deg);
+  animation-delay: 0.33s;
+}
+@keyframes shoot {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: var(--to) scale(1.1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-card.arrived {
+    animation: none;
+  }
+  .stars {
+    display: none;
+  }
+}

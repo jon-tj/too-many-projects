@@ -107,11 +107,15 @@
             [class.done-card]="task.status === 'done'"
             [class.selected]="selected().has(task.id)"
             [class.shake]="shaking() === task.id"
+            [class.arrived]="arrived() === task.id"
             [attr.data-status]="task.status"
             cdkDrag
             [cdkDragData]="task"
             [cdkDragStartDelay]="{ touch: 250, mouse: 0 }"
           >
+            @if (arrived() === task.id) {
+              <span class="stars" aria-hidden="true"><i>★</i><i>★</i><i>★</i></span>
+            }
             <input
               class="select-box"
               type="checkbox"

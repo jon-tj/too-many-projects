@@ -12,7 +12,7 @@
 Also would be nice to have a small animation when the task shows up in the To do column. like make it look like its dropping down from above and display some (3 maybe) stars shooting out from behind it
 
 - **Decision:** the "New task" dialog on the project board closes at once; the card drops into To do with three stars.
-- **Status:** todo (order 3)
+- **Status:** done: the dialog closes on submit; the card drops in with three stars once saved (an error names the task if saving fails). Reduced motion skips the animation.
 
 ## Weekly summary email
 
