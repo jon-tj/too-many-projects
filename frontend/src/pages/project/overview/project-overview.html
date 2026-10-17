@@ -119,6 +119,7 @@
 />
 
 @if (billing.value(); as reports) {
+  @let cur = reports[0]?.settings?.currency || 'USD';
   <section class="billing" aria-label="Billing">
     <h2>Billing</h2>
     <div class="months">
@@ -131,7 +132,7 @@
             <dt>Billable hours</dt>
             <dd>{{ report.billableHours | number: '1.1-2' }}</dd>
             <dt>Amount</dt>
-            <dd><strong>{{ report.amount | number: '1.2-2' }}</strong></dd>
+            <dd><strong>{{ report.amount | currency: cur }}</strong></dd>
           </dl>
           <button class="transparent" type="button" (click)="openReport(report.month)">
             <span>Preview report</span>
@@ -161,8 +162,8 @@
             <tr>
               <td>{{ monthStart(bill.month) | date: 'MMMM y' : 'UTC' }}</td>
               <td>{{ bill.createdAt | date: 'medium' }}</td>
-              <td class="number">{{ bill.amount | number: '1.2-2' }}</td>
-              <td class="number">{{ bill.overdue ? (bill.overdue | number: '1.2-2') : '—' }}</td>
+              <td class="number">{{ bill.amount | currency: cur }}</td>
+              <td class="number">{{ bill.overdue ? (bill.overdue | currency: cur) : '—' }}</td>
               <td>
                 <select
                   #statusSelect

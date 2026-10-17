@@ -8,6 +8,7 @@ import { Icon } from '../../../components/icon/icon';
 import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
+import { BILLING_CURRENCIES } from '../../../services/models';
 import { squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
@@ -47,6 +48,12 @@ export class ProjectSettings {
     /** 0 or 24+ means no cap. */
     maxHoursPerDay: [8, [Validators.required, Validators.min(0)]],
     timeZone: ['', Validators.maxLength(64)],
+    currency: ['USD', Validators.required],
+  });
+  /** The offered currencies, plus the project's own if it is not among them. */
+  protected readonly currencies = computed(() => {
+    const current = this.billing.value()?.currency;
+    return current && !BILLING_CURRENCIES.includes(current) ? [current, ...BILLING_CURRENCIES] : BILLING_CURRENCIES;
   });
   /** Your browser's time zone, offered for billing. */
   protected readonly browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;

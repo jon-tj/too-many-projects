@@ -80,6 +80,14 @@
           <input formControlName="contractorName" placeholder="Who does the work, e.g. your company or name" />
         </label>
         <label>
+          Currency
+          <select formControlName="currency">
+            @for (code of currencies(); track code) {
+              <option [value]="code">{{ code }}</option>
+            }
+          </select>
+        </label>
+        <label>
           Cost per hour
           <input type="number" min="0" step="0.01" formControlName="costPerHour" />
         </label>

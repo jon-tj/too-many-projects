@@ -330,7 +330,12 @@ export interface BillingSettings {
   maxHoursPerDay: number;
   /** IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC. */
   timeZone: string;
+  /** ISO 4217 code (e.g. USD, NOK); missing on bills finalized before currencies, which were in USD. */
+  currency?: string;
 }
+
+/** Currencies offered in billing settings; any other three-letter code is kept if a project already has it. */
+export const BILLING_CURRENCIES = ['USD', 'EUR', 'GBP', 'NOK', 'SEK', 'DKK', 'ISK', 'CHF', 'PLN', 'CAD', 'AUD', 'NZD', 'JPY'];
 
 export interface BillingMemberTotal {
   name: string;

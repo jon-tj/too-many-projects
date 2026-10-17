@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
@@ -14,7 +14,7 @@ const optionalNumber = (value: string | undefined) => (value ? Number(value) : n
  */
 @Component({
   selector: 'app-billing-report',
-  imports: [DatePipe, DecimalPipe],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe],
   templateUrl: './billing-report.html',
   styleUrl: './billing-report.css',
 })

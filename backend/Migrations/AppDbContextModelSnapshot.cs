@@ -473,6 +473,10 @@ namespace backend.Migrations
                     b.Property<decimal>("BillingCostPerHour")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BillingCurrency")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("BillingEnabled")
                         .HasColumnType("INTEGER");
 

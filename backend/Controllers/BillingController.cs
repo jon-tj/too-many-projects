@@ -55,6 +55,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         project.BillingMinHoursPerDay = request.MinHoursPerDay;
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
         project.BillingTimeZone = timeZone;
+        project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -311,6 +312,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         MinHoursPerDay = project.BillingMinHoursPerDay,
         MaxHoursPerDay = project.BillingMaxHoursPerDay,
         TimeZone = project.BillingTimeZone,
+        Currency = project.BillingCurrency,
     };
 }
 
@@ -339,6 +341,10 @@ public sealed record BillingSettings
     /// <summary>IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC.</summary>
     [StringLength(64)]
     public string TimeZone { get; init; } = string.Empty;
+
+    /// <summary>ISO 4217 code such as USD or NOK. Bills finalized before currencies existed have none and were in USD.</summary>
+    [RegularExpression("^[A-Za-z]{3}$", ErrorMessage = "The currency must be a three-letter code such as USD or NOK.")]
+    public string Currency { get; init; } = "USD";
 }
 
 public sealed record SetFractionRequest(string Fraction);

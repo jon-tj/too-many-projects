@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -50,7 +50,7 @@ const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
 
 @Component({
   selector: 'app-project-overview',
-  imports: [DatePipe, DecimalPipe, ProjectHours, WorkReflection],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, ProjectHours, WorkReflection],
   templateUrl: './project-overview.html',
   styleUrl: './project-overview.css',
 })

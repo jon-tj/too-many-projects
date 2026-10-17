@@ -1,7 +1,7 @@
 ## Currencies on bills
 
 - **Decision:** currency per project in billing settings, default USD.
-- **Status:** todo (order 4)
+- **Status:** done: currency dropdown in billing settings (USD default, saved per project); every amount on reports, bills and the overview shows it. Bills from before keep USD. The overview's bill list uses the project's current currency.
 
 ## Optimistic idle/working switch, dont wait for database
 

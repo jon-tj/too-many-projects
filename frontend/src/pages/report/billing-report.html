@@ -3,6 +3,7 @@
 } @else if (failed()) {
   <p role="alert">This report could not be loaded. Only project owners can see billing, and billing must be enabled.</p>
 } @else if (report(); as r) {
+  @let cur = r.settings.currency || 'USD';
   <header>
     <div>
       <h1>{{ r.projectName }}</h1>
@@ -30,7 +31,7 @@
     <dt>Contractor</dt>
     <dd>{{ r.settings.contractorName || '—' }}</dd>
     <dt>Cost per hour</dt>
-    <dd>{{ r.settings.costPerHour | number: '1.2-2' }}</dd>
+    <dd>{{ r.settings.costPerHour | currency: cur }}</dd>
     @if (hoursPerDay(r.settings); as limits) {
       <dt>Hours per day</dt>
       <dd>{{ limits }}</dd>
@@ -59,7 +60,7 @@
           <td class="number">{{ member.daysWorked }}</td>
           <td class="number">{{ member.hoursWorked | number: '1.2-2' }}</td>
           <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
-          <td class="number">{{ member.amount | number: '1.2-2' }}</td>
+          <td class="number">{{ member.amount | currency: cur }}</td>
         </tr>
       } @empty {
         <tr><td colspan="6">No work recorded this month.</td></tr>
@@ -70,7 +71,7 @@
         <th scope="row" colspan="3">Total</th>
         <td class="number">{{ r.hoursWorked | number: '1.2-2' }}</td>
         <td class="number">{{ r.billableHours | number: '1.2-2' }}</td>
-        <td class="number">{{ r.amount | number: '1.2-2' }}</td>
+        <td class="number">{{ r.amount | currency: cur }}</td>
       </tr>
     </tfoot>
   </table>
@@ -83,18 +84,18 @@
         @for (bill of r.overdue; track bill.billId) {
           <tr>
             <td>{{ monthStart(bill.month) | date: 'MMMM' : 'UTC' }}</td>
-            <td class="number">{{ bill.amount | number: '1.2-2' }}</td>
+            <td class="number">{{ bill.amount | currency: cur }}</td>
           </tr>
         }
       </tbody>
       <tfoot>
         <tr>
           <th scope="row">Overdue total</th>
-          <td class="number">{{ r.overdueTotal | number: '1.2-2' }}</td>
+          <td class="number">{{ r.overdueTotal | currency: cur }}</td>
         </tr>
         <tr>
           <th scope="row">Total including overdue</th>
-          <td class="number">{{ r.totalWithOverdue | number: '1.2-2' }}</td>
+          <td class="number">{{ r.totalWithOverdue | currency: cur }}</td>
         </tr>
       </tfoot>
     </table>
@@ -107,7 +108,7 @@
       <p class="note">
         This work was done before {{ monthStart(r.month) | date: 'MMMM' : 'UTC' }} but was not on an earlier bill. It is
         included in the totals above: {{ r.carriedOverBillableHours | number: '1.2-2' }} billable hours,
-        {{ r.carriedOverAmount | number: '1.2-2' }}.
+        {{ r.carriedOverAmount | currency: cur }}.
       </p>
       <table>
         <thead>

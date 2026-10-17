@@ -25,6 +25,8 @@ public sealed class Project
     /// The IANA time zone (e.g. Europe/Oslo) whose midnights start each billed day and month; empty counts in UTC.
     /// </summary>
     public string BillingTimeZone { get; set; } = string.Empty;
+    /// <summary>ISO 4217 code (e.g. USD, NOK) the cost per hour and every amount on reports and bills are in.</summary>
+    public string BillingCurrency { get; set; } = "USD";
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }
