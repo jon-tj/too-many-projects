@@ -466,6 +466,10 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("BillingContractorAddress")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("BillingContractorName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -480,11 +484,25 @@ namespace backend.Migrations
                     b.Property<bool>("BillingEnabled")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BillingLogo")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("BillingMaxHoursPerDay")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("BillingMinHoursPerDay")
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("BillingOrgNumber")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BillingPaymentDetails")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BillingPaymentTermsDays")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("BillingTimeZone")
                         .IsRequired()

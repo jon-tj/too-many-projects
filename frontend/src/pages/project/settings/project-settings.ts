@@ -9,7 +9,7 @@ import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
 import { BILLING_CURRENCIES } from '../../../services/models';
-import { squareImageDataUrl } from '../../../services/square-image';
+import { fittedImageDataUrl, squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const PROJECT_ICONS = [
@@ -50,6 +50,11 @@ export class ProjectSettings {
     timeZone: ['', Validators.maxLength(64)],
     currency: ['USD', Validators.required],
     vatRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
+    contractorAddress: ['', Validators.maxLength(500)],
+    orgNumber: ['', Validators.maxLength(64)],
+    paymentDetails: ['', Validators.maxLength(500)],
+    paymentTermsDays: [14, [Validators.required, Validators.min(0), Validators.max(365)]],
+    logo: [null as string | null],
   });
   /** The offered currencies, plus the project's own if it is not among them. */
   protected readonly currencies = computed(() => {
@@ -160,6 +165,13 @@ export class ProjectSettings {
   }
 
   /** Only changes the form; nothing is saved until "Save changes". */
+  /** Scales the chosen logo down to bill size; null removes it. */
+  protected async setLogo(file: File | null): Promise<void> {
+    const logo = file ? await fittedImageDataUrl(file, 480, 160) : null;
+    this.billingForm.controls.logo.setValue(logo);
+    this.billingForm.controls.logo.markAsDirty();
+  }
+
   protected setIcon(icon: string | null, iconImage: string | null): void {
     this.form.patchValue({ icon, iconImage });
     this.form.markAsDirty();

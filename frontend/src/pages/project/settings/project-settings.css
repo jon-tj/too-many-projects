@@ -48,3 +48,27 @@ nav {
   gap: 4px;
   max-width: 480px;
 }
+
+.logo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.logo-field > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.logo-preview {
+  max-width: 240px;
+  max-height: 80px;
+  object-fit: contain;
+  align-self: flex-start;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

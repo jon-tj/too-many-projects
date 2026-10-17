@@ -29,6 +29,16 @@ public sealed class Project
     public string BillingCurrency { get; set; } = "USD";
     /// <summary>VAT added on top of each bill, in percent (e.g. 25); 0 adds none.</summary>
     public decimal BillingVatRate { get; set; }
+    /// <summary>The contractor's logo for bills, as a small image data URL; null for none.</summary>
+    public string? BillingLogo { get; set; }
+    /// <summary>The contractor's postal address, one line per line, shown under their name on bills.</summary>
+    public string BillingContractorAddress { get; set; } = string.Empty;
+    /// <summary>The contractor's organisation or VAT number, shown on bills.</summary>
+    public string BillingOrgNumber { get; set; } = string.Empty;
+    /// <summary>How to pay (bank account, IBAN, reference), shown on bills.</summary>
+    public string BillingPaymentDetails { get; set; } = string.Empty;
+    /// <summary>Days after a bill is issued that it is due.</summary>
+    public int BillingPaymentTermsDays { get; set; } = 14;
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }

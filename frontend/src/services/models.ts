@@ -334,6 +334,16 @@ export interface BillingSettings {
   currency?: string;
   /** VAT added on top of each bill, in percent; 0 adds none. Missing on bills from before VAT. */
   vatRate?: number;
+  /** The contractor's logo as a small image data URL; null for none. Business details are missing on older bills. */
+  logo?: string | null;
+  /** The contractor's postal address, one line per line. */
+  contractorAddress?: string;
+  /** The contractor's organisation or VAT number. */
+  orgNumber?: string;
+  /** How to pay: bank account, IBAN, reference. */
+  paymentDetails?: string;
+  /** Days after a bill is issued that it is due. */
+  paymentTermsDays?: number;
 }
 
 /** Currencies offered in billing settings; any other three-letter code is kept if a project already has it. */

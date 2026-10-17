@@ -63,7 +63,7 @@ Will need to handle Notion typical csv format, as well as Toggl, Clockify, Harve
 Since bills and reports are the single largest source of word of mouth for this project we need to polish them up and make them look very professional
 
 - **Decision:** polished layout plus optional contractor logo, address, org. number and payment details (bank account, payment terms) in billing settings.
-- **Status:** todo (order 6)
+- **Status:** done: bills and reports are a white "paper" sheet in any theme: logo, address and org. number top left; bill no., period, issued and due dates top right; bill to; line items with rate; totals; a highlighted amount due with payment details; time details as an appendix. New billing settings: contractor address, org./VAT number, logo, payment details and payment terms (days, default 14). Also fixed: billed days showed a day early east of UTC, and amounts now read "NOK 1,250.00".
 
 ## Share bill and report by link with customer
 

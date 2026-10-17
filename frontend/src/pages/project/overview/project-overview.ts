@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   Component,
   ElementRef,
@@ -26,6 +26,7 @@ import {
   OverviewRange,
   ProjectOverview as Overview,
 } from '../../../services/models';
+import { MoneyPipe } from '../../../services/money.pipe';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const RANGES: { value: OverviewRange; label: string }[] = [
@@ -50,7 +51,7 @@ const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
 
 @Component({
   selector: 'app-project-overview',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, ProjectHours, WorkReflection],
+  imports: [DatePipe, DecimalPipe, MoneyPipe, ProjectHours, WorkReflection],
   templateUrl: './project-overview.html',
   styleUrl: './project-overview.css',
 })

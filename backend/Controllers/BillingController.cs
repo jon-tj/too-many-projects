@@ -42,6 +42,8 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     {
         if (IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
+        if (request.Logo is not null && !request.Logo.StartsWith("data:image/", StringComparison.Ordinal))
+            return BadRequest(new { error = "The logo must be an image data URL." });
         var timeZone = request.TimeZone.Trim();
         if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
             return BadRequest(new { error = $"Unknown time zone: {timeZone}. Use a name such as Europe/Oslo." });
@@ -57,6 +59,11 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         project.BillingTimeZone = timeZone;
         project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
         project.BillingVatRate = request.VatRate;
+        project.BillingLogo = request.Logo;
+        project.BillingContractorAddress = request.ContractorAddress.Trim();
+        project.BillingOrgNumber = request.OrgNumber.Trim();
+        project.BillingPaymentDetails = request.PaymentDetails.Trim();
+        project.BillingPaymentTermsDays = request.PaymentTermsDays;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -318,6 +325,11 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         TimeZone = project.BillingTimeZone,
         Currency = project.BillingCurrency,
         VatRate = project.BillingVatRate,
+        Logo = project.BillingLogo,
+        ContractorAddress = project.BillingContractorAddress,
+        OrgNumber = project.BillingOrgNumber,
+        PaymentDetails = project.BillingPaymentDetails,
+        PaymentTermsDays = project.BillingPaymentTermsDays,
     };
 }
 
@@ -354,6 +366,24 @@ public sealed record BillingSettings
     /// <summary>VAT added on top of each bill, in percent; 0 adds none.</summary>
     [Range(0, 100)]
     public decimal VatRate { get; init; }
+
+    /// <summary>The contractor's logo as a small image data URL; null for none.</summary>
+    [StringLength(300_000)]
+    public string? Logo { get; init; }
+
+    [StringLength(500)]
+    public string ContractorAddress { get; init; } = string.Empty;
+
+    [StringLength(64)]
+    public string OrgNumber { get; init; } = string.Empty;
+
+    /// <summary>How to pay: bank account, IBAN, reference.</summary>
+    [StringLength(500)]
+    public string PaymentDetails { get; init; } = string.Empty;
+
+    /// <summary>Days after a bill is issued that it is due.</summary>
+    [Range(0, 365)]
+    public int PaymentTermsDays { get; init; } = 14;
 }
 
 public sealed record SetFractionRequest(string Fraction);

@@ -1,9 +1,10 @@
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { BILL_STATUSES, BillingDay } from '../../services/models';
+import { MoneyPipe } from '../../services/money.pipe';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const optionalNumber = (value: string | undefined) => (value ? Number(value) : null);
@@ -14,7 +15,7 @@ const optionalNumber = (value: string | undefined) => (value ? Number(value) : n
  */
 @Component({
   selector: 'app-billing-report',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, MoneyPipe],
   templateUrl: './billing-report.html',
   styleUrl: './billing-report.css',
 })
@@ -42,6 +43,14 @@ export class BillingReportPage {
     () => BILL_STATUSES.find((status) => status.value === this.bill.value()?.bill.status)?.label ?? '',
   );
   protected readonly message = signal('');
+  /** When the bill was issued; a preview counts as issued today. */
+  protected readonly issuedAt = computed(() => this.bill.value()?.bill.createdAt ?? new Date().toISOString());
+  /** The payment terms after issuing; older bills without terms count 14 days. */
+  protected readonly dueAt = computed(() => {
+    const issued = new Date(this.issuedAt());
+    const days = this.report()?.settings.paymentTermsDays ?? 14;
+    return new Date(issued.getFullYear(), issued.getMonth(), issued.getDate() + days).toISOString();
+  });
 
   protected print(): void {
     window.print();
