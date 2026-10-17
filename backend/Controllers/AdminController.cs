@@ -45,8 +45,43 @@ public sealed class AdminController(
                 user.LastSeenAt, user.IsAdmin, user.MustChangePassword, user.PlanType, user.PlanRenewDate, user.PreviousPlanType,
                 user.StripeSubscriptionId is not null,
                 exempt.Contains(user.Id), owned.GetValueOrDefault(user.Id), memberOf.GetValueOrDefault(user.Id),
-                tasksCreated.GetValueOrDefault(user.Id), tasksCompleted.GetValueOrDefault(user.Id)))
+                tasksCreated.GetValueOrDefault(user.Id), tasksCompleted.GetValueOrDefault(user.Id),
+                user.PrimaryUseCase != "" ? SignupSource(user) : null, user.UtmCampaign))
             .ToList());
+    }
+
+    /// <summary>
+    /// Self sign-ups per source and campaign (invited accounts and admins left out), with how many are still active and
+    /// how many pay, over the last 30 days and all time. Most sign-ups first.
+    /// </summary>
+    [HttpGet("campaigns")]
+    public async Task<ActionResult<IReadOnlyList<CampaignResponse>>> GetCampaigns(CancellationToken cancellationToken)
+    {
+        // Grouped in memory: the source falls back to the referrer, and SQLite cannot compare DateTimeOffset values.
+        var signups = await db.Users.AsNoTracking()
+            .Where(user => user.PrimaryUseCase != "" && !user.IsAdmin)
+            .ToListAsync(cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+        var monthAgo = now.AddDays(-30);
+        return Ok(signups
+            .GroupBy(user => (Source: SignupSource(user), Campaign: user.UtmCampaign ?? ""))
+            .Select(group => new CampaignResponse(
+                group.Key.Source, group.Key.Campaign,
+                group.Count(user => user.CreatedAt >= monthAgo), group.Count(),
+                group.Count(user => user.LastSeenAt >= monthAgo),
+                group.Count(user => user.StripeSubscriptionId is not null)))
+            .OrderByDescending(row => row.SignupsTotal)
+            .ThenBy(row => row.Source)
+            .ToList());
+    }
+
+    /// <summary>Where a sign-up came from: utm_source, else the referring site, else "(direct)".</summary>
+    private static string SignupSource(ApplicationUser user)
+    {
+        if (!string.IsNullOrWhiteSpace(user.UtmSource)) return user.UtmSource.Trim().ToLowerInvariant();
+        if (Uri.TryCreate(user.SignupReferrer, UriKind.Absolute, out var referrer))
+            return $"{referrer.Host.Replace("www.", "")} (referrer)";
+        return "(direct)";
     }
 
     /// <summary>Weekly and monthly active users, and sign-ups and invites over the same periods.</summary>
@@ -289,11 +324,21 @@ public sealed class AdminController(
 /// <param name="ProjectsCreated">Projects they own.</param>
 /// <param name="ProjectsJoined">Projects they are a member of, their own included.</param>
 /// <param name="TasksCompleted">Done tasks assigned to them.</param>
+/// <param name="SignupSource">Where they signed up from (see GetCampaigns); null for invited accounts.</param>
 public sealed record AdminUserResponse(
     string Id, string UserName, string DisplayName, string Email, string? AvatarImage, DateTimeOffset CreatedAt,
     DateTimeOffset? LastSeenAt, bool IsAdmin, bool Pending, string PlanType, DateTimeOffset? PlanRenewDate, string? PreviousPlanType,
     bool Subscribed,
-    bool PlanExempt, int ProjectsCreated, int ProjectsJoined, int TasksCreated, int TasksCompleted);
+    bool PlanExempt, int ProjectsCreated, int ProjectsJoined, int TasksCreated, int TasksCompleted,
+    string? SignupSource, string? SignupCampaign);
+
+/// <summary>Self sign-ups from one source and campaign.</summary>
+/// <param name="Source">utm_source, the referring site with " (referrer)", or "(direct)".</param>
+/// <param name="Campaign">utm_campaign; empty when none.</param>
+/// <param name="Active">Opened the app in the last 30 days.</param>
+/// <param name="Paying">Have a Stripe subscription.</param>
+public sealed record CampaignResponse(
+    string Source, string Campaign, int Signups30Days, int SignupsTotal, int Active, int Paying);
 
 /// <summary>Usage over the last 7 and 30 days.</summary>
 /// <param name="WeeklyActive">Users who opened the app in the last 7 days.</param>

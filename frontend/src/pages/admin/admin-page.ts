@@ -19,7 +19,7 @@ import {
 } from '../../services/models';
 import { WorkspaceApi } from '../../services/workspace-api';
 
-type Tab = 'members' | 'projects' | 'reviews' | 'requests';
+type Tab = 'members' | 'projects' | 'reviews' | 'requests' | 'campaigns';
 
 const REQUEST_STATUSES: { value: FeatureRequestStatus; label: string }[] = [
   { value: 'new', label: 'New' },
@@ -47,6 +47,10 @@ export class AdminPage {
   protected readonly projects = rxResource({ stream: () => this.api.adminProjects() });
   protected readonly reviews = rxResource({ stream: () => this.api.adminReviews() });
   protected readonly requests = rxResource({ stream: () => this.api.adminFeatureRequests() });
+  protected readonly campaigns = rxResource({ stream: () => this.api.adminCampaigns() });
+  protected readonly shownCampaigns = computed(() =>
+    (this.campaigns.value() ?? []).filter((row) => this.matches(row.source, row.campaign)),
+  );
   protected readonly REQUEST_STATUSES = REQUEST_STATUSES;
   protected readonly tab = signal<Tab>('members');
   protected readonly search = signal('');

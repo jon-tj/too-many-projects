@@ -24,7 +24,7 @@ Also would be nice to have a small animation when the task shows up in the To do
 Need to know utm_source so I can tell which marketing strategy works
 
 - **Decision:** table per utm_source and campaign with sign-ups, still active and paying, for the last 30 days and all time; source shown per member too.
-- **Status:** todo (order 9)
+- **Status:** done: Admin → Campaigns tab with sign-ups per utm_source and campaign (30 days and all time), how many are active (opened the app in 30 days) and how many pay. Without utm tags the referring site is used, else "(direct)". Invited members and admins are left out. Members tab shows each member's source under the join date.
 
 ## Trial-ending emails
 

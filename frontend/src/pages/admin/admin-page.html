@@ -43,6 +43,9 @@
       <app-icon name="lightbulb" [size]="16" /><span>Requests</span>
       @if (newRequestCount()) { <span class="count">{{ newRequestCount() }}</span> }
     </button>
+    <button type="button" role="tab" [class.is-active]="tab() === 'campaigns'" [attr.aria-selected]="tab() === 'campaigns'" (click)="tab.set('campaigns')">
+      <app-icon name="campaign" [size]="16" /><span>Campaigns</span>
+    </button>
   </div>
   <input type="search" placeholder="Search" aria-label="Search" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
@@ -81,7 +84,14 @@
                   @if (user.isAdmin) { <span class="tag">Admin</span> }
                   @if (user.pending) { <span class="tag">Invited</span> }
                   <small>&#64;{{ user.userName }} · {{ user.email }}</small>
-                  <small>Joined {{ user.createdAt | date: 'MMM d, y' }}</small>
+                  <small>
+                    Joined {{ user.createdAt | date: 'MMM d, y' }}
+                    @if (user.signupSource) {
+                      · from {{ user.signupSource }}{{ user.signupCampaign ? ' / ' + user.signupCampaign : '' }}
+                    } @else if (!user.isAdmin) {
+                      · invited
+                    }
+                  </small>
                 </div>
               </div>
             </td>
@@ -115,6 +125,44 @@
         } @empty {
           @if (!users.isLoading()) {
             <tr><td colspan="9" class="empty">No members match.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+} @else if (tab() === 'campaigns') {
+  @if (campaigns.error()) {
+    <p class="error" role="alert">Could not load the campaigns.</p>
+  }
+  <p class="hint">
+    Self sign-ups by where they came from: the link's utm_source (and utm_campaign), else the site that linked to you.
+    Invited members are left out. Active means they opened the app in the last 30 days.
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Source</th>
+          <th scope="col">Campaign</th>
+          <th scope="col" class="number">Sign-ups, 30 days</th>
+          <th scope="col" class="number">Sign-ups, all time</th>
+          <th scope="col" class="number">Active</th>
+          <th scope="col" class="number">Paying</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of shownCampaigns(); track row.source + row.campaign) {
+          <tr>
+            <td><strong>{{ row.source }}</strong></td>
+            <td>{{ row.campaign || '—' }}</td>
+            <td class="number">{{ row.signups30Days }}</td>
+            <td class="number">{{ row.signupsTotal }}</td>
+            <td class="number">{{ row.active }}</td>
+            <td class="number">{{ row.paying }}</td>
+          </tr>
+        } @empty {
+          @if (!campaigns.isLoading()) {
+            <tr><td colspan="6" class="empty">No sign-ups yet.</td></tr>
           }
         }
       </tbody>

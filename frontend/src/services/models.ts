@@ -184,6 +184,23 @@ export interface AdminUser {
   tasksCreated: number;
   /** Done tasks assigned to them. */
   tasksCompleted: number;
+  /** Where they signed up from (utm_source, referring site or "(direct)"); null for invited accounts. */
+  signupSource: string | null;
+  signupCampaign: string | null;
+}
+
+/** Self sign-ups from one source and campaign, for the admin page. */
+export interface Campaign {
+  /** utm_source, the referring site with " (referrer)", or "(direct)". */
+  source: string;
+  /** utm_campaign; empty when none. */
+  campaign: string;
+  signups30Days: number;
+  signupsTotal: number;
+  /** Opened the app in the last 30 days. */
+  active: number;
+  /** Have a Stripe subscription. */
+  paying: number;
 }
 
 /** Asking you about your experience (GET api/reviews/prompt). */

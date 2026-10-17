@@ -9,6 +9,7 @@ import {
   AdminReview,
   AdminStats,
   AdminUser,
+  Campaign,
   CanvasDetail,
   CanvasDocument,
   CanvasPermission,
@@ -442,6 +443,11 @@ export class WorkspaceApi {
 
   adminDeleteReview(reviewId: number): Observable<void> {
     return this.http.delete<void>(`/api/admin/reviews/${reviewId}`);
+  }
+
+  /** Self sign-ups per utm_source and campaign. */
+  adminCampaigns(): Observable<Campaign[]> {
+    return this.http.get<Campaign[]>('/api/admin/campaigns');
   }
 
   adminUsers(): Observable<AdminUser[]> {
