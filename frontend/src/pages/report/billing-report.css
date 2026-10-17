@@ -232,6 +232,20 @@ thead th {
   border-top: 1px solid var(--rule);
 }
 
+.made-with {
+  align-self: center;
+  margin-top: -16px;
+  color: var(--muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+.made-with strong {
+  color: var(--accent);
+}
+.made-with:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .sheet {
     padding: 28px 20px;

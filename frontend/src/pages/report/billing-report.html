@@ -215,5 +215,9 @@
       }
       <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
     </footer>
+    <!-- Clients see this on every bill; tagged so sign-ups from it show under utm_source=bill. -->
+    <a class="made-with" [href]="madeWithUrl" target="_blank" rel="noopener">
+      Made with <strong>TooManyProjects</strong> · {{ host }}
+    </a>
   </article>
 }

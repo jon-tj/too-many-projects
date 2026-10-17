@@ -43,6 +43,9 @@ export class BillingReportPage {
     () => BILL_STATUSES.find((status) => status.value === this.bill.value()?.bill.status)?.label ?? '',
   );
   protected readonly message = signal('');
+  /** The site's address, written out so the link still says where to go on paper. */
+  protected readonly host = location.host;
+  protected readonly madeWithUrl = `${location.origin}/?utm_source=bill&utm_medium=referral&utm_campaign=made-with`;
   /** When the bill was issued; a preview counts as issued today. */
   protected readonly issuedAt = computed(() => this.bill.value()?.bill.createdAt ?? new Date().toISOString());
   /** The payment terms after issuing; older bills without terms count 14 days. */

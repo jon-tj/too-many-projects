@@ -35,7 +35,7 @@ Need to know utm_source so I can tell which marketing strategy works
 
 For visibility and word of mouth
 
-- **Status:** todo (order 7)
+- **Status:** done: "Made with TooManyProjects · toomanyprojects.fyi" at the bottom of every report and bill, linking to the landing page with utm_source=bill, so sign-ups from it show up in the campaign table.
 
 ## research integrations
 
