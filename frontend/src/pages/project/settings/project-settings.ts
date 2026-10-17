@@ -49,6 +49,7 @@ export class ProjectSettings {
     maxHoursPerDay: [8, [Validators.required, Validators.min(0)]],
     timeZone: ['', Validators.maxLength(64)],
     currency: ['USD', Validators.required],
+    vatRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
   });
   /** The offered currencies, plus the project's own if it is not among them. */
   protected readonly currencies = computed(() => {

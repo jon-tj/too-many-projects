@@ -73,4 +73,4 @@ Since bills and reports are the single largest source of word of mouth for this 
 ## VAT on bills
 
 - **Decision:** VAT rate per project, default 0%. Bills show subtotal, VAT and total; 0% hides the VAT line.
-- **Status:** todo (order 5)
+- **Status:** done: "VAT %" in billing settings (0–100, default 0). With VAT, the report shows subtotal (excl. VAT), VAT and total, and the finalized bill's amount includes VAT. VAT applies to the month's own work; overdue bills already include theirs.

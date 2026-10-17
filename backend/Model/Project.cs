@@ -27,6 +27,8 @@ public sealed class Project
     public string BillingTimeZone { get; set; } = string.Empty;
     /// <summary>ISO 4217 code (e.g. USD, NOK) the cost per hour and every amount on reports and bills are in.</summary>
     public string BillingCurrency { get; set; } = "USD";
+    /// <summary>VAT added on top of each bill, in percent (e.g. 25); 0 adds none.</summary>
+    public decimal BillingVatRate { get; set; }
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }

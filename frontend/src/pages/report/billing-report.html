@@ -68,11 +68,22 @@
     </tbody>
     <tfoot>
       <tr>
-        <th scope="row" colspan="3">Total</th>
+        <th scope="row" colspan="3">{{ r.vat ? 'Subtotal (excl. VAT)' : 'Total' }}</th>
         <td class="number">{{ r.hoursWorked | number: '1.2-2' }}</td>
         <td class="number">{{ r.billableHours | number: '1.2-2' }}</td>
         <td class="number">{{ r.amount | currency: cur }}</td>
       </tr>
+      <!-- VAT only shows when the project charges it; 0% leaves the single total above. -->
+      @if (r.vat) {
+        <tr>
+          <th scope="row" colspan="5">VAT {{ r.settings.vatRate | number: '1.0-2' }}%</th>
+          <td class="number">{{ r.vat | currency: cur }}</td>
+        </tr>
+        <tr>
+          <th scope="row" colspan="5">Total</th>
+          <td class="number">{{ r.amountWithVat ?? r.amount + r.vat | currency: cur }}</td>
+        </tr>
+      }
     </tfoot>
   </table>
 

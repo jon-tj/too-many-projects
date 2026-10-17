@@ -56,6 +56,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
         project.BillingTimeZone = timeZone;
         project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
+        project.BillingVatRate = request.VatRate;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -105,7 +106,8 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         {
             ProjectId = projectId,
             Month = request.Month,
-            Amount = report.Amount,
+            // What the client owes: VAT included.
+            Amount = report.AmountWithVat ?? report.Amount,
             ReportJson = JsonSerializer.Serialize(report, JsonSerializerOptions.Web),
         };
         db.Bills.Add(bill);
@@ -285,13 +287,15 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
             .ToList();
 
         var amount = members.Sum(member => member.Amount);
+        // VAT is added to this month's work only: overdue bills already include their own.
+        var vat = Math.Round(amount * project.BillingVatRate / 100, 2);
         var overdueTotal = overdue.Sum(bill => bill.Amount);
         var carriedOverBillable = days.Where(day => day.CarriedOver).Sum(day => day.BillableHours);
         return new BillingReport(
             project.Name, month, ToSettings(project), members, days,
             members.Sum(member => member.HoursWorked), members.Sum(member => member.BillableHours), amount,
-            overdue, overdueTotal, amount + overdueTotal,
-            carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2));
+            overdue, overdueTotal, amount + vat + overdueTotal,
+            carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2), vat, amount + vat);
     }
 
     private Task<Project?> GetOwnedProject(long projectId, CancellationToken cancellationToken)
@@ -313,6 +317,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         MaxHoursPerDay = project.BillingMaxHoursPerDay,
         TimeZone = project.BillingTimeZone,
         Currency = project.BillingCurrency,
+        VatRate = project.BillingVatRate,
     };
 }
 
@@ -345,6 +350,10 @@ public sealed record BillingSettings
     /// <summary>ISO 4217 code such as USD or NOK. Bills finalized before currencies existed have none and were in USD.</summary>
     [RegularExpression("^[A-Za-z]{3}$", ErrorMessage = "The currency must be a three-letter code such as USD or NOK.")]
     public string Currency { get; init; } = "USD";
+
+    /// <summary>VAT added on top of each bill, in percent; 0 adds none.</summary>
+    [Range(0, 100)]
+    public decimal VatRate { get; init; }
 }
 
 public sealed record SetFractionRequest(string Fraction);
@@ -361,11 +370,15 @@ public sealed record BillingMemberTotal(
 /// <summary>An earlier bill still owed (unpaid, or the rest of a partial payment).</summary>
 public sealed record OverdueBill(long BillId, string Month, decimal Amount);
 
+/// <param name="Amount">This month's work, before VAT.</param>
+/// <param name="Vat">VAT on <paramref name="Amount"/>; 0 on bills from before VAT.</param>
+/// <param name="AmountWithVat">What this month's work costs with VAT; null on bills from before VAT.</param>
+/// <param name="TotalWithOverdue">With VAT, plus earlier bills still owed.</param>
 public sealed record BillingReport(
     string ProjectName, string Month, BillingSettings Settings, IReadOnlyList<BillingMemberTotal> Members,
     IReadOnlyList<BillingDay> Days, decimal HoursWorked, decimal BillableHours, decimal Amount,
     IReadOnlyList<OverdueBill> Overdue, decimal OverdueTotal, decimal TotalWithOverdue,
-    decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0);
+    decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0, decimal Vat = 0, decimal? AmountWithVat = null);
 
 public sealed record FinalizeBillRequest(string Month);
 

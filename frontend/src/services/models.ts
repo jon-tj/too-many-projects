@@ -332,6 +332,8 @@ export interface BillingSettings {
   timeZone: string;
   /** ISO 4217 code (e.g. USD, NOK); missing on bills finalized before currencies, which were in USD. */
   currency?: string;
+  /** VAT added on top of each bill, in percent; 0 adds none. Missing on bills from before VAT. */
+  vatRate?: number;
 }
 
 /** Currencies offered in billing settings; any other three-letter code is kept if a project already has it. */
@@ -399,7 +401,12 @@ export interface BillingReport {
   days: BillingDay[];
   hoursWorked: number;
   billableHours: number;
+  /** This month's work, before VAT. */
   amount: number;
+  /** VAT on amount; 0 or missing without VAT. */
+  vat?: number;
+  /** This month's work with VAT; missing on bills from before VAT. */
+  amountWithVat?: number | null;
   /** Earlier bills still owed; frozen into a bill when it is finalized. */
   overdue: OverdueBill[];
   overdueTotal: number;
