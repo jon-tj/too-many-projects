@@ -43,8 +43,6 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     {
         if (IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
-        if (request.Logo is not null && !request.Logo.StartsWith("data:image/", StringComparison.Ordinal))
-            return BadRequest(new { error = "The logo must be an image data URL." });
         var timeZone = request.TimeZone.Trim();
         if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
             return BadRequest(new { error = $"Unknown time zone: {timeZone}. Use a name such as Europe/Oslo." });
@@ -60,7 +58,6 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         project.BillingTimeZone = timeZone;
         project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
         project.BillingVatRate = request.VatRate;
-        project.BillingLogo = request.Logo;
         project.BillingContractorAddress = request.ContractorAddress.Trim();
         project.BillingOrgNumber = request.OrgNumber.Trim();
         project.BillingPaymentDetails = request.PaymentDetails.Trim();
@@ -375,7 +372,8 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
             project.Name, month, ToSettings(project), members, days,
             members.Sum(member => member.HoursWorked), members.Sum(member => member.BillableHours), amount,
             overdue, overdueTotal, amount + vat + overdueTotal,
-            carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2), vat, amount + vat);
+            carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2), vat, amount + vat,
+            project.Icon, project.IconImage);
     }
 
     private Task<Project?> GetOwnedProject(long projectId, CancellationToken cancellationToken)
@@ -398,7 +396,6 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         TimeZone = project.BillingTimeZone,
         Currency = project.BillingCurrency,
         VatRate = project.BillingVatRate,
-        Logo = project.BillingLogo,
         ContractorAddress = project.BillingContractorAddress,
         OrgNumber = project.BillingOrgNumber,
         PaymentDetails = project.BillingPaymentDetails,
@@ -440,10 +437,6 @@ public sealed record BillingSettings
     [Range(0, 100)]
     public decimal VatRate { get; init; }
 
-    /// <summary>The contractor's logo as a small image data URL; null for none.</summary>
-    [StringLength(300_000)]
-    public string? Logo { get; init; }
-
     [StringLength(500)]
     public string ContractorAddress { get; init; } = string.Empty;
 
@@ -477,11 +470,14 @@ public sealed record OverdueBill(long BillId, string Month, decimal Amount);
 /// <param name="Vat">VAT on <paramref name="Amount"/>; 0 on bills from before VAT.</param>
 /// <param name="AmountWithVat">What this month's work costs with VAT; null on bills from before VAT.</param>
 /// <param name="TotalWithOverdue">With VAT, plus earlier bills still owed.</param>
+/// <param name="ProjectIcon">The project's icon at the time, shown at the top of the bill; null on older bills.</param>
+/// <param name="ProjectIconImage">The project's uploaded image, which takes precedence over the icon.</param>
 public sealed record BillingReport(
     string ProjectName, string Month, BillingSettings Settings, IReadOnlyList<BillingMemberTotal> Members,
     IReadOnlyList<BillingDay> Days, decimal HoursWorked, decimal BillableHours, decimal Amount,
     IReadOnlyList<OverdueBill> Overdue, decimal OverdueTotal, decimal TotalWithOverdue,
-    decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0, decimal Vat = 0, decimal? AmountWithVat = null);
+    decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0, decimal Vat = 0, decimal? AmountWithVat = null,
+    string? ProjectIcon = null, string? ProjectIconImage = null);
 
 public sealed record FinalizeBillRequest(string Month);
 

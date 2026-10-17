@@ -29,8 +29,6 @@ public sealed class Project
     public string BillingCurrency { get; set; } = "USD";
     /// <summary>VAT added on top of each bill, in percent (e.g. 25); 0 adds none.</summary>
     public decimal BillingVatRate { get; set; }
-    /// <summary>The contractor's logo for bills, as a small image data URL; null for none.</summary>
-    public string? BillingLogo { get; set; }
     /// <summary>The contractor's postal address, one line per line, shown under their name on bills.</summary>
     public string BillingContractorAddress { get; set; } = string.Empty;
     /// <summary>The contractor's organisation or VAT number, shown on bills.</summary>

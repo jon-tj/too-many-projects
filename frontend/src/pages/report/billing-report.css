@@ -84,7 +84,7 @@ h2 {
   white-space: pre-line;
 }
 
-/* Who it is from, and what it is. */
+/* The project's logo, and what the document is. */
 .masthead {
   display: flex;
   flex-wrap: wrap;
@@ -93,22 +93,26 @@ h2 {
   padding-bottom: 24px;
   border-bottom: 3px solid var(--accent);
 }
-.from {
+.brand {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  color: var(--muted);
+  align-items: flex-start;
+  gap: 10px;
 }
-.from strong {
-  color: var(--ink);
-  font-size: 16px;
+.project-logo {
+  width: 72px;
+  height: 72px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 12px;
+  font-size: 40px;
 }
-.logo {
-  max-width: 220px;
-  max-height: 72px;
-  margin-bottom: 12px;
-  object-fit: contain;
-  object-position: left;
+.brand strong {
+  font-size: 18px;
+}
+/* The icon component sizes itself inline; on the bill it fills the tile. */
+.project-logo ::ng-deep app-icon {
+  font-size: 40px !important;
 }
 .title {
   text-align: right;
@@ -138,7 +142,15 @@ h2 {
   grid-template-columns: 1fr 1fr;
   gap: 24px;
 }
+.parties > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  color: var(--muted);
+}
 .parties strong {
+  color: var(--ink);
   font-size: 15px;
 }
 

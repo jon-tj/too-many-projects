@@ -353,9 +353,7 @@ export interface BillingSettings {
   currency?: string;
   /** VAT added on top of each bill, in percent; 0 adds none. Missing on bills from before VAT. */
   vatRate?: number;
-  /** The contractor's logo as a small image data URL; null for none. Business details are missing on older bills. */
-  logo?: string | null;
-  /** The contractor's postal address, one line per line. */
+  /** The contractor's postal address, one line per line. Business details are missing on older bills. */
   contractorAddress?: string;
   /** The contractor's organisation or VAT number. */
   orgNumber?: string;
@@ -449,6 +447,9 @@ export interface BillingReport {
   vat?: number;
   /** This month's work with VAT; missing on bills from before VAT. */
   amountWithVat?: number | null;
+  /** The project's icon and image when the report was made, for the top of the bill; missing on older bills. */
+  projectIcon?: string | null;
+  projectIconImage?: string | null;
   /** Earlier bills still owed; frozen into a bill when it is finalized. */
   overdue: OverdueBill[];
   overdueTotal: number;

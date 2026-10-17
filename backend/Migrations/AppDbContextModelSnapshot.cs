@@ -496,9 +496,6 @@ namespace backend.Migrations
                     b.Property<bool>("BillingEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("BillingLogo")
-                        .HasColumnType("TEXT");
-
                     b.Property<decimal>("BillingMaxHoursPerDay")
                         .HasColumnType("TEXT");
 

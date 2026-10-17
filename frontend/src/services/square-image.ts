@@ -14,17 +14,3 @@ export async function squareImageDataUrl(file: File, size: number, type = 'image
   return canvas.toDataURL(type, quality);
 }
 
-/**
- * Scales an image file down to fit within `maxWidth` × `maxHeight`, keeping its shape (logos are often wide), and
- * returns it as a PNG data URL. Smaller images are left at their size.
- */
-export async function fittedImageDataUrl(file: File, maxWidth: number, maxHeight: number): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL('image/png');
-}

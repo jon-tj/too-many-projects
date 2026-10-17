@@ -5,6 +5,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { BILL_STATUSES, BillingDay } from '../../services/models';
 import { MoneyPipe } from '../../services/money.pipe';
+import { ProjectIcon } from '../../components/project-icon/project-icon';
 import { findRevolutLink } from '../../services/revolut';
 import { WorkspaceApi } from '../../services/workspace-api';
 
@@ -17,7 +18,7 @@ const optionalNumber = (value: string | undefined) => (value ? Number(value) : n
  */
 @Component({
   selector: 'app-billing-report',
-  imports: [DatePipe, DecimalPipe, MoneyPipe],
+  imports: [DatePipe, DecimalPipe, MoneyPipe, ProjectIcon],
   templateUrl: './billing-report.html',
   styleUrl: './billing-report.css',
 })
@@ -75,6 +76,18 @@ export class BillingReportPage {
     return link ? `${location.origin}/shared/${link.token}` : '';
   });
   protected readonly copied = signal(false);
+  /**
+   * Every hour worked is billed as it is (no daily minimum or cap kicked in, everyone billed in full), so the bill can
+   * leave out "billable hours" and shares, which clients rarely know.
+   */
+  protected readonly plainHours = computed(() => {
+    const report = this.report();
+    return (
+      !!report &&
+      report.members.every((member) => member.billableHours === member.hoursWorked) &&
+      report.days.every((day) => day.billableHours === day.hoursWorked)
+    );
+  });
   /** A revolut.me link in the payment details, shown as a QR code the client can scan to pay. */
   protected readonly revolut = computed(() => findRevolutLink(this.report()?.settings.paymentDetails));
   /** The QR code as a PNG data URL; drawn by a library that is only loaded for bills with a Revolut link. */

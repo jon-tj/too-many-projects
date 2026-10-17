@@ -51,17 +51,10 @@
 
   <article class="sheet">
     <header class="masthead">
-      <div class="from">
-        @if (r.settings.logo) {
-          <img class="logo" [src]="r.settings.logo" alt="" />
-        }
-        <strong>{{ r.settings.contractorName || r.projectName }}</strong>
-        @if (r.settings.contractorAddress) {
-          <span class="lines">{{ r.settings.contractorAddress }}</span>
-        }
-        @if (r.settings.orgNumber) {
-          <span>Org. no. {{ r.settings.orgNumber }}</span>
-        }
+      <!-- The project's own logo; who the bill is from follows below, next to who it is for. -->
+      <div class="brand">
+        <app-project-icon class="project-logo" [project]="{ icon: r.projectIcon ?? null, iconImage: r.projectIconImage ?? null }" />
+        <strong>{{ r.projectName }}</strong>
       </div>
       <div class="title">
         <h1>{{ isPreview() ? 'Billing report' : 'Bill' }}</h1>
@@ -82,12 +75,18 @@
 
     <section class="parties">
       <div>
-        <h2>Bill to</h2>
-        <strong>{{ r.settings.clientName || '—' }}</strong>
+        <h2>From</h2>
+        <strong>{{ r.settings.contractorName || '—' }}</strong>
+        @if (r.settings.contractorAddress) {
+          <span class="lines">{{ r.settings.contractorAddress }}</span>
+        }
+        @if (r.settings.orgNumber) {
+          <span>Org. no. {{ r.settings.orgNumber }}</span>
+        }
       </div>
       <div>
-        <h2>Project</h2>
-        <strong>{{ r.projectName }}</strong>
+        <h2>Bill to</h2>
+        <strong>{{ r.settings.clientName || '—' }}</strong>
       </div>
     </section>
 
@@ -95,10 +94,14 @@
       <thead>
         <tr>
           <th scope="col">Member</th>
-          <th scope="col">Share</th>
+          @if (!plainHours()) {
+            <th scope="col">Share</th>
+          }
           <th scope="col" class="number">Days</th>
-          <th scope="col" class="number">Hours worked</th>
-          <th scope="col" class="number">Billable hours</th>
+          <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+          @if (!plainHours()) {
+            <th scope="col" class="number">Billable hours</th>
+          }
           <th scope="col" class="number">Rate</th>
           <th scope="col" class="number">Amount</th>
         </tr>
@@ -107,22 +110,26 @@
         @for (member of r.members; track member.name) {
           <tr>
             <td>{{ member.name }}</td>
-            <td>{{ member.fraction }}</td>
+            @if (!plainHours()) {
+              <td>{{ member.fraction }}</td>
+            }
             <td class="number">{{ member.daysWorked }}</td>
             <td class="number">{{ member.hoursWorked | number: '1.2-2' }}</td>
-            <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
+            @if (!plainHours()) {
+              <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
+            }
             <td class="number">{{ r.settings.costPerHour | money: cur }}</td>
             <td class="number">{{ member.amount | money: cur }}</td>
           </tr>
         } @empty {
-          <tr><td colspan="7" class="empty">No work recorded this month.</td></tr>
+          <tr><td [attr.colspan]="plainHours() ? 5 : 7" class="empty">No work recorded this month.</td></tr>
         }
       </tbody>
     </table>
 
     <div class="totals">
       <dl>
-        <dt>Billable hours</dt>
+        <dt>{{ plainHours() ? 'Hours' : 'Billable hours' }}</dt>
         <dd>{{ r.billableHours | number: '1.2-2' }}</dd>
         @if (r.vat) {
           <dt>Subtotal (excl. VAT)</dt>
@@ -187,16 +194,18 @@
           <h2>Worked earlier, not billed before</h2>
           <p class="note">
             This work was done before {{ monthStart(r.month) | date: 'MMMM' : 'UTC' }} but was not on an earlier bill.
-            It is included above: {{ r.carriedOverBillableHours | number: '1.2-2' }} billable hours,
-            {{ r.carriedOverAmount | money: cur }}.
+            It is included above: {{ r.carriedOverBillableHours | number: '1.2-2' }}
+            {{ plainHours() ? 'hours' : 'billable hours' }}, {{ r.carriedOverAmount | money: cur }}.
           </p>
           <table>
             <thead>
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Member</th>
-                <th scope="col" class="number">Hours worked</th>
-                <th scope="col" class="number">Billable hours</th>
+                <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+                @if (!plainHours()) {
+                  <th scope="col" class="number">Billable hours</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -205,7 +214,9 @@
                   <td>{{ day.date | date: 'MMM d, y' }}</td>
                   <td>{{ day.name }}</td>
                   <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
-                  <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                  @if (!plainHours()) {
+                    <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                  }
                 </tr>
               }
             </tbody>
@@ -222,8 +233,10 @@
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Member</th>
-              <th scope="col" class="number">Hours worked</th>
-              <th scope="col" class="number">Billable hours</th>
+              <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+              @if (!plainHours()) {
+                <th scope="col" class="number">Billable hours</th>
+              }
             </tr>
           </thead>
           <tbody>
@@ -232,7 +245,9 @@
                 <td>{{ day.date | date: 'EEE MMM d' }}</td>
                 <td>{{ day.name }}</td>
                 <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
-                <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                @if (!plainHours()) {
+                  <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                }
               </tr>
             }
           </tbody>

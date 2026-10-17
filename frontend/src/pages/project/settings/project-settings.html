@@ -87,18 +87,6 @@
           Organisation or VAT number
           <input formControlName="orgNumber" placeholder="Optional" />
         </label>
-        <div class="logo-field">
-          <span>Logo on bills</span>
-          @if (billingForm.controls.logo.value; as logo) {
-            <img class="logo-preview" [src]="logo" alt="Current logo" />
-          }
-          <div>
-            <input type="file" accept="image/*" aria-label="Upload a logo" (change)="setLogo($any($event.target).files?.[0] ?? null)" />
-            @if (billingForm.controls.logo.value) {
-              <button class="transparent" type="button" (click)="setLogo(null)"><span>Remove logo</span></button>
-            }
-          </div>
-        </div>
         <div class="pair">
           <label>
             Currency
