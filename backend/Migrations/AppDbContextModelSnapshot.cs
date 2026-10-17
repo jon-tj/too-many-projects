@@ -255,6 +255,12 @@ namespace backend.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("TrialDayReminderFor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("TrialWeekReminderFor")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("INTEGER");
 

@@ -29,7 +29,7 @@ Need to know utm_source so I can tell which marketing strategy works
 ## Trial-ending emails
 
 - **Decision:** 7 days and 1 day before the trial ends, explaining that projects freeze but nothing is lost.
-- **Status:** todo (order 10)
+- **Status:** done: a background job (every 30 minutes) emails trial users when the trial ends within 7 days and again the day before, explaining projects freeze but nothing is lost, with a link to choose a plan. Each reminder is sent once per trial end date, so extended or restarted trials are reminded again; exempt users are skipped. Links use the new `App:BaseUrl` setting (default https://toomanyprojects.fyi).
 
 ## "Made with TooManyProjects" link on reports and bills
 

@@ -31,6 +31,7 @@ Copy-Item backend/appsettings.example.json backend/appsettings.json
 - `ConnectionStrings:Supabase`: to use Supabase PostgreSQL instead of SQLite, paste the **Session pooler** connection string from Supabase Project Settings > Database, e.g. `Host=<pooler-host>;Port=5432;Database=postgres;Username=<pooler-user>;Password=<database-password>;SSL Mode=Require`. Leave it empty to use the local SQLite database. The application applies the checked-in EF Core migrations on startup.
 - `Resend:ApiKey`: your Resend API key. When it is empty, emails are written to the log instead of being sent.
 - `Resend:From`: the sender. `onboarding@resend.dev` works for testing but can only deliver to the email address of your Resend account; use an address on a domain you have verified in Resend for real recipients.
+- `App:BaseUrl`: the site's address (e.g. `https://toomanyprojects.fyi`) for links in emails sent on a schedule, such as trial reminders.
 - `Stripe:*`: payments for the Plus and Pro plans; see [Payments with Stripe](#payments-with-stripe). While `SecretKey` or a price id is empty, plans switch without payment.
 
 Environment variables override these values, e.g. `$env:ConnectionStrings__Supabase = "..."`.

@@ -29,6 +29,10 @@ public sealed class ApplicationUser : IdentityUser
 	public string? StripeSubscriptionId { get; set; }
 	/// <summary>The subscription ends at the renew date instead of renewing; the user then moves to the free plan.</summary>
 	public bool PlanCancelsAtRenewal { get; set; }
+	/// <summary>The trial end date the "ends in 7 days" email was sent for; a new end date gets a new email.</summary>
+	public DateTimeOffset? TrialWeekReminderFor { get; set; }
+	/// <summary>The trial end date the "ends tomorrow" email was sent for.</summary>
+	public DateTimeOffset? TrialDayReminderFor { get; set; }
 
 	// Answers from the sign-up form, for understanding who signs up.
 	public string PrimaryUseCase { get; set; } = string.Empty;
