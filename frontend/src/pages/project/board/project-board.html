@@ -122,7 +122,19 @@
             [cdkDragStartDelay]="{ touch: 250, mouse: 0 }"
           >
             @if (arrived() === task.id) {
-              <span class="stars" aria-hidden="true"><i>★</i><i>★</i><i>★</i></span>
+              <span class="stars" aria-hidden="true">
+                @for (star of arrivedStars(); track $index) {
+                  <i
+                    [style.left.%]="star.x"
+                    [style.top.%]="star.y"
+                    [style.--dx]="star.dx + 'px'"
+                    [style.--dy]="star.dy + 'px'"
+                    [style.--spin]="star.spin + 'deg'"
+                    [style.animation-delay.ms]="300 + star.delay"
+                    >★</i
+                  >
+                }
+              </span>
             }
             <input
               class="select-box"

@@ -42,6 +42,38 @@ interface BoardFilters {
 
 const DEFAULT_FILTERS: BoardFilters = { assignee: ASSIGNEE_FILTER.all, hideBlocked: true };
 
+/** A star bursting from a random point on the arriving card's edge: start in % of the card, flight in px. */
+interface ArrivalStar {
+  x: number;
+  y: number;
+  dx: number;
+  dy: number;
+  spin: number;
+  delay: number;
+}
+
+/** Picks a random point on one of the card's four edges and sends the star outwards from it, give or take 35°. */
+function arrivalStar(): ArrivalStar {
+  const edge = Math.floor(Math.random() * 4);
+  const along = Math.random() * 100;
+  const [x, y, normal] = [
+    [along, 0, -Math.PI / 2],
+    [100, along, 0],
+    [along, 100, Math.PI / 2],
+    [0, along, Math.PI],
+  ][edge];
+  const angle = normal + ((Math.random() - 0.5) * 70 * Math.PI) / 180;
+  const distance = 26 + Math.random() * 22;
+  return {
+    x,
+    y,
+    dx: Math.round(Math.cos(angle) * distance),
+    dy: Math.round(Math.sin(angle) * distance),
+    spin: Math.round((Math.random() - 0.5) * 240),
+    delay: Math.round(Math.random() * 90),
+  };
+}
+
 @Component({
   selector: 'app-project-board',
   imports: [TaskForm, TaskImport, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
@@ -228,6 +260,8 @@ export class ProjectBoard {
 
   /** The card that just arrived in to do, playing its drop-in animation. */
   protected readonly arrived = signal<number | null>(null);
+  /** Where the arriving card's stars start on its edges and how far they fly. */
+  protected readonly arrivedStars = signal<ArrivalStar[]>([]);
   private arrivedTimer?: ReturnType<typeof setTimeout>;
 
   /** Closes the dialog straight away; the card drops into to do when the server has saved it. */
@@ -238,6 +272,7 @@ export class ProjectBoard {
       next: (task) => {
         this.tasks.update((tasks) => [task, ...tasks]);
         clearTimeout(this.arrivedTimer);
+        this.arrivedStars.set(Array.from({ length: 5 }, arrivalStar));
         this.arrived.set(task.id);
         this.arrivedTimer = setTimeout(() => this.arrived.set(null), 1200);
       },
