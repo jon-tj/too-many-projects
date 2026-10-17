@@ -42,7 +42,33 @@ For visibility and word of mouth
 slack, notion, discord
 
 - **Decision:** written notes here: what each could do, effort, upkeep, recommendation. No code.
-- **Status:** todo (order 14)
+- **Status:** done: notes below.
+
+### Notes (October 2026)
+
+**Recommendation in one line:** build one small "notifications" feature that posts to a Slack *or* Discord channel through a webhook URL pasted into project settings. Skip a Notion integration for now; the CSV import already covers moving over from Notion.
+
+**Slack**
+- *What it could do:* post to a team channel when a task is done, a bill is finalized or paid, someone starts or finishes work (with mood and resistance), and the weekly summary. Later, with a full app: create tasks from a message or a `/tmp` command.
+- *Cheap way:* incoming webhooks. The user creates one in Slack and pastes the URL into project settings; we POST a message to it. Send-only, about 1 message per second per URL, no review needed. Still supported when created through a Slack app (only the old "custom integrations" are deprecated).
+- *Full way:* a Slack app with OAuth ("Add to Slack"), needed for slash commands, picking channels in our UI, and the Slack Marketplace. Apps for other workspaces are expected to go through Marketplace review, which reportedly takes weeks. Not worth it until users ask for two-way features.
+- *Effort/upkeep:* webhook version ~1 day (settings field, a few event hooks, message formatting), almost no upkeep. OAuth app: 1–2 weeks plus review and upkeep.
+
+**Discord**
+- *What it could do:* the same one-way notifications as Slack, for teams (indie devs, gaming studios, communities) that live in Discord.
+- *How:* channel webhooks work like Slack's: paste a URL, POST JSON (a message plus up to 10 embeds). Rate limit roughly 5 requests per 2 seconds per webhook, so retry on 429 using Retry-After.
+- *Effort/upkeep:* nearly free once Slack webhooks exist: the same feature with a second message format.
+- *Fit:* weaker than Slack for small agencies and businesses, but costs almost nothing to add alongside.
+
+**Notion**
+- *What it could do:* (1) import tasks from a Notion database, (2) show linked Notion pages nicely on tasks, (3) two-way task sync.
+- *How:* a public integration with OAuth; the API allows about 3 requests per second on average (429 + Retry-After when exceeded). Notion has added webhooks, but their payloads carry only ids, so every change needs follow-up API calls; details and beta status still need checking against Notion's changelog.
+- *Effort/upkeep:* import over the API ~3–5 days; link previews ~1 day; two-way sync weeks of work, plus ongoing upkeep for field mapping, conflicts and rate limits.
+- *Advice:* the CSV import already handles Notion's export, so (1) is covered. (3) cuts against "one tool instead of five". Revisit only if feature requests keep naming Notion.
+
+**Suggested order if built:** 1) Slack and Discord webhook notifications per project; 2) Notion page link previews on tasks; 3) anything deeper only on demand (watch Admin → Requests).
+
+**Sources:** [Notion request limits](https://developers.notion.com/reference/request-limits), [Slack app distribution](https://docs.slack.dev/distribution), [Slack incoming webhooks](https://api.slack.com/messaging/webhooks), [Are Slack webhooks deprecated (Svix)](https://www.svix.com/resources/faq/are-slack-webhooks-deprecated/), [Discord webhooks guide (Hookdeck)](https://hookdeck.com/webhooks/platforms/guide-to-discord-webhooks-features-and-best-practices.md).
 
 ## Specify pricing
 
