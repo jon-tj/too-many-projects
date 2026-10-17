@@ -268,9 +268,37 @@ export class ProjectBoard {
     return member ? member.displayName || member.userName : 'Assigned';
   }
 
+  /** The card shaking because it was dropped where it cannot go. */
+  protected readonly shaking = signal<number | null>(null);
+  private shakeTimer?: ReturnType<typeof setTimeout>;
+
   /** Dropping a card on another column changes its status. Touch drags start after a short hold, so swiping still scrolls. */
   protected drop(event: CdkDragDrop<TaskStatus, TaskStatus, ProjectTask>): void {
-    this.changeStatus(event.item.data, event.container.data, event.dropPoint);
+    const task = event.item.data;
+    // A blocked card cannot enter doing or done (see canEnter), so it lands back in to do. When it was let go over one
+    // of those columns, it shakes to say no.
+    const target = this.columnAt(event.dropPoint);
+    if (event.container.data === task.status && target && target !== task.status && this.blockedIds().has(task.id)) {
+      this.shake(task.id);
+      return;
+    }
+    this.changeStatus(task, event.container.data, event.dropPoint);
+  }
+
+  /** The status of the column under the point, if any. The drag preview lets the pointer through to it. */
+  private columnAt(point: { x: number; y: number }): TaskStatus | null {
+    const column = document.elementFromPoint(point.x, point.y)?.closest<HTMLElement>('.kanban-column');
+    return (column?.dataset['status'] as TaskStatus | undefined) ?? null;
+  }
+
+  private shake(taskId: number): void {
+    clearTimeout(this.shakeTimer);
+    // Cleared first, so shaking the same card twice in a row restarts the animation.
+    this.shaking.set(null);
+    requestAnimationFrame(() => {
+      this.shaking.set(taskId);
+      this.shakeTimer = setTimeout(() => this.shaking.set(null), 500);
+    });
   }
 
   /**

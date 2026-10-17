@@ -89,8 +89,14 @@ export class TaskForm {
     const chosen = new Set(this.dependsOn());
     const waiting = self === undefined ? new Set<number>() : dependentsOf(self, tasks);
     const implied = new Set([...chosen].flatMap((id) => [...upstreamOf(id, tasks)]));
+    // Only unfinished tasks are offered: waiting for one that is already done would block nothing.
     return tasks.filter(
-      (task) => task.id !== self && !chosen.has(task.id) && !waiting.has(task.id) && !implied.has(task.id),
+      (task) =>
+        task.status !== 'done' &&
+        task.id !== self &&
+        !chosen.has(task.id) &&
+        !waiting.has(task.id) &&
+        !implied.has(task.id),
     );
   });
   /** A task with unfinished dependencies cannot leave to do. */

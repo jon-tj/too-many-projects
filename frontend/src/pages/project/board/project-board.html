@@ -106,6 +106,7 @@
             class="task-card"
             [class.done-card]="task.status === 'done'"
             [class.selected]="selected().has(task.id)"
+            [class.shake]="shaking() === task.id"
             [attr.data-status]="task.status"
             cdkDrag
             [cdkDragData]="task"
