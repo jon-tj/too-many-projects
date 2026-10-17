@@ -235,6 +235,11 @@ export class WorkspaceApi {
   }
 
   /** Sets the profile picture (a small image data URL), or removes it with null. */
+  /** Turns the Monday summary email on or off. */
+  setEmailPreferences(weeklySummary: boolean): Observable<void> {
+    return this.http.put<void>('/api/account/email-preferences', { weeklySummary });
+  }
+
   setAvatar(image: string | null): Observable<void> {
     return this.http.put<void>('/api/account/avatar', { image });
   }

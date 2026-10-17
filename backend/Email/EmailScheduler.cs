@@ -19,6 +19,7 @@ public sealed class EmailScheduler(IServiceScopeFactory scopes, ILogger<EmailSch
             {
                 await using var scope = scopes.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<TrialReminders>().SendDue(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<WeeklySummaries>().SendDue(stoppingToken);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {

@@ -156,6 +156,8 @@ export interface Account {
   previousPlanType: PlanName | null;
   /** Can open the admin page. */
   isAdmin: boolean;
+  /** Gets the Monday summary email. */
+  weeklySummary: boolean;
 }
 
 /** A user as the admin page lists them. */

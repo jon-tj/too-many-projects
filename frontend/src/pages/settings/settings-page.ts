@@ -27,6 +27,7 @@ export class SettingsPage implements OnInit {
   /** The picture chosen but not saved yet: undefined = unchanged, null = remove. */
   protected readonly pendingAvatar = signal<string | null | undefined>(undefined);
   protected readonly avatarMessage = signal('');
+  protected readonly emailMessage = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
     currentPassword: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -42,6 +43,18 @@ export class SettingsPage implements OnInit {
   protected readonly userNameMessage = signal('');
 
   constructor(private readonly api: WorkspaceApi) {}
+
+  /** Saves straight away, as the checkbox shows; switches it back if saving fails. */
+  protected setWeeklySummary(weeklySummary: boolean): void {
+    this.account.update((account) => (account ? { ...account, weeklySummary } : account));
+    this.api.setEmailPreferences(weeklySummary).subscribe({
+      next: () => this.emailMessage.set(weeklySummary ? 'You will get the weekly summary.' : 'Weekly summary turned off.'),
+      error: () => {
+        this.account.update((account) => (account ? { ...account, weeklySummary: !weeklySummary } : account));
+        this.emailMessage.set('Could not save. Please try again.');
+      },
+    });
+  }
 
   ngOnInit(): void {
     this.api.currentAccount().subscribe({

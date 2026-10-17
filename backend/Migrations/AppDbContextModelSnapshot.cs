@@ -283,6 +283,12 @@ namespace backend.Migrations
                     b.Property<string>("UtmTerm")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("WeeklySummary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("WeeklySummarySentFor")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")

@@ -17,7 +17,7 @@ Also would be nice to have a small animation when the task shows up in the To do
 ## Weekly summary email
 
 - **Decision:** everyone with activity last week, Monday morning: per project hours, tasks done, mood/resistance. On/off switch in Settings and an unsubscribe link.
-- **Status:** todo (order 11)
+- **Status:** done: every Monday from 06:00 UTC, users with activity last week (Mon–Sun) get a summary per project: team hours and theirs, tasks done, average mood and resistance, with a link to the project. Settings → Emails has an on/off switch, and the email has a one-click unsubscribe link (signed, no sign-in). Each week is sent once; a week not sent by Tuesday 06:00 is skipped.
 
 ## Sign-ups by campaign on the admin page
 

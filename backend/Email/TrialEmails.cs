@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 
 namespace Email;
@@ -12,7 +13,7 @@ public static class TrialEmails
         string plansUrl) =>
         new(to, $"Your TooManyProjects trial ends {endsIn}", $"""
             <p>Hi {Encode(name)},</p>
-            <p>Your free trial of TooManyProjects ends <strong>{Encode(endsIn)}</strong>, on {endsAt:MMMM d}.</p>
+            <p>Your free trial of TooManyProjects ends <strong>{Encode(endsIn)}</strong>, on {endsAt.ToString("MMMM d", CultureInfo.InvariantCulture)}.</p>
             <p>Nothing is lost when it ends: {(ownedProjects == 1 ? "your project is" : $"your {ownedProjects} projects are")}
             frozen, not deleted, and every task, canvas and hour stays exactly where it is.</p>
             <p>To keep working without a break, choose a plan before then. Free keeps up to {freeProjectLimit} projects

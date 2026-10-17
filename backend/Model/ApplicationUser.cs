@@ -33,6 +33,10 @@ public sealed class ApplicationUser : IdentityUser
 	public DateTimeOffset? TrialWeekReminderFor { get; set; }
 	/// <summary>The trial end date the "ends tomorrow" email was sent for.</summary>
 	public DateTimeOffset? TrialDayReminderFor { get; set; }
+	/// <summary>Wants the Monday summary email; turned off in Settings or by its unsubscribe link.</summary>
+	public bool WeeklySummary { get; set; } = true;
+	/// <summary>The week ("yyyy-MM-dd" of its Monday) the last weekly summary was sent (or skipped) for.</summary>
+	public string? WeeklySummarySentFor { get; set; }
 
 	// Answers from the sign-up form, for understanding who signs up.
 	public string PrimaryUseCase { get; set; } = string.Empty;

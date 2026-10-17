@@ -33,7 +33,7 @@ public sealed class AccountController(
         var lapsed = await plans.IsLapsed(user, cancellationToken);
         return Ok(new AccountResponse(
             user.Id, user.UserName ?? "", user.DisplayName, user.Email ?? "", user.MustChangePassword, user.AvatarImage,
-            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType, user.IsAdmin));
+            user.PlanType, user.PlanRenewDate, lapsed, user.PreviousPlanType, user.IsAdmin, user.WeeklySummary));
     }
 
     /// <summary>The caller's plan and the projects they own, for choosing a plan and which projects stay active.</summary>
@@ -184,6 +184,17 @@ public sealed class AccountController(
     }
 
     /// <summary>Sets (or with null removes) the profile picture shown in the sidebar and on canvases.</summary>
+    /// <summary>Turns the Monday summary email on or off.</summary>
+    [HttpPut("email-preferences")]
+    public async Task<IActionResult> SetEmailPreferences(EmailPreferencesRequest request)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Unauthorized();
+        user.WeeklySummary = request.WeeklySummary;
+        await users.UpdateAsync(user);
+        return NoContent();
+    }
+
     [HttpPut("avatar")]
     public async Task<IActionResult> SetAvatar(SetAvatarRequest request)
     {
@@ -224,7 +235,11 @@ public sealed class AccountController(
 /// <summary>Profile data for the authenticated account.</summary>
 public sealed record AccountResponse(
     string Id, string UserName, string DisplayName, string Email, bool MustChangePassword, string? AvatarImage,
-    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool IsAdmin);
+    string PlanType, DateTimeOffset? PlanRenewDate, bool PlanLapsed, string? PreviousPlanType, bool IsAdmin,
+    bool WeeklySummary);
+
+/// <summary>Which emails the user wants.</summary>
+public sealed record EmailPreferencesRequest(bool WeeklySummary);
 
 /// <summary>The caller's plan, whether it is exempt from lapsing, its project limit (null for none) and the projects they own.</summary>
 /// <param name="PaymentsEnabled">Stripe is connected, so paid plans go through Checkout.</param>

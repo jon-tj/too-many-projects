@@ -64,6 +64,7 @@ builder.Services.AddScoped<Payments.StripeBilling>();
 builder.Services.AddScoped<UserRemoval>();
 // Emails due by time, not by a request (e.g. trial reminders); links in them use App:BaseUrl.
 builder.Services.AddScoped<TrialReminders>();
+builder.Services.AddScoped<WeeklySummaries>();
 builder.Services.AddHostedService<EmailScheduler>();
 builder.Services.AddScoped<MembershipRemoval>();
 builder.Services.AddScoped<Plans.PlanService>();
