@@ -287,7 +287,10 @@ export class ProjectRoadmap {
     this.save();
   }
 
-  /** Elbow from the dependency's end down to the task's start, detouring left when the task starts right away. */
+  /**
+   * Elbow from the dependency's end to the task's start, detouring left when the task starts right away. The detour runs
+   * along the edge of the task's row that faces the dependency, above or below.
+   */
   private arrowPath(from: RoadmapBar, to: RoadmapBar): string {
     const { dayWidth } = this.view();
     const x1 = from.end * dayWidth - 2;
@@ -295,7 +298,7 @@ export class ProjectRoadmap {
     const x2 = to.start * dayWidth;
     const y2 = to.row * ROW + ROW / 2;
     if (x2 - x1 >= 14) return `M${x1},${y1} H${x1 + 6} V${y2} H${x2}`;
-    const gap = to.row * ROW;
+    const gap = (to.row > from.row ? to.row : to.row + 1) * ROW;
     return `M${x1},${y1} H${x1 + 6} V${gap} H${x2 - 8} V${y2} H${x2}`;
   }
 

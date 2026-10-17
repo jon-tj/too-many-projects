@@ -4,7 +4,10 @@ import { PRIORITY_RANK, ProjectTask } from '../../../services/models';
 export interface RoadmapBar {
   task: ProjectTask;
   row: number;
-  /** The first day the task can be worked on: the day after its last dependency is due, or day 0 without dependencies. */
+  /**
+   * The first day the task can be worked on: the day after its last dependency is due, and never before the day the task
+   * was created.
+   */
   start: number;
   /** The day after its last day. */
   end: number;
@@ -37,6 +40,14 @@ export function dueDay(dueAt: string): Date {
 }
 
 /**
+ * The bars latest start first. A task starts after its dependencies end, so this visits every task before the tasks it
+ * depends on, whatever order the rows are shown in.
+ */
+function dependentsFirst(bars: RoadmapBar[]): RoadmapBar[] {
+  return [...bars].sort((a, b) => b.start - a.start || b.end - a.end);
+}
+
+/**
  * Ids of the tasks with no float: the latest each may end without pushing back the last due date is its own end.
  * Works backwards from the last due date: a task must end by the time every task waiting on it has to start.
  */
@@ -44,9 +55,7 @@ export function criticalPath(bars: RoadmapBar[]): Set<number> {
   if (!bars.length) return new Set();
   const finish = Math.max(...bars.map((bar) => bar.end));
   const latestEnd = new Map<number, number>();
-  // Bars are ordered by start and a task starts after its dependencies end, so walking backwards
-  // reaches every task before the tasks it depends on.
-  for (const bar of [...bars].reverse()) {
+  for (const bar of dependentsFirst(bars)) {
     const latestStart = (latestEnd.get(bar.task.id) ?? finish) - (bar.end - bar.start);
     for (const id of bar.task.dependsOn) latestEnd.set(id, Math.min(latestEnd.get(id) ?? finish, latestStart));
   }
@@ -60,8 +69,8 @@ export function criticalPath(bars: RoadmapBar[]): Set<number> {
  */
 export function workChain(bars: RoadmapBar[]): Map<number, number> {
   const reach = new Map<number, number>();
-  // Walking backwards reaches every task before the tasks it depends on, so a task's reach is complete when visited.
-  for (const bar of [...bars].reverse()) {
+  // Every task is visited before the tasks it depends on, so a task's reach is complete when visited.
+  for (const bar of dependentsFirst(bars)) {
     const end = Math.max(bar.end, reach.get(bar.task.id) ?? bar.end);
     reach.set(bar.task.id, end);
     for (const id of bar.task.dependsOn) reach.set(id, Math.max(reach.get(id) ?? end, end));
@@ -70,8 +79,8 @@ export function workChain(bars: RoadmapBar[]): Map<number, number> {
 }
 
 /**
- * Places every task: it starts right after its last dependency is due (or on day 0 without dependencies)
- * and runs until its own due date. One task per row, ordered by start so dependencies sit above their dependents.
+ * Places every task: it starts right after its last dependency is due, but never before the day it was created, and
+ * runs until its own due date. One task per row, the most recently created at the top.
  */
 export function layoutRoadmap(tasks: ProjectTask[], origin: Date): RoadmapBar[] {
   const byId = new Map(tasks.map((task) => [task.id, task]));
@@ -80,7 +89,8 @@ export function layoutRoadmap(tasks: ProjectTask[], origin: Date): RoadmapBar[] 
     const known = placed.get(task.id);
     if (known) return known;
     visiting.add(task.id);
-    let start = 0;
+    // Not before the task existed; tasks from before the project's first day (none should be) start on day 0.
+    let start = task.createdAt ? Math.max(0, daysFrom(origin, new Date(task.createdAt))) : 0;
     for (const id of task.dependsOn) {
       const dependency = byId.get(id);
       // The server refuses loops; skipping tasks already on the path keeps a bad state from recursing forever.
@@ -95,12 +105,12 @@ export function layoutRoadmap(tasks: ProjectTask[], origin: Date): RoadmapBar[] 
   };
   return tasks
     .map((task) => place(task, new Set()))
+    // Newest first: the task created last is on top. Ids rise with creation, so they settle ties.
     .sort(
       (a, b) =>
-        a.start - b.start ||
-        a.end - b.end ||
+        new Date(b.task.createdAt).getTime() - new Date(a.task.createdAt).getTime() ||
         PRIORITY_RANK[b.task.priority] - PRIORITY_RANK[a.task.priority] ||
-        a.task.id - b.task.id,
+        b.task.id - a.task.id,
     )
     .map((bar, row) => ({ ...bar, row }));
 }
