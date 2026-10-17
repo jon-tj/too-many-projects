@@ -56,7 +56,7 @@ i also want you to specify in the pricing that only the project owner needs to s
 Will need to handle Notion typical csv format, as well as Toggl, Clockify, Harvest
 
 - **Decision:** both, as two commits: tasks (Notion, spreadsheets) and time entries (Toggl, Clockify, Harvest), each with column auto-detection and a preview.
-- **Status:** todo (order 12 and 13)
+- **Status:** tasks done: "Import" on the project board reads a CSV (comma, semicolon or tab; Notion, Asana, Jira, Linear, Trello or a spreadsheet), guesses which column is title, description, status, priority, assignee, due, created and completed, lets you correct that and map each status and priority found, asks the date order when dates are ambiguous, previews, and creates all tasks at once (assignees matched to members by email, username or name). Time entries: todo (order 13)
 
 ## Make bills and reports look very nice
 

@@ -3,6 +3,10 @@
     <app-icon name="add" />
     <span>New task</span>
   </button>
+  <button class="transparent" type="button" title="Import tasks from a CSV file" (click)="importing.set(true)">
+    <app-icon name="upload_file" />
+    <span>Import</span>
+  </button>
   <select
     class="filter"
     aria-label="Filter by assignee"
@@ -201,6 +205,8 @@
     }
   </div>
 }
+
+<app-task-import [projectId]="projectId()" [(open)]="importing" (imported)="tasks.reload()" />
 
 <app-modal heading="New task" [(open)]="addingTask">
   <!-- Created on open, so every new task starts with an empty form. -->

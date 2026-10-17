@@ -260,6 +260,23 @@ export class WorkspaceApi {
     );
   }
 
+  /** Creates many tasks at once from a CSV file read in the browser; assignees are matched by email, username or name. */
+  importTasks(
+    projectId: number,
+    tasks: {
+      title: string;
+      description: string | null;
+      status: string;
+      priority: string;
+      assignee: string | null;
+      dueAt: string | null;
+      createdAt: string | null;
+      completedAt: string | null;
+    }[],
+  ): Observable<{ imported: number; unmatched: number }> {
+    return this.http.post<{ imported: number; unmatched: number }>(`/api/tasks/by-project/${projectId}/import`, { tasks });
+  }
+
   dashboardTasks(): Observable<ProjectTask[]> {
     return this.http.get<ProjectTask[]>('/api/tasks');
   }

@@ -6,7 +6,7 @@ import { Icon } from '../icon/icon';
   selector: 'app-modal',
   imports: [Icon],
   template: `
-    <dialog #dialog (close)="open.set(false)" (click)="closeOnBackdrop($event)">
+    <dialog #dialog [style.width]="'min(100% - 32px, ' + width() + 'px)'" (close)="open.set(false)" (click)="closeOnBackdrop($event)">
       <div>
         <header>
           <h2>{{ heading() }}</h2>
@@ -47,6 +47,8 @@ import { Icon } from '../icon/icon';
 })
 export class Modal {
   readonly heading = input.required<string>();
+  /** Widest it gets, in pixels; it narrows on small screens. */
+  readonly width = input(440);
   readonly open = model(false);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 

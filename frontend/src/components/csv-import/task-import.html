@@ -1,0 +1,115 @@
+<app-modal heading="Import tasks from CSV" [width]="760" [open]="open()" (openChange)="reset($event)">
+  <div class="import">
+    @if (done()) {
+      <p class="done" role="status">{{ done() }}</p>
+      <footer>
+        <button class="primary" type="button" (click)="open.set(false)">Close</button>
+      </footer>
+    } @else {
+      <p class="intro">
+        Export your tasks as CSV from Notion, Asana, Jira, Linear, Trello or a spreadsheet, and choose the file here.
+        Nothing is created until you confirm.
+      </p>
+      <label>
+        CSV file
+        <input type="file" accept=".csv,text/csv,.tsv,.txt" (change)="choose($any($event.target).files?.[0])" />
+      </label>
+
+      @if (table(); as t) {
+        <h3>Columns in {{ fileName() }}</h3>
+        <div class="mapping">
+          @for (field of FIELDS; track field.key) {
+            <label>
+              {{ field.label }}
+              <select (change)="setColumn(field.key, +$any($event.target).value)">
+                <option value="-1" [selected]="columns()[field.key] === -1">{{ field.key === 'title' ? 'Choose a column' : 'Not in the file' }}</option>
+                @for (header of t.headers; track $index) {
+                  <option [value]="$index" [selected]="columns()[field.key] === $index">{{ header || 'Column ' + ($index + 1) }}</option>
+                }
+              </select>
+            </label>
+          }
+        </div>
+
+        @if (statusValues().length) {
+          <h3>Statuses</h3>
+          <div class="values">
+            @for (value of statusValues(); track value) {
+              <label>
+                <span>{{ value }}</span>
+                <select (change)="setStatus(value, $any($event.target).value)">
+                  <option value="todo" [selected]="statusMap()[value] === 'todo'">To do</option>
+                  <option value="doing" [selected]="statusMap()[value] === 'doing'">Doing</option>
+                  <option value="done" [selected]="statusMap()[value] === 'done'">Done</option>
+                </select>
+              </label>
+            }
+          </div>
+        }
+
+        @if (priorityValues().length) {
+          <h3>Priorities</h3>
+          <div class="values">
+            @for (value of priorityValues(); track value) {
+              <label>
+                <span>{{ value }}</span>
+                <select (change)="setPriority(value, $any($event.target).value)">
+                  <option value="low" [selected]="priorityMap()[value] === 'low'">Low</option>
+                  <option value="high" [selected]="priorityMap()[value] === 'high'">High</option>
+                  <option value="critical" [selected]="priorityMap()[value] === 'critical'">Critical</option>
+                </select>
+              </label>
+            }
+          </div>
+        }
+
+        @if (dateOrderNeeded()) {
+          <label class="order">
+            Dates like 04/10/2026 mean
+            <select (change)="dateOrder.set($any($event.target).value)">
+              <option value="dmy" [selected]="dateOrder() === 'dmy'">4 October (day first)</option>
+              <option value="mdy" [selected]="dateOrder() === 'mdy'">April 10 (month first)</option>
+            </select>
+          </label>
+        }
+
+        <h3>Preview</h3>
+        <div class="preview">
+          <table>
+            <thead>
+              <tr><th>Title</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due</th></tr>
+            </thead>
+            <tbody>
+              @for (task of preview(); track $index) {
+                <tr>
+                  <td>{{ task.title }}</td>
+                  <td>{{ task.status }}</td>
+                  <td>{{ task.priority }}</td>
+                  <td>{{ task.assignee ?? '—' }}</td>
+                  <td>{{ task.dueAt ? task.dueAt.slice(0, 10) : '—' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5">No rows have a title in the chosen column.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">
+          {{ tasks().length }} {{ tasks().length === 1 ? 'task' : 'tasks' }} will be created{{
+            tasks().length > preview().length ? ' (first ' + preview().length + ' shown)' : ''
+          }}. Assignees are matched to members of this project by email, username or name.
+        </p>
+      }
+
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+      <footer>
+        <button class="primary" type="button" [disabled]="busy() || !tasks().length" (click)="run()">
+          {{ busy() ? 'Importing…' : 'Import ' + (tasks().length || '') + ' tasks' }}
+        </button>
+        <button class="transparent" type="button" (click)="open.set(false)">Cancel</button>
+      </footer>
+    }
+  </div>
+</app-modal>

@@ -1,0 +1,84 @@
+/* Shared by the task and time imports. */
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+p {
+  margin: 0;
+}
+.intro,
+.hint {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.hint {
+  color: var(--secondary-surface);
+}
+h3 {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.mapping {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 12px;
+}
+.values {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px 12px;
+}
+.values label {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 400;
+}
+.values span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mapping select,
+.values select,
+.order select {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+.preview {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  position: sticky;
+  top: 0;
+  background: var(--primary-surface);
+  color: var(--secondary-surface);
+  font-size: 11px;
+}
+.error {
+  color: var(--priority-critical);
+  font-size: 12px;
+}
+.done {
+  font-size: 14px;
+}
+footer {
+  display: flex;
+  gap: 8px;
+}

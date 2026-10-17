@@ -120,6 +120,69 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
         return Created($"/api/tasks/{task.Id}", response);
     }
 
+    /// <summary>
+    /// Creates many tasks at once from a CSV file the browser has read and mapped (e.g. a Notion or Asana export). Each
+    /// assignee is matched to a project member by email, username or name, ignoring case; no match leaves the task
+    /// unassigned. Titles and descriptions are cut to fit. All tasks are saved together, or none.
+    /// </summary>
+    [HttpPost("by-project/{projectId:long}/import")]
+    public async Task<ActionResult<ImportTasksResponse>> Import(
+        long projectId, ImportTasksRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        if (!await db.ProjectMembers.AnyAsync(
+                member => member.ProjectId == projectId && member.UserId == userId, cancellationToken))
+            return NotFound();
+        if (request.Tasks.Count is 0 or > 2000) return BadRequest(new { error = "Import between 1 and 2000 tasks at a time." });
+        for (var row = 0; row < request.Tasks.Count; row++)
+        {
+            var item = request.Tasks[row];
+            if (string.IsNullOrWhiteSpace(item.Title)) return BadRequest(new { error = $"Task {row + 1} has no title." });
+            if (!ValidStatuses.Contains(item.Status)) return BadRequest(new { error = $"Task {row + 1}: status must be todo, doing or done." });
+            if (!ValidPriorities.Contains(item.Priority)) return BadRequest(new { error = $"Task {row + 1}: priority must be low, high or critical." });
+        }
+
+        var members = await db.ProjectMembers.AsNoTracking()
+            .Where(member => member.ProjectId == projectId)
+            .Select(member => new { member.UserId, member.User.Email, member.User.UserName, member.User.DisplayName })
+            .ToListAsync(cancellationToken);
+        string? Match(string? who)
+        {
+            if (string.IsNullOrWhiteSpace(who)) return null;
+            who = who.Trim();
+            bool Same(string? value) => string.Equals(value?.Trim(), who, StringComparison.OrdinalIgnoreCase);
+            return (members.FirstOrDefault(member => Same(member.Email))
+                ?? members.FirstOrDefault(member => Same(member.UserName))
+                ?? members.FirstOrDefault(member => Same(member.DisplayName)))?.UserId;
+        }
+        static string Cut(string value, int length) => value.Length <= length ? value : value[..length];
+
+        var now = DateTimeOffset.UtcNow;
+        var unmatched = 0;
+        foreach (var item in request.Tasks)
+        {
+            var assignee = Match(item.Assignee);
+            if (assignee is null && !string.IsNullOrWhiteSpace(item.Assignee)) unmatched++;
+            var createdAt = item.CreatedAt ?? now;
+            db.ProjectTasks.Add(new ProjectTask
+            {
+                ProjectId = projectId,
+                Title = Cut(item.Title.Trim(), 180),
+                Description = Cut(item.Description?.Trim() ?? string.Empty, 2000),
+                Status = item.Status,
+                Priority = item.Priority,
+                CreatedByUserId = userId,
+                AssigneeUserId = assignee,
+                CreatedAt = createdAt,
+                DueAt = item.DueAt,
+                // Done tasks keep when they were finished, so the overview charts them at the right time.
+                CompletedAt = item.Status == "done" ? item.CompletedAt ?? createdAt : null,
+            });
+        }
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(new ImportTasksResponse(request.Tasks.Count, unmatched));
+    }
+
     /// <summary>Assigns several of a project's tasks at once, from the board's selection. A null assignee unassigns them.</summary>
     [HttpPatch("by-project/{projectId:long}/assignee")]
     public async Task<IActionResult> AssignMany(
@@ -345,6 +408,19 @@ public sealed record TaskResponse(
 public sealed record SetUnitsDoneRequest(int Done);
 
 /// <summary>Data required to add a task to a project.</summary>
+/// <summary>Tasks read from a CSV file and mapped in the browser.</summary>
+public sealed record ImportTasksRequest(IReadOnlyList<ImportedTask> Tasks);
+
+/// <param name="Status">todo, doing or done.</param>
+/// <param name="Priority">low, high or critical.</param>
+/// <param name="Assignee">An email, username or name to match to a project member; null for none.</param>
+public sealed record ImportedTask(
+    string Title, string? Description, string Status, string Priority, string? Assignee, DateTimeOffset? DueAt,
+    DateTimeOffset? CreatedAt, DateTimeOffset? CompletedAt);
+
+/// <param name="Unmatched">Tasks whose assignee matched no project member, so they were left unassigned.</param>
+public sealed record ImportTasksResponse(int Imported, int Unmatched);
+
 public sealed record CreateTaskRequest
 {
     [Required, StringLength(180, MinimumLength = 1)]

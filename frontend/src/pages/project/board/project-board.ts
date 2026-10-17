@@ -4,6 +4,7 @@ import { Component, computed, HostListener, inject, input, linkedSignal, numberA
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
+import { TaskImport } from '../../../components/csv-import/task-import';
 import { Modal } from '../../../components/modal/modal';
 import { TaskForm, TaskFormValue } from '../../../components/task-form/task-form';
 import { PRIORITY_RANK, ProjectTask, TaskStatus } from '../../../services/models';
@@ -43,7 +44,7 @@ const DEFAULT_FILTERS: BoardFilters = { assignee: ASSIGNEE_FILTER.all, hideBlock
 
 @Component({
   selector: 'app-project-board',
-  imports: [TaskForm, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
+  imports: [TaskForm, TaskImport, RouterLink, Icon, Modal, CdkDrag, CdkDropList, CdkDropListGroup, CdkScrollable],
   templateUrl: './project-board.html',
   styleUrl: './project-board.css',
 })
@@ -118,6 +119,8 @@ export class ProjectBoard {
   protected readonly ASSIGNEE_FILTER = ASSIGNEE_FILTER;
   protected readonly DONE_LIMIT = DONE_LIMIT;
   protected readonly addingTask = signal(false);
+  /** The CSV import dialog. */
+  protected readonly importing = signal(false);
   protected readonly taskError = signal('');
   protected readonly copiedId = signal<number | null>(null);
   protected readonly copiedSelection = signal(false);
