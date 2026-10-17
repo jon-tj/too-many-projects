@@ -208,6 +208,24 @@ export class ProjectBoard {
     });
   }
 
+  /** Deletes the selected tasks after confirming; they disappear at once and come back if the server refuses. */
+  protected deleteSelected(): void {
+    const ids = this.selected();
+    if (!ids.size) return;
+    const count = ids.size === 1 ? 'this task' : `these ${ids.size} tasks`;
+    if (!confirm(`Delete ${count}? This cannot be undone.`)) return;
+    const previous = this.tasks.value();
+    this.tasks.update((tasks) => tasks.filter((task) => !ids.has(task.id)));
+    this.clearSelection();
+    this.api.deleteTasks(this.projectId(), [...ids]).subscribe({
+      error: () => {
+        this.tasks.set(previous);
+        this.selected.set(ids);
+        this.taskError.set('Could not delete the selected tasks.');
+      },
+    });
+  }
+
   /** The card that just arrived in to do, playing its drop-in animation. */
   protected readonly arrived = signal<number | null>(null);
   private arrivedTimer?: ReturnType<typeof setTimeout>;

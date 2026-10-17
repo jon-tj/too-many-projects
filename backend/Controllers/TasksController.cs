@@ -211,6 +211,25 @@ public sealed class TasksController(AppDbContext db, PlanService plans) : Contro
         return NoContent();
     }
 
+    /// <summary>Deletes several of a project's tasks at once, from the board's selection; their dependencies go with them.</summary>
+    [HttpPost("by-project/{projectId:long}/delete")]
+    public async Task<IActionResult> DeleteMany(long projectId, DeleteTasksRequest request, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        if (!await db.ProjectMembers.AnyAsync(
+                member => member.ProjectId == projectId && member.UserId == userId, cancellationToken))
+            return NotFound();
+
+        var tasks = await db.ProjectTasks
+            .Where(task => task.ProjectId == projectId && request.TaskIds.Contains(task.Id))
+            .ToListAsync(cancellationToken);
+        if (tasks.Count != request.TaskIds.Distinct().Count()) return NotFound();
+
+        db.ProjectTasks.RemoveRange(tasks);
+        await db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
     /// <summary>Sets the priority of several of a project's tasks at once, e.g. from the roadmap's critical path.</summary>
     [HttpPatch("by-project/{projectId:long}/priority")]
     public async Task<IActionResult> SetPriorityMany(
@@ -442,6 +461,9 @@ public sealed record CreateTaskRequest
     /// <summary>Ids of tasks in the same project that must be done before this one can start.</summary>
     public long[] DependsOn { get; init; } = [];
 }
+
+/// <summary>The tasks to delete.</summary>
+public sealed record DeleteTasksRequest(long[] TaskIds);
 
 /// <summary>The tasks to assign and who to assign them to (null to unassign).</summary>
 public sealed record AssignTasksRequest

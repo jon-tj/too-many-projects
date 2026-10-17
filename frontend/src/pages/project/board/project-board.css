@@ -359,3 +359,7 @@
     display: none;
   }
 }
+
+.selection button.danger {
+  color: var(--priority-critical);
+}

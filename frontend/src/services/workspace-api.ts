@@ -377,6 +377,11 @@ export class WorkspaceApi {
   }
 
   /** Sets the priority of several of the project's tasks at once. */
+  /** Deletes several of the project's tasks at once. */
+  deleteTasks(projectId: number, taskIds: number[]): Observable<void> {
+    return this.http.post<void>(`/api/tasks/by-project/${projectId}/delete`, { taskIds });
+  }
+
   setTasksPriority(projectId: number, taskIds: number[], priority: TaskPriority): Observable<void> {
     return this.http.patch<void>(`/api/tasks/by-project/${projectId}/priority`, { taskIds, priority });
   }

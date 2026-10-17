@@ -61,6 +61,10 @@
         <app-icon [name]="copiedSelection() ? 'check' : 'content_copy'" />
         <span>Copy</span>
       </button>
+      <button class="transparent danger" type="button" title="Delete the selected tasks" (click)="deleteSelected()">
+        <app-icon name="delete" />
+        <span>Delete</span>
+      </button>
       <button class="transparent" type="button" title="Clear selection (Esc)" (click)="clearSelection()">
         <span>Clear</span>
       </button>
