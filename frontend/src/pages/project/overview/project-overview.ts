@@ -82,7 +82,8 @@ export class ProjectOverview implements OnDestroy {
   });
   /** The last loaded data, kept on screen (dimmed) while a new range loads instead of flashing empty. */
   protected readonly shown = signal<Overview | null>(null);
-  protected readonly busy = signal(false);
+  /** Shown when switching between working and idle failed, after the switch was undone. */
+  protected readonly workError = signal('');
 
   private readonly frame = viewChild<ElementRef<HTMLElement>>('frame');
   protected readonly width = signal(600);
@@ -177,9 +178,10 @@ export class ProjectOverview implements OnDestroy {
   /** The "How did it go?" dialog, shown when finishing work. */
   protected readonly reflecting = signal(false);
 
-  /** Finishing work first asks how it went; starting, or going idle while not working, needs no questions. */
+  /** Finishing work first asks how it went; starting needs no questions, and the current state is left alone. */
   protected setWorking(working: boolean): void {
-    if (!working && this.shown()?.working) {
+    if (working === !!this.shown()?.working) return;
+    if (!working) {
       this.reflecting.set(true);
       return;
     }
@@ -191,16 +193,23 @@ export class ProjectOverview implements OnDestroy {
     this.sendWorking(false, reflection);
   }
 
+  /** Switches straight away, without waiting for the server, and switches back if it refuses. */
   private sendWorking(working: boolean, reflection?: WorkReflectionValues): void {
-    this.busy.set(true);
+    const before = this.shown();
+    this.shown.update((shown) =>
+      shown ? { ...shown, working, workingSince: working ? new Date().toISOString() : null } : shown,
+    );
+    this.reflecting.set(false);
+    this.workError.set('');
     this.api.setWorking(this.projectId(), working, reflection).subscribe({
       next: () => {
-        this.busy.set(false);
-        this.reflecting.set(false);
         this.overview.reload();
         this.hoursTable()?.reload();
       },
-      error: () => this.busy.set(false),
+      error: () => {
+        this.shown.set(before);
+        this.workError.set(working ? 'Could not start working. Please try again.' : 'Could not stop working. Please try again.');
+      },
     });
   }
 

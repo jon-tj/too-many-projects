@@ -5,7 +5,7 @@
 
 ## Optimistic idle/working switch, dont wait for database
 
-- **Status:** todo (order 2)
+- **Status:** done: the switch (and the end-of-work dialog) responds at once; if the server refuses, it switches back with a message.
 
 ## When i submit a new task from dashboard, immediately close the modal
 

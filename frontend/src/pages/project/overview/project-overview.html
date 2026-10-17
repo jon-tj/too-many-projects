@@ -6,12 +6,15 @@
       Idle
     }
   </span>
-  <button class="transparent" type="button" [class.active]="!shown()?.working" [disabled]="busy()" (click)="setWorking(false)">
+  <button class="transparent" type="button" [class.active]="!shown()?.working" (click)="setWorking(false)">
     <span>Idle</span>
   </button>
-  <button class="transparent" type="button" [class.active]="shown()?.working" [disabled]="busy()" (click)="setWorking(true)">
+  <button class="transparent" type="button" [class.active]="shown()?.working" (click)="setWorking(true)">
     <span>Working</span>
   </button>
+  @if (workError()) {
+    <span class="work-error" role="alert">{{ workError() }}</span>
+  }
 </section>
 
 <!-- The range scopes both charts below. -->
@@ -111,7 +114,6 @@
 
 <app-work-reflection
   [(open)]="reflecting"
-  [busy]="busy()"
   (submitted)="finishWork($event)"
   (skipped)="finishWork()"
 />

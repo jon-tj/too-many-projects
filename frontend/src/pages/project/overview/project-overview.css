@@ -16,6 +16,12 @@ nav {
   font-weight: 600;
 }
 
+.status > .work-error {
+  color: var(--priority-critical);
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .frame {
   position: relative;
   padding: 12px 0;
