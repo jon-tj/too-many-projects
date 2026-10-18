@@ -89,10 +89,16 @@ export class AdminPage {
   protected readonly frozenCount = computed(
     () => (this.projects.value() ?? []).filter((project) => project.frozen).length,
   );
-  /** The average paid spell in months (of 30.4 days), for reading at a glance. */
-  protected readonly averagePaidMonths = computed(() => {
+  /**
+   * The average paid spell, readable at a glance: in months from a month on, else in whole days rounded up, since a
+   * plan is paid for at least a day. Null before anyone has paid.
+   */
+  protected readonly averagePaid = computed(() => {
     const days = this.stats.value()?.averagePaidDays;
-    return days == null ? null : days / 30.4;
+    if (days == null) return null;
+    if (days >= 30.4) return { value: (days / 30.4).toFixed(1), unit: 'months' };
+    const whole = Math.max(1, Math.ceil(days));
+    return { value: String(whole), unit: whole === 1 ? 'day' : 'days' };
   });
 
   private matches(...fields: string[]): boolean {

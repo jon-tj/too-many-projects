@@ -12,8 +12,8 @@
     <span class="label">Sign-ups</span>
     <strong>{{ stats.value()?.signupsWeek ?? '–' }} <span class="of">this week</span></strong>
     <span class="status">
-      {{ stats.value()?.signupsMonth ?? '–' }} in the last 30 days
-      · {{ stats.value()?.invitedWeek ?? '–' }} / {{ stats.value()?.invitedMonth ?? '–' }} invited
+      {{ stats.value()?.signupsMonth ?? '–' }} in the last 30 days. Invited to projects:
+      {{ stats.value()?.invitedWeek ?? '–' }} this week, {{ stats.value()?.invitedMonth ?? '–' }} in 30 days
     </span>
   </div>
   @if (stats.value(); as s) {
@@ -35,8 +35,9 @@
     <div>
       <span class="label">Paying lifetime</span>
       <strong>
-        @if (averagePaidMonths(); as months) {
-          {{ months | number: '1.0-1' }} <span class="of">months</span>
+        <!-- Checked against null: a spell that just started averages 0 days, which is still a figure. -->
+        @if (averagePaid(); as paid) {
+          {{ paid.value }} <span class="of">{{ paid.unit }}</span>
         } @else {
           –
         }
