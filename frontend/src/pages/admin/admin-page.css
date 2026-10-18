@@ -261,3 +261,29 @@ button.transparent.danger {
   padding: 4px 8px;
   font-size: 12px;
 }
+.section-title {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+td.stay {
+  background: var(--primary-active-surface);
+}
+td small {
+  color: var(--secondary-surface);
+}
+td.up {
+  color: var(--done);
+  font-weight: 600;
+}
+td.down {
+  color: var(--priority-critical);
+  font-weight: 600;
+}
+tr.new-row th,
+tr.new-row td {
+  border-top: 2px solid var(--border);
+}

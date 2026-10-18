@@ -32,6 +32,7 @@ import {
   ChoosablePlan,
   FeatureRequestStatus,
   PlanInfo,
+  PlanFlows,
   PlanName,
   PublicReview,
   PublicStats,
@@ -54,6 +55,11 @@ export class WorkspaceApi {
   /** Asks for a feature; it is saved for the admin and emailed to them. */
   requestFeature(title: string, description: string): Observable<void> {
     return this.http.post<void>('/api/feature-requests', { title, description });
+  }
+
+  /** Counts an anonymous visit to the landing or sign-up page; needs no sign-in. */
+  recordVisit(id: string): Observable<void> {
+    return this.http.post<void>('/api/public/visits', { id });
   }
 
   /** The reviews chosen for the landing page; needs no sign-in. */
@@ -489,6 +495,11 @@ export class WorkspaceApi {
   /** Self sign-ups per utm_source and campaign. */
   adminCampaigns(): Observable<Campaign[]> {
     return this.http.get<Campaign[]>('/api/admin/campaigns');
+  }
+
+  /** Transition matrix, flux, visit conversion and time to first payment, over the last 30 days. */
+  adminPlanFlows(): Observable<PlanFlows> {
+    return this.http.get<PlanFlows>('/api/admin/plan-flows');
   }
 
   adminUsers(): Observable<AdminUser[]> {

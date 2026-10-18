@@ -20,6 +20,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
 	public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
 	public DbSet<PaidSpell> PaidSpells => Set<PaidSpell>();
+	public DbSet<PlanChange> PlanChanges => Set<PlanChange>();
+	public DbSet<Visit> Visits => Set<Visit>();
 	/// <summary>Keys that encrypt sign-in tokens, kept in the database so deploys do not sign everyone out.</summary>
 	public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
@@ -62,6 +64,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 			.WithMany()
 			.HasForeignKey(spell => spell.UserId)
 			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<PlanChange>()
+			.HasOne(change => change.User)
+			.WithMany()
+			.HasForeignKey(change => change.UserId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<PlanChange>().Property(change => change.From).HasMaxLength(16);
+		builder.Entity<PlanChange>().Property(change => change.To).HasMaxLength(16);
+		builder.Entity<Visit>().Property(visit => visit.Id).ValueGeneratedNever();
 		builder.Entity<ShareLink>().HasKey(link => link.Token);
 		builder.Entity<ShareLink>().Property(link => link.Token).HasMaxLength(32);
 		builder.Entity<ShareLink>().Property(link => link.Month).HasMaxLength(7);

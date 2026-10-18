@@ -16,11 +16,12 @@ import {
   AdminUser,
   FeatureRequestStatus,
   PLAN_TITLES,
+  PlanName,
 } from '../../services/models';
 import { MoneyPipe } from '../../services/money.pipe';
 import { WorkspaceApi } from '../../services/workspace-api';
 
-type Tab = 'members' | 'projects' | 'reviews' | 'requests' | 'campaigns';
+type Tab = 'members' | 'projects' | 'reviews' | 'requests' | 'campaigns' | 'plans';
 
 const REQUEST_STATUSES: { value: FeatureRequestStatus; label: string }[] = [
   { value: 'new', label: 'New' },
@@ -49,6 +50,17 @@ export class AdminPage {
   protected readonly reviews = rxResource({ stream: () => this.api.adminReviews() });
   protected readonly requests = rxResource({ stream: () => this.api.adminFeatureRequests() });
   protected readonly campaigns = rxResource({ stream: () => this.api.adminCampaigns() });
+  /** Loaded when the Plans tab is first opened. */
+  protected readonly flows = rxResource({
+    params: () => (this.tab() === 'plans' ? true : undefined),
+    stream: () => this.api.adminPlanFlows(),
+  });
+  protected readonly flowPlans: PlanName[] = ['trial', 'free', 'plus', 'pro', 'none'];
+
+  /** A matrix cell as a share of its row, e.g. "40%"; empty for rows with nobody in them. */
+  protected share(count: number, total: number): string {
+    return total ? `${Math.round((100 * count) / total)}%` : '';
+  }
   protected readonly shownCampaigns = computed(() =>
     (this.campaigns.value() ?? []).filter((row) => this.matches(row.source, row.campaign)),
   );

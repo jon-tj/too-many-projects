@@ -82,7 +82,8 @@ export class LandingPage {
   protected readonly year = new Date().getFullYear();
 
   constructor() {
-    rememberAttribution(this.route.snapshot.queryParams);
+    const newVisit = rememberAttribution(this.route.snapshot.queryParams);
+    if (newVisit) this.api.recordVisit(newVisit).subscribe();
   }
 
   protected scrollTo(event: Event, id: string): void {

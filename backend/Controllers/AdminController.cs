@@ -261,7 +261,7 @@ public sealed class AdminController(
         if (Plan.MemberLimit(Plan.Trial) is { } memberLimit)
             await membershipRemoval.StageTrim(user.Id, owned.Select(project => project.Id).ToList(), memberLimit,
                 cancellationToken);
-        await plans.StagePaidSpell(user, Plan.Trial, cancellationToken);
+        await plans.StagePlanChange(user, Plan.Trial, cancellationToken);
         user.PlanType = Plan.Trial;
         user.PlanRenewDate = Plan.RenewDateFrom(Plan.Trial, DateTimeOffset.UtcNow);
         // The user and the projects are tracked by the same context, so this saves both.
@@ -269,6 +269,84 @@ public sealed class AdminController(
         if (!result.Succeeded)
             return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
         return NoContent();
+    }
+
+    /// <summary>
+    /// How members move between plans over the last 30 days, for steady-state estimates: a monthly transition matrix
+    /// (plan 30 days ago to plan now, for members who existed then; sign-ups since form their own "new" row), the flux
+    /// in and out of each plan (every change in the window; new accounts flow into trial), how many anonymous visits
+    /// became accounts, and how long members took from creating their account to first paying. Admins and exempt
+    /// members are left out.
+    /// </summary>
+    [HttpGet("plan-flows")]
+    public async Task<ActionResult<PlanFlowsResponse>> GetPlanFlows(CancellationToken cancellationToken)
+    {
+        // Brings plans that ran out up to date (and logs those changes) first.
+        await plans.ApplyDueLapses(await db.Users.AsNoTracking().ToListAsync(cancellationToken), cancellationToken);
+        var exempt = (await db.PlanExemptions.Select(exemption => exemption.UserId).ToListAsync(cancellationToken)).ToHashSet();
+        var members = (await db.Users.AsNoTracking()
+                .Where(user => !user.IsAdmin)
+                .Select(user => new { user.Id, user.CreatedAt, user.PlanType })
+                .ToListAsync(cancellationToken))
+            .Where(user => !exempt.Contains(user.Id))
+            .ToList();
+        var ids = members.Select(user => user.Id).ToHashSet();
+        // Filtered and ordered in memory: SQLite cannot compare or order DateTimeOffset values in queries.
+        var changes = (await db.PlanChanges.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(change => ids.Contains(change.UserId))
+            .OrderBy(change => change.At)
+            .ToLookup(change => change.UserId);
+
+        var now = DateTimeOffset.UtcNow;
+        var start = now.AddDays(-30);
+        // The plan a member was on at a moment: the last change before it, else where the first change after it came
+        // from, else (no changes logged) the plan they are on now.
+        string PlanAt(string userId, string current, DateTimeOffset at) =>
+            changes[userId].LastOrDefault(change => change.At <= at)?.To
+            ?? changes[userId].FirstOrDefault(change => change.At > at)?.From
+            ?? current;
+
+        string[] states = [Plan.Trial, Plan.Free, Plan.Plus, Plan.Pro, Plan.None];
+        var matrix = new List<TransitionRow>();
+        foreach (var from in states.Append("new"))
+        {
+            var group = members
+                .Where(user => from == "new" ? user.CreatedAt > start : user.CreatedAt <= start && PlanAt(user.Id, user.PlanType, start) == from)
+                .ToList();
+            matrix.Add(new TransitionRow(from, group.Count,
+                states.ToDictionary(to => to, to => group.Count(user => user.PlanType == to))));
+        }
+
+        var window = changes.SelectMany(group => group).Where(change => change.At > start).ToList();
+        var newAccounts = members.Count(user => user.CreatedAt > start);
+        var flux = states.Select(state =>
+        {
+            var into = window.Count(change => change.To == state) + (state == Plan.Trial ? newAccounts : 0);
+            var outOf = window.Count(change => change.From == state);
+            return new PlanFlux(state, into, outOf, into - outOf);
+        }).ToList();
+
+        var visits = (await db.Visits.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(visit => visit.CreatedAt > start)
+            .ToList();
+
+        var firstPaid = (await db.PaidSpells.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(spell => ids.Contains(spell.UserId))
+            .GroupBy(spell => spell.UserId)
+            .ToDictionary(group => group.Key, group => group.Min(spell => spell.StartedAt));
+        var daysToPay = members
+            .Where(user => firstPaid.ContainsKey(user.Id))
+            .Select(user => Math.Max(0, (firstPaid[user.Id] - user.CreatedAt).TotalDays))
+            .Order()
+            .ToList();
+        double? median = daysToPay.Count == 0 ? null
+            : daysToPay.Count % 2 == 1 ? daysToPay[daysToPay.Count / 2]
+            : (daysToPay[daysToPay.Count / 2 - 1] + daysToPay[daysToPay.Count / 2]) / 2;
+
+        return Ok(new PlanFlowsResponse(
+            matrix, flux, visits.Count, visits.Count(visit => visit.UserId != null),
+            daysToPay.Count, daysToPay.Count == 0 ? null : Math.Round(daysToPay.Average(), 1),
+            median is { } value ? Math.Round(value, 1) : null));
     }
 
     /// <summary>Every review (not dismissals), newest first.</summary>
@@ -383,6 +461,21 @@ public sealed record AdminStatsResponse(
     int WeeklyActive, int MonthlyActive, int SignupsWeek, int SignupsMonth, int InvitedWeek, int InvitedMonth,
     IReadOnlyDictionary<string, int> Plans, int Members, double EverPaidPercent, double? AveragePaidDays, int PaidSpells,
     decimal MonthlyRecurringRevenue, string Currency);
+
+/// <summary>Plan movements over the last 30 days; see GetPlanFlows.</summary>
+/// <param name="Visits">Anonymous visits to the landing or sign-up page in the last 30 days.</param>
+/// <param name="VisitsSignedUp">Of those, how many created an account.</param>
+/// <param name="PayingMembers">Members who have paid at some point, which the days-to-pay figures are over.</param>
+public sealed record PlanFlowsResponse(
+    IReadOnlyList<TransitionRow> Matrix, IReadOnlyList<PlanFlux> Flux, int Visits, int VisitsSignedUp,
+    int PayingMembers, double? AverageDaysToPay, double? MedianDaysToPay);
+
+/// <summary>Where the members who were on <paramref name="From"/> 30 days ago are now ("new": signed up since).</summary>
+/// <param name="To">Members now on each plan.</param>
+public sealed record TransitionRow(string From, int Members, IReadOnlyDictionary<string, int> To);
+
+/// <summary>Moves into and out of a plan in the last 30 days.</summary>
+public sealed record PlanFlux(string Plan, int In, int Out, int Net);
 
 /// <summary>A project with its owner and size.</summary>
 /// <param name="AdminIsMember">The caller (the admin) is a member, so can open it.</param>

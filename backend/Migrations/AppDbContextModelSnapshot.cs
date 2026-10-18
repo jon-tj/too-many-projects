@@ -474,6 +474,36 @@ namespace backend.Migrations
                     b.ToTable("PaidSpells");
                 });
 
+            modelBuilder.Entity("Model.PlanChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("From")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PlanChanges");
+                });
+
             modelBuilder.Entity("Model.PlanExemption", b =>
                 {
                     b.Property<string>("UserId")
@@ -754,6 +784,22 @@ namespace backend.Migrations
                     b.ToTable("TaskDependencies");
                 });
 
+            modelBuilder.Entity("Model.Visit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Visits");
+                });
+
             modelBuilder.Entity("Model.WorkSession", b =>
                 {
                     b.Property<long>("Id")
@@ -907,6 +953,17 @@ namespace backend.Migrations
                 });
 
             modelBuilder.Entity("Model.PaidSpell", b =>
+                {
+                    b.HasOne("Model.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Model.PlanChange", b =>
                 {
                     b.HasOne("Model.ApplicationUser", "User")
                         .WithMany()

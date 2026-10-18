@@ -78,6 +78,9 @@
     <button type="button" role="tab" [class.is-active]="tab() === 'campaigns'" [attr.aria-selected]="tab() === 'campaigns'" (click)="tab.set('campaigns')">
       <app-icon name="campaign" [size]="16" /><span>Campaigns</span>
     </button>
+    <button type="button" role="tab" [class.is-active]="tab() === 'plans'" [attr.aria-selected]="tab() === 'plans'" (click)="tab.set('plans')">
+      <app-icon name="swap_horiz" [size]="16" /><span>Plans</span>
+    </button>
   </div>
   <input type="search" placeholder="Search" aria-label="Search" [value]="search()" (input)="search.set($any($event.target).value)" />
 </div>
@@ -162,6 +165,98 @@
       </tbody>
     </table>
   </div>
+} @else if (tab() === 'plans') {
+  @if (flows.error()) {
+    <p class="error" role="alert">Could not load the plan figures.</p>
+  }
+  @if (flows.value(); as f) {
+    <section class="summary">
+      <div>
+        <span class="label">Visits to sign-ups</span>
+        <strong>{{ share(f.visitsSignedUp, f.visits) || '–' }}</strong>
+        <span class="status">{{ f.visitsSignedUp }} of {{ f.visits }} visits to the landing or sign-up page in the last 30 days created an account</span>
+      </div>
+      <div>
+        <span class="label">Time to first payment</span>
+        <strong>
+          @if (f.medianDaysToPay !== null) {
+            {{ f.medianDaysToPay | number: '1.0-1' }} <span class="of">days median</span>
+          } @else {
+            –
+          }
+        </strong>
+        <span class="status">
+          @if (f.averageDaysToPay !== null) {
+            Average {{ f.averageDaysToPay | number: '1.0-1' }} days, over {{ f.payingMembers }} {{ f.payingMembers === 1 ? 'member' : 'members' }} who have paid
+          } @else {
+            Nobody has paid yet
+          }
+        </span>
+      </div>
+    </section>
+
+    <h3 class="section-title">Monthly transition matrix</h3>
+    <p class="hint">
+      Plan 30 days ago (rows) to plan now (columns), for members who existed then; each row adds up to 100%. Sign-ups
+      from the last 30 days have their own row. Members who never changed plan since tracking began count as staying.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">From \ to</th>
+            @for (plan of flowPlans; track plan) {
+              <th scope="col" class="number">{{ planTitles[plan] }}</th>
+            }
+            <th scope="col" class="number">Members</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of f.matrix; track row.from) {
+            <tr [class.new-row]="row.from === 'new'">
+              <th scope="row">{{ row.from === 'new' ? 'New (signed up)' : planTitles[row.from] }}</th>
+              @for (plan of flowPlans; track plan) {
+                <td class="number" [class.stay]="row.from === plan">
+                  @if (row.members) {
+                    <strong>{{ share(row.to[plan], row.members) }}</strong>
+                    <small>{{ row.to[plan] }}</small>
+                  } @else {
+                    –
+                  }
+                </td>
+              }
+              <td class="number">{{ row.members }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="section-title">Flux, last 30 days</h3>
+    <p class="hint">Every plan change in the window; new accounts flow into the trial.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Plan</th>
+            <th scope="col" class="number">In</th>
+            <th scope="col" class="number">Out</th>
+            <th scope="col" class="number">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of f.flux; track row.plan) {
+            <tr>
+              <th scope="row">{{ planTitles[row.plan] }}</th>
+              <td class="number">{{ row.in }}</td>
+              <td class="number">{{ row.out }}</td>
+              <td class="number" [class.up]="row.net > 0" [class.down]="row.net < 0">{{ row.net > 0 ? '+' : '' }}{{ row.net }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
 } @else if (tab() === 'campaigns') {
   @if (campaigns.error()) {
     <p class="error" role="alert">Could not load the campaigns.</p>

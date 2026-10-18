@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Model;
 
 /// <summary>
@@ -11,7 +12,7 @@ using Model;
 [ApiController]
 [AllowAnonymous]
 [Route("api/signup")]
-public sealed class SignupController(UserManager<ApplicationUser> users) : ControllerBase
+public sealed class SignupController(UserManager<ApplicationUser> users, AppDbContext db) : ControllerBase
 {
     public static readonly string[] UseCases = ["client-work", "product-development", "internal-operations", "personal", "other"];
     public static readonly string[] TeamRoles = ["founder", "manager", "contributor", "freelancer", "other"];
@@ -48,6 +49,10 @@ public sealed class SignupController(UserManager<ApplicationUser> users) : Contr
         var result = await users.CreateAsync(user, request.Password);
         if (!result.Succeeded)
             return BadRequest(new { error = string.Join(" ", result.Errors.Select(error => error.Description)) });
+        // The visit this tab started with now ended in an account (see Visit).
+        if (request.VisitId is { } visitId)
+            await db.Visits.Where(visit => visit.Id == visitId && visit.UserId == null)
+                .ExecuteUpdateAsync(visit => visit.SetProperty(entry => entry.UserId, user.Id));
         return NoContent();
     }
 
@@ -88,4 +93,7 @@ public sealed record SignupRequest
     public string? UtmTerm { get; init; }
     public string? UtmContent { get; init; }
     public string? Referrer { get; init; }
+
+    /// <summary>The anonymous visit this sign-up came from, if the page recorded one.</summary>
+    public Guid? VisitId { get; init; }
 }

@@ -108,18 +108,20 @@ public sealed class PlanService(AppDbContext db, Accounts.MembershipRemoval memb
                     owned.Where(project => !project.Frozen).Select(project => project.Id).ToList(), memberLimit,
                     cancellationToken);
         }
-        await StagePaidSpell(user, plan, cancellationToken);
+        await StagePlanChange(user, plan, cancellationToken);
         user.PlanType = plan;
         user.PlanRenewDate = renewDate;
     }
 
     /// <summary>
-    /// Keeps the user's paid spells (see <see cref="PaidSpell"/>) in step with a move to <paramref name="plan"/>: moving
-    /// onto Plus or Pro from anything else starts one, leaving them ends the open one. Call before changing the plan;
-    /// the caller saves.
+    /// Records a move to <paramref name="plan"/>: in the plan change log (see <see cref="PlanChange"/>) when the plan
+    /// differs, and in the paid spells (see <see cref="PaidSpell"/>): moving onto Plus or Pro from anything else starts
+    /// one, leaving them ends the open one. Call before changing the plan; the caller saves.
     /// </summary>
-    public async Task StagePaidSpell(ApplicationUser user, string plan, CancellationToken cancellationToken)
+    public async Task StagePlanChange(ApplicationUser user, string plan, CancellationToken cancellationToken)
     {
+        if (plan != user.PlanType)
+            db.PlanChanges.Add(new PlanChange { UserId = user.Id, From = user.PlanType, To = plan, At = DateTimeOffset.UtcNow });
         var wasPaid = Plan.IsPaid(user.PlanType);
         if (!wasPaid && Plan.IsPaid(plan))
             db.PaidSpells.Add(new PaidSpell { UserId = user.Id, StartedAt = DateTimeOffset.UtcNow });
@@ -188,12 +190,18 @@ public sealed class PlanService(AppDbContext db, Accounts.MembershipRemoval memb
         if (due.Count == 0) return [];
 
         var ids = due.Select(user => user.Id).ToList();
-        // A paid plan ran out: its spell ended when the plan did, which may be a while before anyone noticed.
-        foreach (var user in due.Where(user => Plan.IsPaid(user.PlanType)))
+        // The plan ended when it ran out, which may be a while before anyone noticed: that is when its paid spell ends
+        // and when the change to no plan is logged. Inserted straight away, like the updates below, so the caller's
+        // own unsaved changes are left alone.
+        foreach (var user in due)
         {
             var endedAt = user.PlanRenewDate ?? now;
-            await db.PaidSpells.Where(spell => spell.UserId == user.Id && spell.EndedAt == null)
-                .ExecuteUpdateAsync(spell => spell.SetProperty(entry => entry.EndedAt, endedAt), cancellationToken);
+            if (Plan.IsPaid(user.PlanType))
+                await db.PaidSpells.Where(spell => spell.UserId == user.Id && spell.EndedAt == null)
+                    .ExecuteUpdateAsync(spell => spell.SetProperty(entry => entry.EndedAt, endedAt), cancellationToken);
+            await db.Database.ExecuteSqlAsync(
+                $"INSERT INTO \"PlanChanges\" (\"UserId\", \"From\", \"To\", \"At\") VALUES ({user.Id}, {user.PlanType}, {Plan.None}, {endedAt})",
+                cancellationToken);
         }
         await db.Users.Where(user => ids.Contains(user.Id)).ExecuteUpdateAsync(user => user
             .SetProperty(entry => entry.PreviousPlanType, entry => entry.PlanType)

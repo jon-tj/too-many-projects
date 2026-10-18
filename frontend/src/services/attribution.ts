@@ -8,6 +8,8 @@ export interface Attribution {
   utmTerm?: string;
   utmContent?: string;
   referrer?: string;
+  /** This tab's anonymous visit (see the backend's Visit), so signing up can be linked to it. */
+  visitId?: string;
 }
 
 const KEY = 'signup_attribution';
@@ -27,9 +29,10 @@ export function utmParams(params: Params): Params {
 /**
  * Remembers where the visitor came from for the rest of the browser session, so it survives detours such as
  * the login page on the way to signing up. Links with utm_* parameters replace what was remembered; the referrer
- * is kept from the first page, since later ones only refer to this site.
+ * is kept from the first page, since later ones only refer to this site. Returns the id of the visit when this is
+ * the tab's first page, for the caller to record; null after that, or when storage is unavailable.
  */
-export function rememberAttribution(params: Params): void {
+export function rememberAttribution(params: Params): string | null {
   const stored = readAttribution();
   const fromLink = Object.fromEntries(
     Object.entries(UTM_PARAMS)
@@ -37,14 +40,18 @@ export function rememberAttribution(params: Params): void {
       .map(([name, field]) => [field, params[name] as string]),
   ) as Attribution;
   const external = document.referrer && !document.referrer.startsWith(location.origin) ? document.referrer : undefined;
+  const visitId = stored.visitId ?? crypto.randomUUID();
   const next: Attribution = Object.keys(fromLink).length
-    ? { ...fromLink, referrer: stored.referrer ?? external }
-    : { ...stored, referrer: stored.referrer ?? external };
+    ? { ...fromLink, referrer: stored.referrer ?? external, visitId }
+    : { ...stored, referrer: stored.referrer ?? external, visitId };
   try {
     sessionStorage.setItem(KEY, JSON.stringify(next));
   } catch {
-    // Storage can be unavailable (e.g. private windows); the parameters on the sign-up link still count.
+    // Storage can be unavailable (e.g. private windows); the parameters on the sign-up link still count, but the
+    // visit is not counted, since every page would look like a new one.
+    return null;
   }
+  return stored.visitId ? null : visitId;
 }
 
 export function readAttribution(): Attribution {

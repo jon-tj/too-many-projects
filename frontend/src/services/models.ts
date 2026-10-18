@@ -290,6 +290,26 @@ export interface AdminStats {
   currency: string;
 }
 
+/** Where the members on a plan 30 days ago (or "new": signed up since) are now; see the admin's Plans tab. */
+export interface TransitionRow {
+  from: PlanName | 'new';
+  members: number;
+  to: Record<PlanName, number>;
+}
+
+/** Plan movements over the last 30 days, for the admin. */
+export interface PlanFlows {
+  matrix: TransitionRow[];
+  flux: { plan: PlanName; in: number; out: number; net: number }[];
+  /** Anonymous visits to the landing or sign-up page, and how many of them created an account. */
+  visits: number;
+  visitsSignedUp: number;
+  /** Members who have paid at some point, which the days-to-pay figures are over. */
+  payingMembers: number;
+  averageDaysToPay: number | null;
+  medianDaysToPay: number | null;
+}
+
 /** A project as the admin page lists it. */
 export interface AdminProject {
   id: number;

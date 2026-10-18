@@ -3,6 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { readAttribution, rememberAttribution, utmParams } from '../../../services/attribution';
+import { WorkspaceApi } from '../../../services/workspace-api';
 import { AuthService } from '../../../services/auth.service';
 
 /** Values match the backend's SignupController lists. */
@@ -51,7 +52,9 @@ export class RegisterForm {
 
   constructor() {
     if (this.auth.isAuthenticated()) void this.router.navigateByUrl('/dashboard');
-    rememberAttribution(inject(ActivatedRoute).snapshot.queryParams);
+    // Ads may link straight here, so a visit can start on this page too.
+    const newVisit = rememberAttribution(inject(ActivatedRoute).snapshot.queryParams);
+    if (newVisit) inject(WorkspaceApi).recordVisit(newVisit).subscribe();
   }
 
   protected submit(): void {
