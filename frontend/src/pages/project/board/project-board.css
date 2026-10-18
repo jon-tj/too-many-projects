@@ -29,6 +29,13 @@
   color: var(--secondary-surface);
   font-size: 11px;
 }
+/* At the far right, just after the selection controls when they are showing. */
+.import {
+  margin-left: auto;
+}
+.selection ~ .import {
+  margin-left: 0;
+}
 :host > header .filter,
 .selection select {
   padding: 7px 10px;

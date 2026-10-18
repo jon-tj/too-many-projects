@@ -3,10 +3,6 @@
     <app-icon name="add" />
     <span>New task</span>
   </button>
-  <button class="transparent" type="button" title="Import tasks from a CSV file" (click)="importing.set(true)">
-    <app-icon name="upload_file" />
-    <span>Import</span>
-  </button>
   <select
     class="filter"
     aria-label="Filter by assignee"
@@ -70,6 +66,15 @@
       </button>
     </div>
   }
+  <button
+    class="transparent import"
+    type="button"
+    title="Import tasks from a CSV file"
+    aria-label="Import tasks from a CSV file"
+    (click)="importing.set(true)"
+  >
+    <app-icon name="upload_file" />
+  </button>
 </header>
 
 @if (taskError()) {
