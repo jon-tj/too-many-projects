@@ -16,11 +16,42 @@
       · {{ stats.value()?.invitedWeek ?? '–' }} / {{ stats.value()?.invitedMonth ?? '–' }} invited
     </span>
   </div>
-  <div>
-    <span class="label">Members</span>
-    <strong>{{ users.value()?.length ?? '–' }}</strong>
-    <span class="status">{{ lapsedCount() }} with no plan</span>
-  </div>
+  @if (stats.value(); as s) {
+    <div>
+      <span class="label">Members by plan</span>
+      <strong>{{ s.members }}</strong>
+      <span class="status">
+        {{ s.plans.trial }} trial · {{ s.plans.free }} free · {{ s.plans.plus }} plus · {{ s.plans.pro }} pro
+        @if (s.plans.none) {
+          · {{ s.plans.none }} no plan
+        }
+      </span>
+    </div>
+    <div>
+      <span class="label">Monthly recurring revenue</span>
+      <strong>{{ s.monthlyRecurringRevenue | money: s.currency }}</strong>
+      <span class="status">Estimated: everyone on Plus and Pro at today's prices</span>
+    </div>
+    <div>
+      <span class="label">Paying lifetime</span>
+      <strong>
+        @if (averagePaidMonths(); as months) {
+          {{ months | number: '1.0-1' }} <span class="of">months</span>
+        } @else {
+          –
+        }
+      </strong>
+      <span class="status">
+        Average over {{ s.paidSpells }} paid {{ s.paidSpells === 1 ? 'spell' : 'spells' }}; those still paying count double
+        their time so far
+      </span>
+    </div>
+    <div>
+      <span class="label">Ever paid</span>
+      <strong>{{ s.everPaidPercent | number: '1.0-1' }}<span class="of">%</span></strong>
+      <span class="status">of members have held Plus or Pro</span>
+    </div>
+  }
   <div>
     <span class="label">Projects</span>
     <strong>{{ projects.value()?.length ?? '–' }}</strong>

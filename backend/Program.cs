@@ -107,6 +107,21 @@ await using (var scope = app.Services.CreateAsyncScope())
         }
     }
 
+    // Paid spells were added after people could already pay: once, give everyone on Plus or Pro an open spell from the
+    // start of their current period (a month before it renews), the best guess there is.
+    if (!await db.PaidSpells.AnyAsync())
+    {
+        var paying = await db.Users.Where(user => user.PlanType == Plans.Plan.Plus || user.PlanType == Plans.Plan.Pro)
+            .Select(user => new { user.Id, user.PlanRenewDate })
+            .ToListAsync();
+        db.PaidSpells.AddRange(paying.Select(user => new PaidSpell
+        {
+            UserId = user.Id,
+            StartedAt = user.PlanRenewDate?.AddMonths(-1) ?? DateTimeOffset.UtcNow,
+        }));
+        await db.SaveChangesAsync();
+    }
+
     // Jon is the admin, and the admin's plan never lapses.
     var admin = (await userManager.FindByNameAsync("jon"))!;
     if (!admin.IsAdmin)

@@ -18,7 +18,7 @@ using Plans;
 [Route("api/admin")]
 public sealed class AdminController(
     AppDbContext db, UserManager<ApplicationUser> users, UserRemoval userRemoval, PlanService plans,
-    MembershipRemoval membershipRemoval) : ControllerBase
+    MembershipRemoval membershipRemoval, Payments.StripeBilling stripe) : ControllerBase
 {
     [HttpGet("users")]
     public async Task<ActionResult<IReadOnlyList<AdminUserResponse>>> GetUsers(CancellationToken cancellationToken)
@@ -90,20 +90,46 @@ public sealed class AdminController(
     {
         // Counted in memory: SQLite cannot compare DateTimeOffset values in queries.
         var all = await db.Users.AsNoTracking()
-            .Select(user => new { user.CreatedAt, user.LastSeenAt, user.IsAdmin, SignedUp = user.PrimaryUseCase != "" })
+            .Select(user => new { user.Id, user.CreatedAt, user.LastSeenAt, user.IsAdmin, user.PlanType, SignedUp = user.PrimaryUseCase != "" })
             .ToListAsync(cancellationToken);
         // The sign-up form requires a use case; invited accounts (and the seeded admin) have none.
         var created = all.Where(user => !user.IsAdmin).ToList();
         var now = DateTimeOffset.UtcNow;
         var weekAgo = now.AddDays(-7);
         var monthAgo = now.AddDays(-30);
+        // Plans and money count members only (no admins); paying figures also leave out exempt users, who never pay.
+        var exempt = (await db.PlanExemptions.Select(exemption => exemption.UserId).ToListAsync(cancellationToken)).ToHashSet();
+        var payers = created.Where(user => !exempt.Contains(user.Id)).Select(user => user.Id).ToHashSet();
+        var spells = (await db.PaidSpells.AsNoTracking().ToListAsync(cancellationToken))
+            .Where(spell => payers.Contains(spell.UserId))
+            .ToList();
+        // Ended spells count as they were; spells still running count double the time so far, as an estimate of how
+        // long they will last.
+        var spellDays = spells
+            .Select(spell => spell.EndedAt is { } ended ? (ended - spell.StartedAt).TotalDays : 2 * (now - spell.StartedAt).TotalDays)
+            .ToList();
+        var prices = await stripe.GetPrices(cancellationToken);
+        decimal Monthly(string plan, long fallbackCents) =>
+            (prices.FirstOrDefault(price => price.Plan == plan)?.Amount ?? fallbackCents) / 100m;
+        var paying = created.Where(user => payers.Contains(user.Id)).ToList();
+        var mrr = paying.Count(user => user.PlanType == Plan.Plus) * Monthly(Plan.Plus, 399)
+            + paying.Count(user => user.PlanType == Plan.Pro) * Monthly(Plan.Pro, 899);
+
         return Ok(new AdminStatsResponse(
             all.Count(user => user.LastSeenAt >= weekAgo),
             all.Count(user => user.LastSeenAt >= monthAgo),
             created.Count(user => user.SignedUp && user.CreatedAt >= weekAgo),
             created.Count(user => user.SignedUp && user.CreatedAt >= monthAgo),
             created.Count(user => !user.SignedUp && user.CreatedAt >= weekAgo),
-            created.Count(user => !user.SignedUp && user.CreatedAt >= monthAgo)));
+            created.Count(user => !user.SignedUp && user.CreatedAt >= monthAgo),
+            new[] { Plan.Trial, Plan.Free, Plan.Plus, Plan.Pro, Plan.None }
+                .ToDictionary(plan => plan, plan => created.Count(user => user.PlanType == plan)),
+            created.Count,
+            created.Count == 0 ? 0 : Math.Round(100.0 * spells.Select(spell => spell.UserId).Distinct().Count() / created.Count, 1),
+            spellDays.Count == 0 ? null : Math.Round(spellDays.Average(), 1),
+            spellDays.Count,
+            Math.Round(mrr, 2),
+            (prices.FirstOrDefault()?.Currency ?? "usd").ToUpperInvariant()));
     }
 
     [HttpGet("projects")]
@@ -235,6 +261,7 @@ public sealed class AdminController(
         if (Plan.MemberLimit(Plan.Trial) is { } memberLimit)
             await membershipRemoval.StageTrim(user.Id, owned.Select(project => project.Id).ToList(), memberLimit,
                 cancellationToken);
+        await plans.StagePaidSpell(user, Plan.Trial, cancellationToken);
         user.PlanType = Plan.Trial;
         user.PlanRenewDate = Plan.RenewDateFrom(Plan.Trial, DateTimeOffset.UtcNow);
         // The user and the projects are tracked by the same context, so this saves both.
@@ -344,8 +371,18 @@ public sealed record CampaignResponse(
 /// <param name="WeeklyActive">Users who opened the app in the last 7 days.</param>
 /// <param name="MonthlyActive">Users who opened the app in the last 30 days.</param>
 /// <param name="SignupsWeek">Accounts made through the sign-up form; invited accounts are counted apart.</param>
+/// <param name="Plans">Members (admins left out) per plan: trial, free, plus, pro and none.</param>
+/// <param name="EverPaidPercent">Members who have held Plus or Pro at some point, of all members.</param>
+/// <param name="AveragePaidDays">
+/// How long a paid spell lasts on average: ended ones as they were, running ones estimated at double their time so far.
+/// Null before anyone has paid.
+/// </param>
+/// <param name="PaidSpells">How many spells that average is over.</param>
+/// <param name="MonthlyRecurringRevenue">What the members on Plus and Pro pay a month at today's prices (exempt users left out).</param>
 public sealed record AdminStatsResponse(
-    int WeeklyActive, int MonthlyActive, int SignupsWeek, int SignupsMonth, int InvitedWeek, int InvitedMonth);
+    int WeeklyActive, int MonthlyActive, int SignupsWeek, int SignupsMonth, int InvitedWeek, int InvitedMonth,
+    IReadOnlyDictionary<string, int> Plans, int Members, double EverPaidPercent, double? AveragePaidDays, int PaidSpells,
+    decimal MonthlyRecurringRevenue, string Currency);
 
 /// <summary>A project with its owner and size.</summary>
 /// <param name="AdminIsMember">The caller (the admin) is a member, so can open it.</param>

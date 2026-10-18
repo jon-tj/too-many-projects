@@ -276,6 +276,18 @@ export interface AdminStats {
   /** Accounts made by inviting someone to a project. */
   invitedWeek: number;
   invitedMonth: number;
+  /** Members (admins left out) per plan. */
+  plans: Record<PlanName, number>;
+  members: number;
+  /** Members who have held Plus or Pro at some point, of all members. */
+  everPaidPercent: number;
+  /** Average paid spell: ended ones as they were, running ones estimated at double their time so far; null before anyone paid. */
+  averagePaidDays: number | null;
+  /** How many spells that average is over. */
+  paidSpells: number;
+  /** What members on Plus and Pro pay a month at today's prices (exempt users left out). */
+  monthlyRecurringRevenue: number;
+  currency: string;
 }
 
 /** A project as the admin page lists it. */

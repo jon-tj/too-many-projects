@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { Avatar } from '../../components/avatar/avatar';
@@ -17,6 +17,7 @@ import {
   FeatureRequestStatus,
   PLAN_TITLES,
 } from '../../services/models';
+import { MoneyPipe } from '../../services/money.pipe';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 type Tab = 'members' | 'projects' | 'reviews' | 'requests' | 'campaigns';
@@ -34,7 +35,7 @@ const REQUEST_STATUSES: { value: FeatureRequestStatus; label: string }[] = [
  */
 @Component({
   selector: 'app-admin-page',
-  imports: [Avatar, Icon, ProjectIcon, Stars, DatePipe, RouterLink],
+  imports: [Avatar, Icon, ProjectIcon, Stars, DatePipe, DecimalPipe, MoneyPipe, RouterLink],
   templateUrl: './admin-page.html',
   styleUrl: './admin-page.css',
 })
@@ -88,9 +89,11 @@ export class AdminPage {
   protected readonly frozenCount = computed(
     () => (this.projects.value() ?? []).filter((project) => project.frozen).length,
   );
-  protected readonly lapsedCount = computed(
-    () => (this.users.value() ?? []).filter((user) => user.planType === 'none').length,
-  );
+  /** The average paid spell in months (of 30.4 days), for reading at a glance. */
+  protected readonly averagePaidMonths = computed(() => {
+    const days = this.stats.value()?.averagePaidDays;
+    return days == null ? null : days / 30.4;
+  });
 
   private matches(...fields: string[]): boolean {
     const search = this.search().trim().toLowerCase();

@@ -44,6 +44,9 @@ public static class Plan
         _ => null,
     };
 
+    /// <summary>Plus and Pro, the plans that are paid for.</summary>
+    public static bool IsPaid(string plan) => plan is Plus or Pro;
+
     /// <summary>Whether projects get everything beyond boards and tasks (roadmap, canvas, time tracking, billing, members).</summary>
     public static bool HasFullFeatures(string plan) => plan is not (Free or None);
 
@@ -105,8 +108,26 @@ public sealed class PlanService(AppDbContext db, Accounts.MembershipRemoval memb
                     owned.Where(project => !project.Frozen).Select(project => project.Id).ToList(), memberLimit,
                     cancellationToken);
         }
+        await StagePaidSpell(user, plan, cancellationToken);
         user.PlanType = plan;
         user.PlanRenewDate = renewDate;
+    }
+
+    /// <summary>
+    /// Keeps the user's paid spells (see <see cref="PaidSpell"/>) in step with a move to <paramref name="plan"/>: moving
+    /// onto Plus or Pro from anything else starts one, leaving them ends the open one. Call before changing the plan;
+    /// the caller saves.
+    /// </summary>
+    public async Task StagePaidSpell(ApplicationUser user, string plan, CancellationToken cancellationToken)
+    {
+        var wasPaid = Plan.IsPaid(user.PlanType);
+        if (!wasPaid && Plan.IsPaid(plan))
+            db.PaidSpells.Add(new PaidSpell { UserId = user.Id, StartedAt = DateTimeOffset.UtcNow });
+        else if (wasPaid && !Plan.IsPaid(plan))
+            foreach (var spell in await db.PaidSpells
+                         .Where(spell => spell.UserId == user.Id && spell.EndedAt == null)
+                         .ToListAsync(cancellationToken))
+                spell.EndedAt = DateTimeOffset.UtcNow;
     }
 
     /// <summary>Whether the user's plan never runs out (see <see cref="PlanExemption"/>).</summary>
@@ -167,6 +188,13 @@ public sealed class PlanService(AppDbContext db, Accounts.MembershipRemoval memb
         if (due.Count == 0) return [];
 
         var ids = due.Select(user => user.Id).ToList();
+        // A paid plan ran out: its spell ended when the plan did, which may be a while before anyone noticed.
+        foreach (var user in due.Where(user => Plan.IsPaid(user.PlanType)))
+        {
+            var endedAt = user.PlanRenewDate ?? now;
+            await db.PaidSpells.Where(spell => spell.UserId == user.Id && spell.EndedAt == null)
+                .ExecuteUpdateAsync(spell => spell.SetProperty(entry => entry.EndedAt, endedAt), cancellationToken);
+        }
         await db.Users.Where(user => ids.Contains(user.Id)).ExecuteUpdateAsync(user => user
             .SetProperty(entry => entry.PreviousPlanType, entry => entry.PlanType)
             .SetProperty(entry => entry.PlanType, Plan.None)

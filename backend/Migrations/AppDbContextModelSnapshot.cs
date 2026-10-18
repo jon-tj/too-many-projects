@@ -451,6 +451,29 @@ namespace backend.Migrations
                     b.ToTable("FeatureRequests");
                 });
 
+            modelBuilder.Entity("Model.PaidSpell", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("EndedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PaidSpells");
+                });
+
             modelBuilder.Entity("Model.PlanExemption", b =>
                 {
                     b.Property<string>("UserId")
@@ -873,6 +896,17 @@ namespace backend.Migrations
                 });
 
             modelBuilder.Entity("Model.FeatureRequest", b =>
+                {
+                    b.HasOne("Model.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Model.PaidSpell", b =>
                 {
                     b.HasOne("Model.ApplicationUser", "User")
                         .WithMany()
