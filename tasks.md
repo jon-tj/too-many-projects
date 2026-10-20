@@ -122,4 +122,4 @@ Need to think about how this affects dragging tasks around
 
 Causes ugly horizontal overflow, just hide the text and keep the icon on mobile
 
-- **Status:** todo (order 1)
+- **Status:** done: on phones the button shows only the lightbulb (with the label kept for screen readers and as a tooltip); no more sideways overflow.

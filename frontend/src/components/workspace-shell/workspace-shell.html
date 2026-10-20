@@ -38,7 +38,7 @@
     </nav>
 
     <div class="sidebar-bottom" (click)="$event.stopPropagation()">
-      <button #featureButton class="transparent suggest" type="button" (click)="closeAccountMenu(); suggesting.set(true)">
+      <button #featureButton class="transparent suggest" type="button" title="Suggest a feature" aria-label="Suggest a feature" (click)="closeAccountMenu(); suggesting.set(true)">
         <app-icon name="lightbulb" /><span>Suggest a feature</span>
       </button>
       <div class="account-menu-wrap">
