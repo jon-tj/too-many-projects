@@ -104,7 +104,7 @@ Since bills and reports are the single largest source of word of mouth for this 
 ## CLI + MCP or at least instructions for how to use, can host the CLI tool for easy download and install on the actual website would be nice
 
 - **Decision:** a single-file Node.js CLI hosted on the website (one-line install), signing in with personal access tokens created in Settings; commands for projects, tasks and time tracking. No MCP server for now: an instructions page on the website covers installing and using the CLI.
-- **Status:** personal access tokens done: Settings → API tokens creates a token (shown once, only its hash is stored), lists them with when they were last used, and revokes them. A request with "Authorization: Bearer tmp_…" acts as the token's owner on every endpoint; normal sign-in is unchanged. CLI and instructions: todo (order 5).
+- **Status:** personal access tokens done: Settings → API tokens creates a token (shown once, only its hash is stored), lists them with when they were last used, and revokes them. A request with "Authorization: Bearer tmp_…" acts as the token's owner on every endpoint; normal sign-in is unchanged. CLI and instructions done: a one-file Node.js CLI (`tmp`, served at /cli/tmp.mjs) for projects, tasks and time tracking, with --json output; the public /cli page covers making a token, one-line installs for macOS/Linux and Windows, the commands, and a note to give AI coding agents. An MCP server is left for later.
 
 ## Make buckets in board exact width of screen so scrolling to the side can snap the next bucket into view?
 

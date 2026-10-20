@@ -1,0 +1,109 @@
+<header class="site-header">
+  <a class="brand" routerLink="/">
+    <img src="logo.png" alt="" />
+    <span>TooManyProjects</span>
+  </a>
+  <a class="button ghost" routerLink="/dashboard">Open the app</a>
+</header>
+
+<main>
+  <p class="eyebrow">Command-line tool</p>
+  <h1>Your tasks and hours, from the terminal</h1>
+  <p class="lede">
+    <code>tmp</code> lists your projects and tasks, creates and moves tasks, and starts and stops time tracking without
+    leaving the terminal. It is a single file that needs <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js</a>
+    18 or newer, and AI coding agents can use it too.
+  </p>
+
+  <section>
+    <h2><span class="step">1</span> Make a token</h2>
+    <p>
+      In <a routerLink="/settings">Settings → API tokens</a>, create a token named after the computer it is for, and copy
+      it: it is only shown once. The token acts as you, so keep it secret. Revoke it there when you no longer use it.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="step">2</span> Install</h2>
+    <div class="tabs" role="tablist" aria-label="Operating system">
+      <button type="button" role="tab" [attr.aria-selected]="os() === 'unix'" [class.active]="os() === 'unix'" (click)="os.set('unix')">
+        macOS and Linux
+      </button>
+      <button type="button" role="tab" [attr.aria-selected]="os() === 'windows'" [class.active]="os() === 'windows'" (click)="os.set('windows')">
+        Windows (PowerShell)
+      </button>
+    </div>
+    <div class="code">
+      <pre>{{ install() }}</pre>
+      <button type="button" class="copy" aria-label="Copy" (click)="copy('install', install())">
+        <app-icon [name]="copied() === 'install' ? 'check' : 'content_copy'" />
+      </button>
+    </div>
+    @if (os() === 'windows') {
+      <p class="note">Open a new terminal afterwards, so it finds <code>tmp</code>.</p>
+    } @else {
+      <p class="note">If <code>tmp</code> is not found afterwards, add <code>~/.local/bin</code> to your PATH.</p>
+    }
+    <p class="note">
+      To update, run the same commands again. Or <a href="/cli/tmp.mjs" download="tmp.mjs">download tmp.mjs</a> and run it
+      with <code>node tmp.mjs</code>.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="step">3</span> Sign in</h2>
+    <div class="code">
+      <pre>{{ login }}</pre>
+      <button type="button" class="copy" aria-label="Copy" (click)="copy('login', login)">
+        <app-icon [name]="copied() === 'login' ? 'check' : 'content_copy'" />
+      </button>
+    </div>
+    <p class="note">
+      The token is saved in your user's config folder. For scripts and CI, set the <code>TMP_TOKEN</code> environment
+      variable instead.
+    </p>
+  </section>
+
+  <section>
+    <h2>Commands</h2>
+    <p>
+      A project is its id or any unique part of its name, ignoring case. Add <code>--json</code> to any command for
+      output scripts can read. <code>tmp help</code> lists everything.
+    </p>
+    @for (group of COMMANDS; track group.group) {
+      <h3>{{ group.group }}</h3>
+      <dl class="commands">
+        @for (row of group.rows; track row[0]) {
+          <div>
+            <dt><code>{{ row[0] }}</code></dt>
+            <dd>{{ row[1] }}</dd>
+          </div>
+        }
+      </dl>
+    }
+  </section>
+
+  <section>
+    <h2><app-icon name="smart_toy" [size]="22" /> With AI coding agents</h2>
+    <p>
+      Agents such as Claude Code, Codex or Cursor can run <code>tmp</code> like you do: picking up tasks, marking them done
+      and noting follow-up work. Sign in on the machine the agent runs on, then add a note like this to the project's
+      <code>CLAUDE.md</code> or <code>AGENTS.md</code>:
+    </p>
+    <div class="code">
+      <pre>{{ agentNote }}</pre>
+      <button type="button" class="copy" aria-label="Copy" (click)="copy('agent', agentNote)">
+        <app-icon [name]="copied() === 'agent' ? 'check' : 'content_copy'" />
+      </button>
+    </div>
+    <p class="note">
+      Consider a separate token for each agent, so you can see when it was last used and revoke it on its own. A built-in
+      MCP server is planned.
+    </p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span>© {{ year }} TooManyProjects</span>
+  <a routerLink="/">Home</a>
+</footer>

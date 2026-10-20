@@ -21,6 +21,7 @@ import { SettingsPage } from '../pages/settings/settings-page';
 import { PlansPage } from '../pages/plans/plans-page';
 import { BillingReportPage } from '../pages/report/billing-report';
 import { AdminPage } from '../pages/admin/admin-page';
+import { CliPage } from '../pages/cli/cli-page';
 
 export const routes: Routes = [
 	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
@@ -29,6 +30,8 @@ export const routes: Routes = [
 	{ path: 'shared/:token', component: BillingReportPage },
 	// Signed-in visitors skip the landing page and go straight to the dashboard.
 	{ path: '', pathMatch: 'full', component: LandingPage, canActivate: [landingGuard] },
+	// How to install and use the command-line tool; public, like the tool itself.
+	{ path: 'cli', component: CliPage },
 	{ path: 'register', component: LoginPage, children: [{ path: '', component: RegisterForm }] },
 	{
 		path: 'login', component: LoginPage,
