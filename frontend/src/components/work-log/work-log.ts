@@ -62,10 +62,22 @@ export class WorkLog {
     const key = this.selected();
     return key ? dayFromKey(key) : null;
   });
+  /** The selected day's sessions, most recent first. */
   protected readonly daySessions = computed(() => {
     const key = this.selected();
-    return key ? this.sessions.value().filter((session) => overlapsDay(session, key)) : [];
+    return key
+      ? this.sessions.value()
+          .filter((session) => overlapsDay(session, key))
+          .sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt))
+      : [];
   });
+  /** How many of a day's sessions show before "See more". */
+  protected readonly previewCount = 2;
+  /** Every session of the day shown; folds up again when another day is picked. */
+  protected readonly showAllSessions = linkedSignal({ source: this.selected, computation: () => false });
+  protected readonly visibleSessions = computed(() =>
+    this.showAllSessions() ? this.daySessions() : this.daySessions().slice(0, this.previewCount),
+  );
   /** Unsaved edits per session id. */
   private readonly drafts = signal<ReadonlyMap<number, Draft>>(new Map());
   protected readonly saving = signal<number | null>(null);

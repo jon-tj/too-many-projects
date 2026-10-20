@@ -33,7 +33,7 @@
       <p class="error" role="alert">{{ error() }}</p>
     }
     <ul>
-      @for (session of daySessions(); track session.id) {
+      @for (session of visibleSessions(); track session.id) {
         @let draft = draftFor(session);
         <li>
           <a class="project" [routerLink]="['/projects', session.projectId, 'overview']">{{ session.projectName }}</a>
@@ -74,5 +74,12 @@
         <li class="empty">{{ sessions.isLoading() ? 'Loading…' : 'Nothing logged on this day.' }}</li>
       }
     </ul>
+    @if (daySessions().length > previewCount) {
+      <footer>
+        <button class="transparent" type="button" (click)="showAllSessions.set(!showAllSessions())">
+          <span>{{ showAllSessions() ? 'See less' : 'See more (' + (daySessions().length - previewCount) + ')' }}</span>
+        </button>
+      </footer>
+    }
   </section>
 }
