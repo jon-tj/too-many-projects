@@ -48,6 +48,8 @@ type SeriesKey = (typeof SERIES)[number]['key'];
 const HEIGHT = 200;
 /** The right gutter holds the totals; the bottom one the dates. */
 const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
+/** Narrower than this (phones), the totals move into the plot's empty top-left corner and the plot spans the width. */
+const COMPACT_WIDTH = 520;
 
 @Component({
   selector: 'app-project-overview',
@@ -97,19 +99,32 @@ export class ProjectOverview implements OnDestroy {
   protected readonly hovered = signal<number | null>(null);
 
   protected readonly height = HEIGHT;
-  protected readonly pad = PAD;
+  protected readonly compact = computed(() => this.width() < COMPACT_WIDTH);
+  protected readonly pad = computed(() => (this.compact() ? { ...PAD, right: 12 } : PAD));
+  /** Where the totals start: in the right gutter, or inside the plot at its top left, where the rising lines never are. */
+  protected readonly keyOrigin = computed(() =>
+    this.compact()
+      ? { x: PAD.left + 4, y: PAD.top + 4 }
+      : { x: this.width() - PAD.right + 16, y: PAD.top + 8 },
+  );
   private readonly points = computed(() => this.shown()?.points ?? []);
   protected readonly lines = computed(() => SERIES.map((series) => this.line(series.key, series.title)));
   /** Halfway through the period at half the total: a curve above it is slowing down, below it speeding up. */
   protected readonly center = computed(() => ({
-    x: PAD.left + this.innerWidth() / 2,
+    x: this.pad().left + this.innerWidth() / 2,
     y: PAD.top + (HEIGHT - PAD.top - PAD.bottom) / 2,
   }));
   protected readonly xLabels = computed(() => {
     const points = this.points();
     if (!points.length) return [];
     const indexes = [...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])];
-    return indexes.map((index) => ({ x: this.x(index), date: points[index].date }));
+    // The first and last labels are aligned inward, so they are not cut off at the chart's edges.
+    const last = points.length - 1;
+    return indexes.map((index) => ({
+      x: this.x(index),
+      date: points[index].date,
+      anchor: last === 0 ? 'middle' : index === 0 ? 'start' : index === last ? 'end' : 'middle',
+    }));
   });
 
   constructor() {
@@ -250,7 +265,7 @@ export class ProjectOverview implements OnDestroy {
     const count = this.points().length;
     if (count < 2) return;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const index = Math.round(((event.clientX - rect.left - PAD.left) / this.innerWidth()) * (count - 1));
+    const index = Math.round(((event.clientX - rect.left - this.pad().left) / this.innerWidth()) * (count - 1));
     this.hovered.set(Math.max(0, Math.min(count - 1, index)));
   }
 
@@ -277,12 +292,12 @@ export class ProjectOverview implements OnDestroy {
   }
 
   private innerWidth(): number {
-    return Math.max(0, this.width() - PAD.left - PAD.right);
+    return Math.max(0, this.width() - this.pad().left - this.pad().right);
   }
 
   private x(index: number): number {
     const count = this.points().length;
-    return count < 2 ? PAD.left + this.innerWidth() : PAD.left + (index / (count - 1)) * this.innerWidth();
+    return count < 2 ? this.pad().left + this.innerWidth() : this.pad().left + (index / (count - 1)) * this.innerWidth();
   }
 
   /** One series as a share of its period total; flat along the bottom while the total is still 0. */

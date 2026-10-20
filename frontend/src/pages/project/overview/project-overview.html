@@ -42,7 +42,7 @@
   (blur)="hovered.set(null)"
 >
   <svg [attr.width]="width()" [attr.height]="height" aria-hidden="true">
-    <line class="baseline" [attr.x1]="pad.left" [attr.x2]="width() - pad.right" [attr.y1]="height - pad.bottom" [attr.y2]="height - pad.bottom" />
+    <line class="baseline" [attr.x1]="pad().left" [attr.x2]="width() - pad().right" [attr.y1]="height - pad().bottom" [attr.y2]="height - pad().bottom" />
 
     <!-- Centre cross: half the period, half the total. Above it = slowing down, below it = speeding up. -->
     @if (center(); as c) {
@@ -57,22 +57,23 @@
     }
 
     @if (hovered() !== null) {
-      <line class="crosshair" [attr.x1]="hoveredX()" [attr.x2]="hoveredX()" [attr.y1]="pad.top" [attr.y2]="height - pad.bottom" />
+      <line class="crosshair" [attr.x1]="hoveredX()" [attr.x2]="hoveredX()" [attr.y1]="pad().top" [attr.y2]="height - pad().bottom" />
       @for (line of lines(); track line.key) {
         <circle class="dot {{ line.key }}" [attr.cx]="hoveredX()" [attr.cy]="line.hoverY(hovered()!)" r="4" />
       }
     }
 
-    <!-- Totals for the period at the right: tasks on top, hours below, each keyed by a stroke of its line colour. -->
+    <!-- Totals for the period at the right (on phones, inside the plot at its top left): tasks on top, hours below, each keyed by a stroke of its line colour. -->
     @for (line of lines(); track line.key; let i = $index) {
-      <line class="key {{ line.key }}" [attr.x1]="width() - pad.right + 16" [attr.x2]="width() - pad.right + 28" [attr.y1]="pad.top + 8 + i * 24" [attr.y2]="pad.top + 8 + i * 24" />
-      <text class="total" [attr.x]="width() - pad.right + 34" [attr.y]="pad.top + 8 + i * 24" dominant-baseline="middle">
+      @let key = keyOrigin();
+      <line class="key {{ line.key }}" [attr.x1]="key.x" [attr.x2]="key.x + 12" [attr.y1]="key.y + i * 24" [attr.y2]="key.y + i * 24" />
+      <text class="total" [attr.x]="key.x + 18" [attr.y]="key.y + i * 24" dominant-baseline="middle">
         <tspan class="value">{{ line.total }}</tspan> {{ line.title }}
       </text>
     }
 
     @for (label of xLabels(); track label.date) {
-      <text class="tick" [attr.x]="label.x" [attr.y]="height - 6" text-anchor="middle">
+      <text class="tick" [attr.x]="label.x" [attr.y]="height - 6" [attr.text-anchor]="label.anchor">
         {{ label.date | date: (range() === '7d' ? 'EEE' : 'MMM d') : 'UTC' }}
       </text>
     }
