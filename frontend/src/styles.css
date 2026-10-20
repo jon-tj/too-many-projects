@@ -1,152 +1,172 @@
-* { box-sizing: border-box; }
-
-:root {
-	font-family: 'DM Sans', 'Segoe UI', sans-serif;
-	color: var(--primary-text);
-	background: var(--background);
+* {
+  box-sizing: border-box;
 }
 
-html, body {
-    margin: 0;
-	color: var(--primary-text);
-	background: var(--background);
+:root {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: var(--primary-text);
+  background: var(--background);
+}
+
+html,
+body {
+  margin: 0;
+  color: var(--primary-text);
+  background: var(--background);
 }
 
 main {
-    padding: 32px;
+  padding: 32px;
+}
+@media (max-width: 700px) {
+  main {
+    padding: 10px;
+  }
 }
 
 .workspace-frame:has(app-project-canvas.zen-mode) {
-    grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .workspace-frame:has(app-project-canvas.zen-mode) > .sidebar {
-    display: none;
+  display: none;
 }
 
 /* Forms */
 form {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 form footer {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 label:has(> input[type='checkbox']) {
-    flex-direction: row;
-    align-items: center;
-    font-weight: 400;
+  flex-direction: row;
+  align-items: center;
+  font-weight: 400;
 }
 
 input:not([type='checkbox'], [type='radio']),
 textarea,
 select {
-    padding: 10px 12px;
-    color: inherit;
-    background-color: var(--primary-surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font: inherit;
-    font-weight: 400;
+  padding: 10px 12px;
+  color: inherit;
+  background-color: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 400;
 }
 
 /* Buttons */
 button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 34px;
-    padding: 0 12px;
-    color: inherit;
-    background-color: transparent;
-    border: 0;
-    border-radius: 4px;
-    font: 600 11px 'DM Sans', sans-serif;
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 12px;
+  color: inherit;
+  background-color: transparent;
+  border: 0;
+  border-radius: 4px;
+  font:
+    600 11px 'DM Sans',
+    sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 button:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 /* Icon-only buttons are square. :only-child ignores text, so wrap button labels in a <span>. */
 button:has(> app-icon:only-child) {
-    justify-content: center;
-    width: 30px;
-    min-height: 30px;
-    padding: 0;
+  justify-content: center;
+  width: 30px;
+  min-height: 30px;
+  padding: 0;
 }
 
 button.primary {
-    color: var(--secondary-text);
-    background-color: var(--secondary-surface);
+  color: var(--secondary-text);
+  background-color: var(--secondary-surface);
 }
 
 button.primary:hover:not(:disabled) {
-    color: var(--primary-active-text);
-    background-color: var(--primary-active-surface);
+  color: var(--primary-active-text);
+  background-color: var(--primary-active-surface);
 }
 
 button.transparent {
-    color: var(--secondary-surface);
-    background-color: transparent;
+  color: var(--secondary-surface);
+  background-color: transparent;
 }
 
 button.transparent:hover:not(:disabled),
 button.transparent.active,
 button.transparent[aria-expanded='true'] {
-    color: var(--primary-active-text);
-    background-color: var(--primary-active-surface);
+  color: var(--primary-active-text);
+  background-color: var(--primary-active-surface);
 }
 
 /* Task status colors: set data-status on an element to get --status */
-[data-status='todo'] { --status: var(--todo); }
-[data-status='doing'] { --status: var(--doing); }
-[data-status='done'] { --status: var(--done); }
+[data-status='todo'] {
+  --status: var(--todo);
+}
+[data-status='doing'] {
+  --status: var(--doing);
+}
+[data-status='done'] {
+  --status: var(--done);
+}
 
 /* Badges */
 .badge {
-    display: inline-grid;
-    min-width: 19px;
-    height: 19px;
-    place-items: center;
-    padding: 0 5px;
-    color: var(--secondary-surface);
-    background-color: var(--border);
-    border-radius: 4px;
-    font: 500 9px/1 'IBM Plex Mono', monospace;
-    vertical-align: middle;
+  display: inline-grid;
+  min-width: 19px;
+  height: 19px;
+  place-items: center;
+  padding: 0 5px;
+  color: var(--secondary-surface);
+  background-color: var(--border);
+  border-radius: 4px;
+  font:
+    500 9px/1 'IBM Plex Mono',
+    monospace;
+  vertical-align: middle;
 }
 
 .badge[data-status] {
-    color: var(--primary-surface);
-    background-color: var(--status);
+  color: var(--primary-surface);
+  background-color: var(--status);
 }
 
 /* Task priority: set data-priority on a badge. Low is the default, so views only badge high and critical. */
 .badge[data-priority] {
-    text-transform: capitalize;
+  text-transform: capitalize;
 }
 .badge[data-priority='high'] {
-    color: var(--priority-high);
-    background-color: color-mix(in srgb, var(--priority-high) 16%, transparent);
+  color: var(--priority-high);
+  background-color: color-mix(in srgb, var(--priority-high) 16%, transparent);
 }
 .badge[data-priority='critical'] {
-    color: var(--primary-surface);
-    background-color: var(--priority-critical);
+  color: var(--primary-surface);
+  background-color: var(--priority-critical);
 }
