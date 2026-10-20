@@ -1,4 +1,4 @@
-import { Component, ElementRef, effect, input, model, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, effect, inject, input, model, viewChild } from '@angular/core';
 import { Icon } from '../icon/icon';
 
 /** Native <dialog> wrapper: `<app-modal heading="..." [(open)]="signal">content</app-modal>`. */
@@ -43,6 +43,16 @@ import { Icon } from '../icon/icon';
       margin: 0;
       font-size: 18px;
     }
+    /*
+     * Phones: kept within the part of the screen the on-screen keyboard leaves visible (see fitToVisibleArea), at its
+     * top, scrolling inside itself; so the buttons at the bottom of a form stay reachable while typing.
+     */
+    @media (max-width: 700px) {
+      dialog {
+        margin: calc(var(--visible-top, 0px) + 16px) auto auto;
+        max-height: calc(var(--visible-height, 100dvh) - 32px);
+      }
+    }
   `,
 })
 export class Modal {
@@ -55,10 +65,31 @@ export class Modal {
   constructor() {
     effect(() => {
       const dialog = this.dialog().nativeElement;
-      if (this.open() && !dialog.open) dialog.showModal();
-      else if (!this.open()) dialog.close();
+      if (this.open() && !dialog.open) {
+        dialog.showModal();
+        this.fitToVisibleArea();
+      } else if (!this.open()) dialog.close();
+    });
+    // The keyboard opening or closing, or the page scrolling under it, changes the visible area.
+    window.visualViewport?.addEventListener('resize', this.fitToVisibleArea);
+    window.visualViewport?.addEventListener('scroll', this.fitToVisibleArea);
+    inject(DestroyRef).onDestroy(() => {
+      window.visualViewport?.removeEventListener('resize', this.fitToVisibleArea);
+      window.visualViewport?.removeEventListener('scroll', this.fitToVisibleArea);
     });
   }
+
+  /**
+   * Tells the CSS where the visible part of the screen is. An on-screen keyboard shrinks only the visual viewport, so a
+   * dialog sized to the whole screen would end behind the keyboard, hiding its buttons.
+   */
+  private readonly fitToVisibleArea = (): void => {
+    const viewport = window.visualViewport;
+    const dialog = this.dialog().nativeElement;
+    if (!viewport || !dialog.open) return;
+    dialog.style.setProperty('--visible-height', `${viewport.height}px`);
+    dialog.style.setProperty('--visible-top', `${viewport.offsetTop}px`);
+  };
 
   /** The dialog has no padding, so a click whose target is the dialog itself landed on the backdrop. */
   protected closeOnBackdrop(event: MouseEvent): void {

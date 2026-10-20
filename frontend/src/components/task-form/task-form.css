@@ -35,3 +35,16 @@ form > .dependencies {
 .dependencies li button {
   padding: 2px;
 }
+
+/*
+ * In a dialog, the buttons stay at its bottom edge while the form scrolls, so "Add task" is in reach on a phone with the
+ * keyboard open (the dialog then ends just above the keyboard).
+ */
+:host-context(dialog) footer {
+  position: sticky;
+  bottom: 0;
+  margin: 0 -24px -24px;
+  padding: 12px 24px 24px;
+  background: var(--primary-surface);
+  border-top: 1px solid var(--border);
+}

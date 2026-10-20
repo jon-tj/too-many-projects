@@ -116,7 +116,7 @@ Need to think about how this affects dragging tasks around
 ## Add task button not visible without scrolling down on mobile
 
 - **Decision:** a floating + button at the bottom right of the board on phones.
-- **Status:** done: on phones (700px and narrower) a round + button stays at the bottom right of the board and opens the New task dialog; it replaces the header's New task button there. Desktop is unchanged.
+- **Status:** done: on phones (700px and narrower) a round + button stays at the bottom right of the board and opens the New task dialog; it replaces the header's New task button there. Desktop is unchanged. The actual problem was the New task dialog: with the phone keyboard open its Add task button was hidden behind it. Dialogs on phones now fit the part of the screen the keyboard leaves visible, and the task form's buttons stick to the dialog's bottom edge, so Add task stays just above the keyboard.
 
 ## Suggest a feature label is not hidden on mobile
 
