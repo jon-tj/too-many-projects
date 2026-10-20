@@ -1,6 +1,6 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, computed, HostListener, inject, input, linkedSignal, numberAttribute, signal } from '@angular/core';
+import { Component, computed, ElementRef, HostListener, inject, input, linkedSignal, numberAttribute, signal, viewChild } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
@@ -13,6 +13,9 @@ import { WorkspaceApi } from '../../../services/workspace-api';
 
 /** Done shows only this many of the most recently completed tasks until "Show older" is clicked. */
 const DONE_LIMIT = 4;
+
+/** How close (px) to the board's edge a dragged card must be held for the board to scroll that way. */
+const EDGE = 48;
 
 const COLUMNS = [
   { status: 'todo', title: 'To do', empty: 'Nothing queued yet' },
@@ -335,6 +338,53 @@ export class ProjectBoard {
   /** The card shaking because it was dropped where it cannot go. */
   protected readonly shaking = signal<number | null>(null);
   private shakeTimer?: ReturnType<typeof setTimeout>;
+
+  private readonly board = viewChild<ElementRef<HTMLElement>>('board');
+  /** A card is being dragged: the board's snap scrolling pauses so it can scroll freely under it (see the CSS). */
+  protected readonly dragging = signal(false);
+  /** -1 or 1 while a dragged card is held near the board's left or right edge; 0 otherwise. */
+  private edgeDirection = 0;
+  private edgeFrame = 0;
+
+  /**
+   * On phones each column fills the board's width, so a card is dragged to another column by holding it near the
+   * edge: the board then keeps scrolling that way. The drag library's own edge scrolling only starts within a few
+   * pixels of a narrow screen's edge, too fiddly to hit with a thumb.
+   */
+  protected dragMoved(pointerX: number): void {
+    const board = this.board()?.nativeElement;
+    if (!board || board.scrollWidth <= board.clientWidth) return;
+    const rect = board.getBoundingClientRect();
+    this.edgeDirection = pointerX > rect.right - EDGE ? 1 : pointerX < rect.left + EDGE ? -1 : 0;
+    if (this.edgeDirection && !this.edgeFrame) this.edgeFrame = requestAnimationFrame(this.scrollAtEdge);
+  }
+
+  private readonly scrollAtEdge = (): void => {
+    const board = this.board()?.nativeElement;
+    if (!board || !this.edgeDirection) {
+      this.edgeFrame = 0;
+      return;
+    }
+    board.scrollLeft += this.edgeDirection * 12;
+    this.edgeFrame = requestAnimationFrame(this.scrollAtEdge);
+  };
+
+  /** Stops edge scrolling and lets the board snap to the nearest column again. */
+  protected dragEnded(): void {
+    this.edgeDirection = 0;
+    this.dragging.set(false);
+  }
+
+  /** The "Move to" picker on phones: like dropping the card on that column, blocked tasks included. */
+  protected moveTo(task: ProjectTask, select: HTMLSelectElement): void {
+    const status = select.value as TaskStatus;
+    select.value = '';
+    if (task.status === 'todo' && status !== 'todo' && this.blockedIds().has(task.id)) {
+      this.shake(task.id);
+      return;
+    }
+    this.changeStatus(task, status);
+  }
 
   /** Dropping a card on another column changes its status. Touch drags start after a short hold, so swiping still scrolls. */
   protected drop(event: CdkDragDrop<TaskStatus, TaskStatus, ProjectTask>): void {

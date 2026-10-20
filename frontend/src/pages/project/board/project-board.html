@@ -87,7 +87,7 @@
 @if (tasks.isLoading()) {
   <div class="board-loading">Preparing your board<span></span></div>
 } @else {
-  <div class="kanban-board" cdkDropListGroup cdkScrollable>
+  <div #board class="kanban-board" [class.dragging]="dragging()" cdkDropListGroup cdkScrollable>
     @for (column of columns(); track column.status) {
       <section
         class="kanban-column"
@@ -125,6 +125,9 @@
             cdkDrag
             [cdkDragData]="task"
             [cdkDragStartDelay]="{ touch: 250, mouse: 0 }"
+            (cdkDragStarted)="dragging.set(true)"
+            (cdkDragMoved)="dragMoved($event.pointerPosition.x)"
+            (cdkDragEnded)="dragEnded()"
           >
             @if (arrived() === task.id) {
               <span class="stars" aria-hidden="true">
@@ -205,6 +208,15 @@
                 }
               </div>
               <div>
+                <!-- Phones: move without dragging across screen-wide columns. -->
+                <select class="move" aria-label="Move to" title="Move to" (change)="moveTo(task, $any($event.target))">
+                  <option value="" selected disabled>Move to…</option>
+                  @for (target of columns(); track target.status) {
+                    @if (target.status !== task.status) {
+                      <option [value]="target.status">{{ target.title }}</option>
+                    }
+                  }
+                </select>
                 @if (task.status === 'done') {
                   <span class="done-check"><app-icon name="check" /></span>
                 }

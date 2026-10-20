@@ -111,7 +111,7 @@ Since bills and reports are the single largest source of word of mouth for this 
 Need to think about how this affects dragging tasks around
 
 - **Decision:** phones only: each column fills the screen and swiping snaps to the next. Dragging a card to the screen edge scrolls on (snapping paused while dragging), and cards get a "Move to" control so moving needs no dragging across.
-- **Status:** todo (order 3)
+- **Status:** done: on phones (700px and narrower) each column is exactly the board's width and swiping snaps to the next. Dragging pauses the snapping; holding a card within 48px of the edge keeps scrolling that way, and the board snaps to the nearest column once dropped. Each card has a "Move to…" picker on phones (blocked tasks shake, as when dragged). Tablets and desktops are unchanged.
 
 ## Add task button not visible without scrolling down on mobile
 

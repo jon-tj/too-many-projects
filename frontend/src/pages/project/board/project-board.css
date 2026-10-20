@@ -391,3 +391,34 @@
     box-shadow: 0 6px 18px rgb(0 0 0 / 0.22);
   }
 }
+
+/* The "Move to" picker is for phones, where columns are too far apart to drag between comfortably. */
+.move {
+  display: none;
+}
+/*
+ * Phones: each column fills the board's width and a swipe snaps to the next one. Snapping pauses while a card is
+ * dragged, so the board can scroll under it (see dragMoved), and snaps to the nearest column again once it is dropped.
+ */
+@media (max-width: 700px) {
+  .kanban-board {
+    grid-template-columns: repeat(3, 100%);
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+  .kanban-board.dragging {
+    scroll-snap-type: none;
+  }
+  .kanban-column {
+    scroll-snap-align: start;
+  }
+  .move {
+    position: relative;
+    display: block;
+    max-width: 104px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+}
