@@ -36,7 +36,7 @@
 @media (max-width: 700px) {
   .workspace-frame { grid-template-columns: 58px minmax(0,1fr); }
   .sidebar { padding: 15px 6px 9px; }
-  .sidebar-top { flex-direction: column; gap: 8px; padding: 0 0 18px; }.wordmark > span,.primary-nav > a span,.section-heading > span,.project-link-name,.project-nav-list .badge,.profile-copy { display: none; }
+  .sidebar-top { flex-direction: column; gap: 8px; padding: 0 0 18px; }.wordmark,.primary-nav > a span,.section-heading > span,.project-link-name,.project-nav-list .badge,.profile-copy { display: none; }
   .primary-nav > a,.project-nav-list > a { justify-content: center; padding: 0; }
   .project-mark { width: 30px; height: 30px; }.project-nav-list { margin-top: 16px; }
   .section-heading { justify-content: center; margin: 16px 0 5px; }
