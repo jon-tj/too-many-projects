@@ -100,3 +100,26 @@ Since bills and reports are the single largest source of word of mouth for this 
 
 - **Decision:** VAT rate per project, default 0%. Bills show subtotal, VAT and total; 0% hides the VAT line.
 - **Status:** done: "VAT %" in billing settings (0–100, default 0). With VAT, the report shows subtotal (excl. VAT), VAT and total, and the finalized bill's amount includes VAT. VAT applies to the month's own work; overdue bills already include theirs.
+
+## CLI + MCP or at least instructions for how to use, can host the CLI tool for easy download and install on the actual website would be nice
+
+- **Decision:** a single-file Node.js CLI hosted on the website (one-line install), signing in with personal access tokens created in Settings; commands for projects, tasks and time tracking. No MCP server for now: an instructions page on the website covers installing and using the CLI.
+- **Status:** todo (order 4: tokens, order 5: CLI and instructions)
+
+## Make buckets in board exact width of screen so scrolling to the side can snap the next bucket into view?
+
+Need to think about how this affects dragging tasks around
+
+- **Decision:** phones only: each column fills the screen and swiping snaps to the next. Dragging a card to the screen edge scrolls on (snapping paused while dragging), and cards get a "Move to" control so moving needs no dragging across.
+- **Status:** todo (order 3)
+
+## Add task button not visible without scrolling down on mobile
+
+- **Decision:** a floating + button at the bottom right of the board on phones.
+- **Status:** todo (order 2)
+
+## Suggest a feature label is not hidden on mobile
+
+Causes ugly horizontal overflow, just hide the text and keep the icon on mobile
+
+- **Status:** todo (order 1)
