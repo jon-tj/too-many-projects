@@ -1,5 +1,5 @@
 <header>
-  <button class="primary" type="button" (click)="addingTask.set(true)">
+  <button class="primary new-task" type="button" (click)="addingTask.set(true)">
     <app-icon name="add" />
     <span>New task</span>
   </button>
@@ -226,6 +226,11 @@
     }
   </div>
 }
+
+<!-- On phones, always in reach of the thumb instead of the header's button. -->
+<button class="primary fab" type="button" aria-label="New task" title="New task" (click)="addingTask.set(true)">
+  <app-icon name="add" [size]="26" />
+</button>
 
 <app-task-import [projectId]="projectId()" [(open)]="importing" (imported)="tasks.reload()" />
 

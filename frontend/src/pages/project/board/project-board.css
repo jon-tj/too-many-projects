@@ -370,3 +370,24 @@
 .selection button.danger {
   color: var(--priority-critical);
 }
+
+/* Phones: "New task" moves from the header to a round button fixed at the bottom right. */
+.fab {
+  display: none;
+}
+@media (max-width: 700px) {
+  :host > header .new-task {
+    display: none;
+  }
+  .fab {
+    position: fixed;
+    z-index: 50;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    display: flex;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 0.22);
+  }
+}

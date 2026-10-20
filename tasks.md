@@ -116,7 +116,7 @@ Need to think about how this affects dragging tasks around
 ## Add task button not visible without scrolling down on mobile
 
 - **Decision:** a floating + button at the bottom right of the board on phones.
-- **Status:** todo (order 2)
+- **Status:** done: on phones (700px and narrower) a round + button stays at the bottom right of the board and opens the New task dialog; it replaces the header's New task button there. Desktop is unchanged.
 
 ## Suggest a feature label is not hidden on mobile
 
