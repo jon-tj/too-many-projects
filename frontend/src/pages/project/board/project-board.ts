@@ -1,8 +1,9 @@
 import { CdkDrag, CdkDragDrop, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { Component, computed, ElementRef, HostListener, inject, input, linkedSignal, numberAttribute, signal, viewChild } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, HostListener, inject, input, linkedSignal, numberAttribute, signal, viewChild } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { defer, finalize, Observable } from 'rxjs';
 import { Icon } from '../../../components/icon/icon';
 import { TaskImport } from '../../../components/csv-import/task-import';
 import { Modal } from '../../../components/modal/modal';
@@ -16,6 +17,9 @@ const DONE_LIMIT = 4;
 
 /** How close (px) to the board's edge a dragged card must be held for the board to scroll that way. */
 const EDGE = 48;
+
+/** How often (ms) the board fetches its tasks again, to pick up changes made by others. */
+const REFRESH_INTERVAL = 10_000;
 
 const COLUMNS = [
   { status: 'todo', title: 'To do', empty: 'Nothing queued yet' },
@@ -91,6 +95,12 @@ export class ProjectBoard {
     stream: ({ params }) => this.api.projectTasks(params),
     defaultValue: [],
   });
+  /** Changes sent to the server and not yet answered; the background refresh waits for these. */
+  private pendingSaves = 0;
+  /** Bumped whenever a save starts or finishes, so a refresh that overlapped one is thrown away. */
+  private saveVersion = 0;
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+  private refreshing = false;
   protected readonly members = rxResource({
     params: () => this.projectId(),
     stream: ({ params }) => this.api.projectMembers(params),
@@ -161,6 +171,72 @@ export class ProjectBoard {
   protected readonly copiedSelection = signal(false);
   /** Ids of the tasks checked on the board, for group actions like assigning. */
   protected readonly selected = signal<ReadonlySet<number>>(new Set());
+
+  constructor() {
+    const onVisibility = () => (document.hidden ? clearTimeout(this.refreshTimer) : this.refresh());
+    document.addEventListener('visibilitychange', onVisibility);
+    this.scheduleRefresh();
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.refreshTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    });
+  }
+
+  /**
+   * The next refresh is only scheduled once the previous one has answered, and not at all while the tab is hidden,
+   * so coming back to the tab after a while fetches once rather than once per missed tick.
+   */
+  private scheduleRefresh(): void {
+    clearTimeout(this.refreshTimer);
+    if (!document.hidden) this.refreshTimer = setTimeout(() => this.refresh(), REFRESH_INTERVAL);
+  }
+
+  /**
+   * Fetches the tasks in the background and swaps them in without the loading state. Skipped while a card is being
+   * dragged or a change is still saving, so it never undoes what is on screen.
+   */
+  private refresh(): void {
+    clearTimeout(this.refreshTimer);
+    if (this.refreshing) return;
+    if (this.tasks.isLoading() || this.dragging() || this.pendingSaves) {
+      this.scheduleRefresh();
+      return;
+    }
+    const projectId = this.projectId();
+    const version = this.saveVersion;
+    this.refreshing = true;
+    this.api
+      .projectTasks(projectId)
+      .pipe(
+        finalize(() => {
+          this.refreshing = false;
+          this.scheduleRefresh();
+        }),
+      )
+      .subscribe({
+        next: (tasks) => {
+          const stale = projectId !== this.projectId() || version !== this.saveVersion || this.dragging();
+          if (stale || this.tasks.isLoading()) return;
+          if (JSON.stringify(tasks) !== JSON.stringify(this.tasks.value())) this.tasks.set(tasks);
+        },
+        // A failed refresh keeps the board as it is; the next one tries again.
+        error: () => undefined,
+      });
+  }
+
+  /** Wraps a request that changes tasks, so background refreshes hold off until the server has answered. */
+  private save<T>(request: Observable<T>): Observable<T> {
+    return defer(() => {
+      this.pendingSaves++;
+      this.saveVersion++;
+      return request.pipe(
+        finalize(() => {
+          this.pendingSaves--;
+          this.saveVersion++;
+        }),
+      );
+    });
+  }
 
   protected toggleSelected(task: ProjectTask): void {
     this.selected.update((ids) => {
@@ -234,7 +310,7 @@ export class ProjectBoard {
     const previous = this.tasks.value();
     this.tasks.update((tasks) => tasks.map((task) => (ids.has(task.id) ? { ...task, assigneeUserId } : task)));
     this.clearSelection();
-    this.api.assignTasks(this.projectId(), [...ids], assigneeUserId).subscribe({
+    this.save(this.api.assignTasks(this.projectId(), [...ids], assigneeUserId)).subscribe({
       error: () => {
         this.tasks.set(previous);
         this.selected.set(ids);
@@ -252,7 +328,7 @@ export class ProjectBoard {
     const previous = this.tasks.value();
     this.tasks.update((tasks) => tasks.filter((task) => !ids.has(task.id)));
     this.clearSelection();
-    this.api.deleteTasks(this.projectId(), [...ids]).subscribe({
+    this.save(this.api.deleteTasks(this.projectId(), [...ids])).subscribe({
       error: () => {
         this.tasks.set(previous);
         this.selected.set(ids);
@@ -271,7 +347,7 @@ export class ProjectBoard {
   protected createTask(value: TaskFormValue): void {
     this.addingTask.set(false);
     this.taskError.set('');
-    this.api.createTask(this.projectId(), value).subscribe({
+    this.save(this.api.createTask(this.projectId(), value)).subscribe({
       next: (task) => {
         this.tasks.update((tasks) => [task, ...tasks]);
         clearTimeout(this.arrivedTimer);
@@ -314,7 +390,7 @@ export class ProjectBoard {
     const setDone = (value: number) =>
       this.tasks.update((tasks) => tasks.map((item) => (item.id === task.id ? { ...item, unitsDone: value } : item)));
     setDone(done);
-    this.api.setTaskUnitsDone(task.id, done).subscribe({
+    this.save(this.api.setTaskUnitsDone(task.id, done)).subscribe({
       error: () => {
         setDone(task.unitsDone);
         this.taskError.set('Could not update the task progress.');
@@ -434,7 +510,7 @@ export class ProjectBoard {
     this.taskError.set('');
     // Straight away, like the card move itself, rather than after the server answers.
     if (status === 'done') void celebrateDone(task.priority, dropPoint);
-    this.api.setTaskStatus(task.id, status).subscribe({
+    this.save(this.api.setTaskStatus(task.id, status)).subscribe({
       error: () => {
         setTask({ status: task.status, assigneeUserId: task.assigneeUserId, completedAt: task.completedAt });
         this.taskError.set('Could not update task status.');
