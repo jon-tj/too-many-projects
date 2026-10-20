@@ -11,6 +11,11 @@ nav {
   margin-bottom: 16px;
 }
 
+/* The range buttons sit under the chart. */
+nav {
+  margin: 12px 0 0;
+}
+
 .status > span {
   margin-right: 8px;
   font-weight: 600;
@@ -121,11 +126,6 @@ svg {
   margin-right: 6px;
   vertical-align: middle;
   background: var(--series);
-}
-
-details {
-  margin-top: 12px;
-  font-size: 12px;
 }
 
 table {

@@ -17,15 +17,6 @@
   }
 </section>
 
-<!-- The range scopes both charts below. -->
-<nav aria-label="Time range">
-  @for (option of ranges; track option.value) {
-    <button class="transparent" type="button" [class.active]="range() === option.value" (click)="range.set(option.value)">
-      <span>{{ option.label }}</span>
-    </button>
-  }
-</nav>
-
 @if (overview.error()) {
   <p role="alert">The overview could not be loaded.</p>
 }
@@ -89,27 +80,14 @@
   }
 </div>
 
-<details>
-  <summary>Show as table</summary>
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">{{ range() === '1y' ? 'Week of' : 'Day' }}</th>
-        <th scope="col">Tasks done</th>
-        <th scope="col">Hours worked</th>
-      </tr>
-    </thead>
-    <tbody>
-      @for (point of shown()?.points ?? []; track point.date) {
-        <tr>
-          <td>{{ point.date | date: 'MMM d, y' : 'UTC' }}</td>
-          <td>{{ format('tasksCompleted', point.tasksCompleted) }}</td>
-          <td>{{ format('hours', point.hours) }}</td>
-        </tr>
-      }
-    </tbody>
-  </table>
-</details>
+<!-- The range scopes the chart above and the hours below. -->
+<nav aria-label="Time range">
+  @for (option of ranges; track option.value) {
+    <button class="transparent" type="button" [class.active]="range() === option.value" (click)="range.set(option.value)">
+      <span>{{ option.label }}</span>
+    </button>
+  }
+</nav>
 
 <app-project-hours [projectId]="projectId()" [range]="range()" (changed)="hoursChanged()" />
 
