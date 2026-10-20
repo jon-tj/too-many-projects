@@ -35,6 +35,47 @@
     <p class="success" role="status">{{ emailMessage() }}</p>
   }
 </section>
+<section class="settings-section">
+  <h2>API tokens</h2>
+  <p class="hint">
+    For the <a href="/cli" target="_blank">TooManyProjects command-line tool</a> and your own scripts. A token acts as
+    you, so keep it secret, and revoke it when you no longer use it.
+  </p>
+  @if (newToken(); as token) {
+    <div class="new-token" role="status">
+      <strong>Copy your token now: it is not shown again.</strong>
+      <div>
+        <input readonly aria-label="New token" [value]="token" (focus)="$any($event.target).select()" />
+        <button class="primary" type="button" (click)="copyToken()">{{ tokenCopied() ? 'Copied' : 'Copy' }}</button>
+      </div>
+    </div>
+  }
+  @if (tokens.value()?.length) {
+    <ul class="tokens">
+      @for (token of tokens.value(); track token.id) {
+        <li>
+          <span>
+            <strong>{{ token.name }}</strong>
+            <small>{{ token.prefix }}… · made {{ token.createdAt | date: 'mediumDate' }} · {{ token.lastUsedAt ? 'last used ' + (token.lastUsedAt | date: 'mediumDate') : 'never used' }}</small>
+          </span>
+          <button class="transparent" type="button" (click)="revokeToken(token.id, token.name)"><span>Revoke</span></button>
+        </li>
+      }
+    </ul>
+  }
+  <form (submit)="$event.preventDefault(); createToken()">
+    <label>
+      New token name
+      <input placeholder="e.g. Laptop CLI" maxlength="80" [value]="tokenName()" (input)="tokenName.set($any($event.target).value)" />
+    </label>
+    @if (tokenError()) {
+      <p class="error" role="alert">{{ tokenError() }}</p>
+    }
+    <footer>
+      <button class="primary" type="submit" [disabled]="!tokenName().trim()">Create token</button>
+    </footer>
+  </form>
+</section>
 
 <section class="settings-section">
   <h2>Profile picture</h2>

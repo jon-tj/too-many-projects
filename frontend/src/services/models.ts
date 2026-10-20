@@ -205,6 +205,16 @@ export interface Campaign {
   paying: number;
 }
 
+/** A personal access token, as Settings lists it; the token itself is only shown when it is made. */
+export interface ApiToken {
+  id: number;
+  name: string;
+  /** The token's first characters, e.g. "tmp_Ab3dEf". */
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
 /** Asking you about your experience (GET api/reviews/prompt). */
 export interface ReviewPrompt {
   /** Days since you created your account: 10, 40 or 150. */

@@ -48,6 +48,19 @@ builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, o
 });
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDbContext>();
+// Personal access tokens (tmp_…, for the CLI) sign in through their own handler; everything else through Identity's
+// bearer tokens as before (the app and the canvas hub use only those). The selector picks per request, so every
+// [Authorize] endpoint accepts both.
+const string signInSelector = "TokenOrIdentity";
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = signInSelector;
+        options.DefaultAuthenticateScheme = signInSelector;
+        options.DefaultChallengeScheme = signInSelector;
+    })
+    .AddPolicyScheme(signInSelector, null, options => options.ForwardDefaultSelector = context =>
+        ApiTokens.FromRequest(context.Request) is null ? IdentityConstants.BearerScheme : ApiTokens.Scheme)
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, ApiTokenHandler>(ApiTokens.Scheme, null);
 builder.Services.AddAuthorization();
 
 // Email: Resend when an API key is configured (appsettings.json locally, Resend__ApiKey on Render), otherwise log only.

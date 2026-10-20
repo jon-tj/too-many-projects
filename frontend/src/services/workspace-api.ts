@@ -9,6 +9,7 @@ import {
   AdminReview,
   AdminStats,
   AdminUser,
+  ApiToken,
   Campaign,
   CanvasDetail,
   CanvasDocument,
@@ -241,6 +242,20 @@ export class WorkspaceApi {
   }
 
   /** Sets the profile picture (a small image data URL), or removes it with null. */
+  apiTokens(): Observable<ApiToken[]> {
+    return this.http.get<ApiToken[]>('/api/account/tokens');
+  }
+
+  /** Makes a personal access token; the response holds the whole token, shown only this once. */
+  createApiToken(name: string): Observable<{ info: ApiToken; token: string }> {
+    return this.http.post<{ info: ApiToken; token: string }>('/api/account/tokens', { name });
+  }
+
+  /** Revokes a token: anything using it is signed out at once. */
+  revokeApiToken(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/account/tokens/${id}`);
+  }
+
   /** Turns the Monday summary email on or off. */
   setEmailPreferences(weeklySummary: boolean): Observable<void> {
     return this.http.put<void>('/api/account/email-preferences', { weeklySummary });

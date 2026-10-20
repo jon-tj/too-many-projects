@@ -15,3 +15,12 @@ form { max-width: 420px; }
 
 .plan-link { margin: 0; font-size: 13px; }
 .plan-link a { color: var(--primary-active-text); font-weight: 600; }
+
+.hint { margin: 0 0 14px; color: var(--secondary-surface); font-size: 12px; line-height: 1.5; }
+.hint a { color: var(--primary-active-text); font-weight: 600; }
+.new-token { display: grid; gap: 8px; max-width: 520px; margin-bottom: 16px; padding: 12px 14px; background: var(--primary-active-surface); border-radius: 6px; font-size: 12px; }
+.new-token div { display: flex; gap: 8px; }
+.new-token input { flex: 1; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+.tokens { display: grid; gap: 2px; max-width: 520px; margin: 0 0 16px; padding: 0; list-style: none; }
+.tokens li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--primary-surface); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; }
+.tokens small { display: block; margin-top: 2px; color: var(--secondary-surface); font-size: 11px; }

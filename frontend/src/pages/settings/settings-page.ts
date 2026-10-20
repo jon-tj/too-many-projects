@@ -1,5 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Avatar } from '../../components/avatar/avatar';
@@ -11,7 +13,7 @@ import { WorkspaceApi } from '../../services/workspace-api';
 
 @Component({
   selector: 'app-settings-page',
-  imports: [ReactiveFormsModule, Avatar, RouterLink],
+  imports: [ReactiveFormsModule, Avatar, RouterLink, DatePipe],
   templateUrl: './settings-page.html',
   styleUrl: './settings-page.css',
 })
@@ -28,6 +30,13 @@ export class SettingsPage implements OnInit {
   protected readonly pendingAvatar = signal<string | null | undefined>(undefined);
   protected readonly avatarMessage = signal('');
   protected readonly emailMessage = signal('');
+  /** Personal access tokens, for the command-line tool and scripts. */
+  protected readonly tokens = rxResource({ stream: () => this.api.apiTokens() });
+  protected readonly tokenName = signal('');
+  /** A token just made, shown once so it can be copied. */
+  protected readonly newToken = signal<string | null>(null);
+  protected readonly tokenCopied = signal(false);
+  protected readonly tokenError = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
     currentPassword: ['', Validators.required],
     newPassword: ['', [Validators.required, Validators.minLength(8)]],
@@ -43,6 +52,34 @@ export class SettingsPage implements OnInit {
   protected readonly userNameMessage = signal('');
 
   constructor(private readonly api: WorkspaceApi) {}
+
+  protected createToken(): void {
+    const name = this.tokenName().trim();
+    if (!name) return;
+    this.tokenError.set('');
+    this.api.createApiToken(name).subscribe({
+      next: ({ token }) => {
+        this.newToken.set(token);
+        this.tokenCopied.set(false);
+        this.tokenName.set('');
+        this.tokens.reload();
+      },
+      error: (response: HttpErrorResponse) => this.tokenError.set(response.error?.error ?? 'Could not create the token.'),
+    });
+  }
+
+  protected copyToken(): void {
+    const token = this.newToken();
+    if (token) void navigator.clipboard.writeText(token).then(() => this.tokenCopied.set(true));
+  }
+
+  protected revokeToken(id: number, name: string): void {
+    if (!confirm(`Revoke "${name}"? Anything using it stops working at once.`)) return;
+    this.api.revokeApiToken(id).subscribe({
+      next: () => this.tokens.reload(),
+      error: () => this.tokenError.set('Could not revoke the token.'),
+    });
+  }
 
   /** Saves straight away, as the checkbox shows; switches it back if saving fails. */
   protected setWeeklySummary(weeklySummary: boolean): void {
