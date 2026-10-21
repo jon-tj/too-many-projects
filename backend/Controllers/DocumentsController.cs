@@ -329,7 +329,6 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports,
             SenderAddress = project.BillingContractorAddress,
             OrgNumber = project.BillingOrgNumber,
             Color = project.BrandColor,
-            Logo = project.BrandLogo,
         });
     }
 
@@ -337,15 +336,12 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports,
     [HttpPut("/api/projects/{projectId:long}/branding")]
     public async Task<IActionResult> SaveBranding(long projectId, BrandingSettings request, CancellationToken cancellationToken)
     {
-        if (request.Logo is not null && !request.Logo.StartsWith("data:image/", StringComparison.Ordinal))
-            return BadRequest(new { error = "The logo must be an image." });
         var project = await GetOwnedProject(projectId, cancellationToken);
         if (project is null) return NotFound();
         project.BillingContractorName = request.SenderName.Trim();
         project.BillingContractorAddress = request.SenderAddress.Trim();
         project.BillingOrgNumber = request.OrgNumber.Trim();
         project.BrandColor = request.Color.Trim().ToLowerInvariant();
-        project.BrandLogo = request.Logo;
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -353,7 +349,7 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports,
     /// <summary>The branding a document shows: stored when it was finalized, or the project's own while a draft.</summary>
     private static DocumentBranding Branding(Project project) => new(
         project.Name, project.BillingContractorName, project.BillingContractorAddress, project.BillingOrgNumber,
-        project.BrandColor, project.BrandLogo, project.Icon, project.IconImage);
+        project.BrandColor, project.Icon, project.IconImage);
 
     private async Task<DocumentResponse> ToResponse(
         Project project, Document document, DocumentSummary summary, CancellationToken cancellationToken)
@@ -366,7 +362,7 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports,
             // Finalized as a bill, before documents had branding: who it was from was stored with its report.
             var report = JsonSerializer.Deserialize<BillingReport>(old.ContentJson, JsonSerializerOptions.Web)!;
             branding = new DocumentBranding(report.ProjectName, report.Settings.ContractorName,
-                report.Settings.ContractorAddress, report.Settings.OrgNumber, "", null, report.ProjectIcon,
+                report.Settings.ContractorAddress, report.Settings.OrgNumber, "", report.ProjectIcon,
                 report.ProjectIconImage);
         }
         else branding = Branding(project);
@@ -458,8 +454,4 @@ public sealed record BrandingSettings
     /// <summary>"#rrggbb", or empty for the default.</summary>
     [RegularExpression("^(#[0-9A-Fa-f]{6})?$", ErrorMessage = "The colour must look like #2f6b4f.")]
     public string Color { get; init; } = string.Empty;
-
-    /// <summary>An image data URL, or null to show the project's icon.</summary>
-    [StringLength(300_000)]
-    public string? Logo { get; init; }
 }

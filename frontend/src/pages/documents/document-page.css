@@ -127,11 +127,6 @@ h2 {
   border-radius: 12px;
   font-size: 40px;
 }
-.logo {
-  max-width: 220px;
-  max-height: 80px;
-  object-fit: contain;
-}
 .brand strong {
   font-size: 18px;
 }

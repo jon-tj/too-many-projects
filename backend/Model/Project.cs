@@ -44,8 +44,6 @@ public sealed class Project
     public decimal BillingMaxHoursPerDay { get; set; } = 8;
     /// <summary>The accent colour on documents, "#rrggbb"; empty uses the default.</summary>
     public string BrandColor { get; set; } = string.Empty;
-    /// <summary>The contractor's logo on documents, as a data URL; null shows the project's icon instead.</summary>
-    public string? BrandLogo { get; set; }
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     public ICollection<ProjectTask> Tasks { get; set; } = new List<ProjectTask>();
     public ICollection<Canvas> Canvases { get; set; } = new List<Canvas>();

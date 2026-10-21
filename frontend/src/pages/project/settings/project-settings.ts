@@ -10,7 +10,7 @@ import { WorkspaceShell } from '../../../components/workspace-shell/workspace-sh
 import { ProjectPage } from '../project-page';
 import { BILLING_CURRENCIES } from '../../../services/models';
 import { findRevolutLink } from '../../../services/revolut';
-import { fittedImageDataUrl, squareImageDataUrl } from '../../../services/square-image';
+import { squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const PROJECT_ICONS = [
@@ -64,7 +64,6 @@ export class ProjectSettings {
     orgNumber: ['', Validators.maxLength(64)],
     /** "#rrggbb"; empty uses the default green. */
     color: [''],
-    logo: [null as string | null],
   });
   protected readonly brandingValues = toSignal(
     this.brandingForm.valueChanges.pipe(map(() => this.brandingForm.getRawValue())),
@@ -188,25 +187,6 @@ export class ProjectSettings {
 
   protected setBrandColor(color: string): void {
     this.brandingForm.patchValue({ color });
-    this.brandingForm.markAsDirty();
-  }
-
-  /** A logo keeps its shape: scaled to fit 480 × 160 pixels, which prints sharply at the size documents show it. */
-  protected async uploadLogo(event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    try {
-      this.brandingForm.patchValue({ logo: await fittedImageDataUrl(file, 480, 160) });
-      this.brandingForm.markAsDirty();
-    } catch {
-      this.brandingMessage.set('That file could not be read as an image.');
-    }
-  }
-
-  protected removeLogo(): void {
-    this.brandingForm.patchValue({ logo: null });
     this.brandingForm.markAsDirty();
   }
 

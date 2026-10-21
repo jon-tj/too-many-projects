@@ -150,26 +150,10 @@
   <section>
     <h2>Document branding</h2>
     <p class="hint">
-      Who invoices and other documents for the client are from. It is printed on each document when it is finalized,
-      so changing it here does not change documents already finalized.
+      Who invoices and other documents for the client are from; they show the project's icon at the top. It is printed
+      on each document when it is finalized, so changing it here does not change documents already finalized.
     </p>
     <form [formGroup]="brandingForm" (ngSubmit)="saveBranding()">
-      <div class="logo-field">
-        <span class="logo-preview" [style.border-color]="brandingValues().color || defaultBrandColor">
-          @if (brandingValues().logo; as logo) {
-            <img [src]="logo" alt="Your logo" />
-          } @else {
-            <span>No logo: documents show the project's icon</span>
-          }
-        </span>
-        <label class="button transparent">
-          <span>{{ brandingValues().logo ? 'Change logo' : 'Upload logo' }}</span>
-          <input type="file" accept="image/*" (change)="uploadLogo($event)" />
-        </label>
-        @if (brandingValues().logo) {
-          <button class="transparent" type="button" (click)="removeLogo()"><span>Remove</span></button>
-        }
-      </div>
       <label>
         From
         <input formControlName="senderName" placeholder="Your company or name" />

@@ -483,8 +483,6 @@ export interface DocumentBranding {
   orgNumber: string;
   /** "#rrggbb"; empty uses the default. */
   color: string;
-  /** The contractor's logo as a data URL; null shows the project's icon. */
-  logo: string | null;
   projectIcon: string | null;
   projectIconImage: string | null;
 }
@@ -546,7 +544,6 @@ export interface BrandingSettings {
   senderAddress: string;
   orgNumber: string;
   color: string;
-  logo: string | null;
 }
 
 export interface BillingDay {

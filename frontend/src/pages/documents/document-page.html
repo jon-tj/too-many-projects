@@ -106,13 +106,9 @@
   <!-- The sender's colour, if set, replaces the default accent throughout the sheet. -->
   <article class="sheet" [class.is-draft]="isDraft()" [style.--accent]="b.color || null">
     <header class="masthead">
-      <!-- The sender's logo, or the project's icon; who it is from follows below, next to who it is for. -->
+      <!-- The project's icon; who it is from follows below, next to who it is for. -->
       <div class="brand">
-        @if (b.logo) {
-          <img class="logo" [src]="b.logo" alt="" />
-        } @else {
-          <app-project-icon class="project-logo" [project]="{ icon: b.projectIcon, iconImage: b.projectIconImage }" />
-        }
+        <app-project-icon class="project-logo" [project]="{ icon: b.projectIcon, iconImage: b.projectIconImage }" />
         <strong>{{ b.projectName }}</strong>
       </div>
       <div class="title">

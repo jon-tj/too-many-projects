@@ -132,7 +132,7 @@ What we call a bill is an invoice. It becomes one of several document types a pr
   - Backend: one `Document` table shared by all types (project, type, title, draft or final, created, finalized, the revision it replaces, and its content as JSON). Types extend it where they need real columns: an invoice adds its number, month, payment status, amount and amount paid.
   - Drafts can never be shared. Finalizing freezes a document: the client's view never changes. Nothing is live, progress reports included.
   - A finalized document is changed by revising it. That opens a new draft; finalizing the draft gives a new document, and the old one is kept. Invoices are not revised. A wrong invoice is canceled and a new one is finalized, and both are kept (credit notes later).
-  - Branding on every document: the contractor's logo, colour, name, address and org. number, set per project, plus a small "Made with TooManyProjects" mark. The branding is stored in the document when it is finalized.
+  - Branding on every document: the project's icon, plus the contractor's colour, name, address and org. number, set per project, plus a small "Made with TooManyProjects" mark. The branding is stored in the document when it is finalized.
   - Sharing: a secret link to a finalized document at /d/<token>, read only, no account needed; the owner can turn it off. Old /shared/<token> links to bills keep working. Links to live monthly reports stop working, since live documents no longer exist.
   - In the app: Project → Documents lists every document; each opens at /projects/<id>/documents/<id> on a print-friendly page (print or save as PDF).
   - Order: 1) the documents foundation with invoices, sharing and branding; 2) progress reports; 3) SWOT; 4) tender responses; 5) AI drafting.
@@ -140,7 +140,7 @@ What we call a bill is an invoice. It becomes one of several document types a pr
   - Tender response (planned): the tender's requirements become sections, each with an answer, an owner and a status, and can be turned into tasks with the submission deadline. Facts are filled in from the app: team and roles, rates, a timeline from the roadmap, and past projects as references. A content library holds answers reused between tenders. A tender usually comes before a project exists, so for now it is made in a project created for the tender.
 - **Status:** step 1 done: bills are now invoices, the first document type.
   - Project → Documents (owners) lists every document with its status, payment and whether it is shared, and starts new ones. Each document opens on its own print-friendly page with Finalize, Delete draft, payment status, Share with client and Print or save as PDF. The overview's month cards open that month's invoice.
-  - Project settings → Document branding: logo, accent colour, sender name, address and org. number, printed on each document when it is finalized. The sender details moved here from the billing settings.
+  - Project settings → Document branding: accent colour, sender name, address and org. number (documents show the project's icon, no separate logo), printed on each document when it is finalized. The sender details moved here from the billing settings.
   - Existing bills became finalized invoices with the same numbers, and their links still work. Links to live monthly reports were removed. New invoices are numbered per project.
   - Step 2 done: progress reports.
     - Start one under Documents for a period (by default the last two weeks).

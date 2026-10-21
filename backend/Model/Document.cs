@@ -67,7 +67,6 @@ public sealed class ProgressReport : Document;
 
 /// <summary>Who a document is from, as printed on it.</summary>
 /// <param name="Color">The accent colour, "#rrggbb"; empty uses the default.</param>
-/// <param name="Logo">The contractor's logo as a data URL; null shows the project's icon instead.</param>
 public sealed record DocumentBranding(
-    string ProjectName, string SenderName, string SenderAddress, string OrgNumber, string Color, string? Logo,
+    string ProjectName, string SenderName, string SenderAddress, string OrgNumber, string Color,
     string? ProjectIcon, string? ProjectIconImage);
