@@ -82,6 +82,7 @@ builder.Services.AddHostedService<EmailScheduler>();
 builder.Services.AddScoped<MembershipRemoval>();
 builder.Services.AddScoped<Plans.PlanService>();
 builder.Services.AddScoped<Documents.BillingReports>();
+builder.Services.AddScoped<Documents.ProgressReports>();
 builder.Services.AddScoped<CanvasAccessService>();
 builder.Services.AddSingleton<CanvasLocks>();
 builder.Services.AddSingleton<CanvasPresence>();

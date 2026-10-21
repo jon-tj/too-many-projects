@@ -336,7 +336,124 @@ thead th {
   text-decoration: underline;
 }
 
+/* Writing a draft progress report: on screen only. */
+.editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--primary-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.editor .wide {
+  grid-column: 1 / -1;
+}
+.editor footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.unsaved {
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+
+/* A progress report's body. */
+.headline {
+  margin: 0;
+  font: 600 22px 'DM Sans', sans-serif;
+  letter-spacing: -0.01em;
+}
+.report-title h2 {
+  margin-bottom: 4px;
+}
+.prose {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.figures {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.figures > div {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  background: var(--accent-soft);
+  border-radius: 4px;
+}
+.figures strong {
+  color: var(--accent);
+  font-size: 28px;
+  line-height: 1.1;
+}
+.figures span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.pace {
+  display: block;
+  width: 100%;
+  height: 150px;
+  overflow: visible;
+}
+.pace .baseline {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+.pace-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.pace-line.tasks,
+.pace-key .tasks {
+  stroke: var(--accent);
+  background: var(--accent);
+}
+.pace-line.hours,
+.pace-key .hours {
+  stroke: #c9822b;
+  background: #c9822b;
+}
+.pace-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.pace-key {
+  display: flex;
+  gap: 16px;
+}
+.pace-key i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+.muted {
+  color: var(--muted);
+}
+
 @media (max-width: 640px) {
+  .figures {
+    grid-template-columns: 1fr 1fr;
+  }
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
   .sheet {
     padding: 28px 20px;
   }
@@ -359,8 +476,14 @@ thead th {
   }
   .toolbar,
   .share,
-  .state {
+  .state,
+  .editor {
     display: none;
+  }
+  .figures,
+  .pace-key i {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .sheet {
     padding: 0;

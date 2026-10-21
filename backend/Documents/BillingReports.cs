@@ -32,7 +32,7 @@ public sealed class BillingReports(AppDbContext db)
             .Where(invoice => invoice.ProjectId == projectId && invoice.Status == Document.Final && invoice.PaymentStatus != "canceled");
 
     /// <summary>The project's billing time zone; UTC when none is set or it is not known on this server.</summary>
-    private static TimeZoneInfo BillingZone(Project project) =>
+    public static TimeZoneInfo BillingZone(Project project) =>
         project.BillingTimeZone != "" && TimeZoneInfo.TryFindSystemTimeZoneById(project.BillingTimeZone, out var zone)
             ? zone
             : TimeZoneInfo.Utc;
@@ -41,7 +41,7 @@ public sealed class BillingReports(AppDbContext db)
     /// The moment the given day starts in the zone: local midnight, or the first moment after it on the rare days
     /// clocks jump forward at midnight, when midnight itself never happens.
     /// </summary>
-    private static DateTimeOffset MidnightIn(TimeZoneInfo zone, DateTime day)
+    public static DateTimeOffset MidnightIn(TimeZoneInfo zone, DateTime day)
     {
         var local = DateTime.SpecifyKind(day.Date, DateTimeKind.Unspecified);
         while (zone.IsInvalidTime(local)) local = local.AddMinutes(30);

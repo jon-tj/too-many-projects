@@ -142,4 +142,9 @@ What we call a bill is an invoice. It becomes one of several document types a pr
   - Project → Documents (owners) lists every document with its status, payment and whether it is shared, and starts new ones. Each document opens on its own print-friendly page with Finalize, Delete draft, payment status, Share with client and Print or save as PDF. The overview's month cards open that month's invoice.
   - Project settings → Document branding: logo, accent colour, sender name, address and org. number, printed on each document when it is finalized. The sender details moved here from the billing settings.
   - Existing bills became finalized invoices with the same numbers, and their links still work. Links to live monthly reports were removed. New invoices are numbered per project.
-  - Step 2 (progress reports): todo.
+  - Step 2 done: progress reports.
+    - Start one under Documents for a period (by default the last two weeks).
+    - The draft has an editor for the title, period, summary, next steps and whether to show hours per person.
+    - The report shows the key figures (tasks completed, hours, in progress, open), a pace chart (cumulative tasks and hours per day, or per week for periods over two months), and the tasks completed, in progress and up next. Finalizing freezes all of it.
+    - Revise opens a new draft with the same text, linked to the original; the original stays as it was, and shared, until you share the new one.
+  - Next: SWOT, then tender responses (see the decisions above).

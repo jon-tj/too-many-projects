@@ -38,6 +38,9 @@
             </label>
           } @else if (d.revisedById === null) {
             <button class="transparent" type="button" [disabled]="busy()" (click)="revise()"><span>Revise</span></button>
+          } @else {
+            <!-- This one stays as it was; the revision is a document of its own. -->
+            <button class="transparent" type="button" (click)="openDocument(d.revisedById)"><span>Open revision</span></button>
           }
         }
         <button class="transparent" type="button" (click)="print()"><span>Print or save as PDF</span></button>
@@ -64,6 +67,41 @@
   @if (contentError(); as error) {
     <p class="state" role="alert">{{ error }}</p>
   }
+  @if (!isShared() && isDraft() && draftInput(); as input) {
+    <!-- On screen only: what the author writes; the figures below follow the period once saved. -->
+    <form class="editor" (submit)="$event.preventDefault(); saveDraft()">
+      <label class="wide">
+        Title
+        <input maxlength="200" required [value]="draftTitle()" (input)="draftTitle.set($any($event.target).value)" />
+      </label>
+      <label>
+        From
+        <input type="date" required [value]="input.from" (input)="editInput('from', $any($event.target).value)" />
+      </label>
+      <label>
+        To
+        <input type="date" required [value]="input.to" (input)="editInput('to', $any($event.target).value)" />
+      </label>
+      <label class="wide">
+        Summary
+        <textarea rows="5" maxlength="5000" placeholder="How the period went, in your own words: what was achieved, what changed, anything the client should know." [value]="input.summary" (input)="editInput('summary', $any($event.target).value)"></textarea>
+      </label>
+      <label class="wide">
+        Next steps
+        <textarea rows="3" maxlength="5000" placeholder="What comes next (optional)" [value]="input.nextSteps" (input)="editInput('nextSteps', $any($event.target).value)"></textarea>
+      </label>
+      <label class="wide">
+        <input type="checkbox" [checked]="input.showHours" (change)="editInput('showHours', $any($event.target).checked)" />
+        Show hours per person (the total is always shown)
+      </label>
+      <footer class="wide">
+        <button class="primary" type="submit" [disabled]="busy() || !draftChanged() || !draftTitle().trim()">Save draft</button>
+        @if (draftChanged()) {
+          <span class="unsaved">Unsaved changes</span>
+        }
+      </footer>
+    </form>
+  }
 
   <!-- The sender's colour, if set, replaces the default accent throughout the sheet. -->
   <article class="sheet" [class.is-draft]="isDraft()" [style.--accent]="b.color || null">
@@ -78,7 +116,7 @@
         <strong>{{ b.projectName }}</strong>
       </div>
       <div class="title">
-        <h1>{{ d.type === 'invoice' ? 'Invoice' : d.title }}</h1>
+        <h1>{{ d.type === 'invoice' ? 'Invoice' : 'Progress report' }}</h1>
         @if (isDraft()) {
           <p class="draft-mark">Draft</p>
         }
@@ -101,6 +139,10 @@
               }
             }
           } @else {
+            @if (progress(); as p) {
+              <dt>Period</dt>
+              <dd>{{ day(p.input.from) | date: 'mediumDate' : 'UTC' }} – {{ day(p.input.to) | date: 'mediumDate' : 'UTC' }}</dd>
+            }
             <dt>{{ isDraft() ? 'Drafted' : 'Issued' }}</dt>
             <dd>{{ issuedAt() | date: 'mediumDate' }}</dd>
           }
@@ -299,6 +341,136 @@
           <span>Hours per day: {{ limits }}</span>
         }
         <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
+      </footer>
+    }
+
+    @if (progress(); as p) {
+      <section class="report-title">
+        <h2>For {{ b.projectName }}</h2>
+        <p class="headline">{{ d.title }}</p>
+      </section>
+      @if (p.input.summary) {
+        <section>
+          <h2>Summary</h2>
+          <p class="lines prose">{{ p.input.summary }}</p>
+        </section>
+      }
+
+      <!-- The period at a glance. -->
+      <section class="figures">
+        <div><strong>{{ p.tasksCompleted }}</strong><span>tasks completed</span></div>
+        <div><strong>{{ p.hours | number: '1.0-1' }}</strong><span>hours worked</span></div>
+        <div><strong>{{ p.inProgress.length }}</strong><span>in progress</span></div>
+        <div><strong>{{ p.openTasks }}</strong><span>open tasks{{ p.blocked ? ', ' + p.blocked + ' waiting on others' : '' }}</span></div>
+      </section>
+
+      @if (paceChart(); as chart) {
+        <section>
+          <h2>Pace</h2>
+          <p class="note">
+            Tasks completed and hours worked, added up {{ p.paceStep === 'week' ? 'week by week' : 'day by day' }}, each as a
+            share of its total for the period. A line rising steadily means steady progress.
+          </p>
+          <svg class="pace" [attr.viewBox]="'-4 -4 ' + (chart.width + 8) + ' ' + (chart.height + 8)" preserveAspectRatio="none" role="img"
+            [attr.aria-label]="p.tasksCompleted + ' tasks completed and ' + p.hours + ' hours worked over the period'">
+            <line class="baseline" x1="0" [attr.x2]="chart.width" [attr.y1]="chart.height" [attr.y2]="chart.height" />
+            <path class="pace-line hours" [attr.d]="chart.hours" />
+            <path class="pace-line tasks" [attr.d]="chart.tasks" />
+          </svg>
+          <div class="pace-axis">
+            <span>{{ day(chart.first) | date: 'MMM d' : 'UTC' }}</span>
+            <span class="pace-key">
+              <span><i class="tasks"></i>Tasks completed</span>
+              <span><i class="hours"></i>Hours worked</span>
+            </span>
+            <span>{{ day(chart.last) | date: 'MMM d' : 'UTC' }}</span>
+          </div>
+        </section>
+      }
+
+      <section>
+        <h2>Completed</h2>
+        @if (p.completed.length) {
+          <table>
+            <tbody>
+              @for (task of p.completed; track task.id) {
+                <tr>
+                  <td>{{ task.title }}</td>
+                  <td class="muted">{{ task.assignee ?? '' }}</td>
+                  <td class="number muted">{{ task.completedAt | date: 'MMM d' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          @if (p.tasksCompleted > p.completed.length) {
+            <p class="note">And {{ p.tasksCompleted - p.completed.length }} more.</p>
+          }
+        } @else {
+          <p class="note">No tasks were completed in this period.</p>
+        }
+      </section>
+
+      @if (p.inProgress.length) {
+        <section>
+          <h2>In progress</h2>
+          <table>
+            <tbody>
+              @for (task of p.inProgress; track task.id) {
+                <tr>
+                  <td>{{ task.title }}</td>
+                  <td class="muted">{{ task.units ? task.unitsDone + ' of ' + task.units + ' done' : '' }}</td>
+                  <td class="muted">{{ task.assignee ?? '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @if (p.nextUp.length) {
+        <section>
+          <h2>Up next</h2>
+          <table>
+            <tbody>
+              @for (task of p.nextUp; track task.id) {
+                <tr>
+                  <td>{{ task.title }}</td>
+                  <td class="number muted">{{ task.dueAt ? 'due ' + (task.dueAt | date: 'MMM d') : '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @if (p.hoursByMember.length) {
+        <section>
+          <h2>Hours by person</h2>
+          <table>
+            <tbody>
+              @for (member of p.hoursByMember; track member.name) {
+                <tr>
+                  <td>{{ member.name }}</td>
+                  <td class="number">{{ member.hours | number: '1.0-1' }} h</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @if (p.input.nextSteps) {
+        <section class="next-steps">
+          <h2>Next steps</h2>
+          <p class="lines prose">{{ p.input.nextSteps }}</p>
+        </section>
+      }
+
+      <footer class="terms">
+        <span>Figures as of {{ p.madeAt | date: 'medium' }}</span>
+        @if (d.revisionOfId) {
+          <span>Replaces an earlier version of this report</span>
+        }
       </footer>
     }
 

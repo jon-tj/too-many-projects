@@ -435,7 +435,10 @@ export const PAYMENT_STATUSES = [
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]['value'];
 
-export const DOCUMENT_TYPES = [{ value: 'invoice', label: 'Invoice', icon: 'receipt_long' }] as const;
+export const DOCUMENT_TYPES = [
+  { value: 'invoice', label: 'Invoice', icon: 'receipt_long' },
+  { value: 'progressReport', label: 'Progress report', icon: 'trending_up' },
+] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number]['value'];
 
 /** What an invoice adds to a document. */
@@ -491,6 +494,50 @@ export interface DocumentDetail<Content = unknown> {
   document: DocumentSummary;
   content: Content;
   branding: DocumentBranding;
+}
+
+/** What the author of a progress report chooses and writes; dates are "yyyy-MM-dd". */
+export interface ProgressReportInput {
+  from: string;
+  to: string;
+  summary: string;
+  nextSteps: string;
+  /** Show hours per person; the total is always shown. */
+  showHours: boolean;
+}
+
+export interface ReportTask {
+  id: number;
+  title: string;
+  priority: string;
+  assignee: string | null;
+  dueAt: string | null;
+  completedAt: string | null;
+  units: number | null;
+  unitsDone: number;
+}
+
+/** One point of the pace: cumulative tasks done and hours up to the end of its day or week. */
+export interface PacePoint {
+  date: string;
+  tasksCompleted: number;
+  hours: number;
+}
+
+/** A progress report's figures, as of madeAt, with what the author wrote. */
+export interface ProgressReportContent {
+  input: ProgressReportInput;
+  tasksCompleted: number;
+  hours: number;
+  openTasks: number;
+  blocked: number;
+  completed: ReportTask[];
+  inProgress: ReportTask[];
+  nextUp: ReportTask[];
+  hoursByMember: { name: string; hours: number }[];
+  pace: PacePoint[];
+  paceStep: 'day' | 'week';
+  madeAt: string;
 }
 
 /** A project's branding settings, printed on documents when they are finalized. */

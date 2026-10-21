@@ -1,15 +1,26 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, input, numberAttribute, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, linkedSignal, numberAttribute, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { BillingDay, BillingReport, PAYMENT_STATUSES, PaymentStatus } from '../../services/models';
+import {
+  BillingDay,
+  BillingReport,
+  PAYMENT_STATUSES,
+  PaymentStatus,
+  ProgressReportContent,
+  ProgressReportInput,
+} from '../../services/models';
 import { MoneyPipe } from '../../services/money.pipe';
 import { ProjectIcon } from '../../components/project-icon/project-icon';
 import { findRevolutLink } from '../../services/revolut';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const optionalNumber = (value: string | undefined) => (value ? Number(value) : null);
+
+/** The pace chart's drawing area, in SVG units; it scales to the sheet's width. */
+const PACE_WIDTH = 640;
+const PACE_HEIGHT = 140;
 
 /**
  * One document as a print-friendly page, outside the workspace layout. At /projects/:projectId/documents/:documentId
@@ -48,6 +59,43 @@ export class DocumentPage {
     this.summary()?.type === 'invoice' && !this.contentError() ? (this.loaded.value()!.content as BillingReport) : null,
   );
   protected readonly invoice = computed(() => this.summary()?.invoice ?? null);
+  /** A progress report's figures and text. */
+  protected readonly progress = computed(() =>
+    this.summary()?.type === 'progressReport' ? (this.loaded.value()!.content as ProgressReportContent) : null,
+  );
+  /** The draft's title and text being edited; reset from what was saved whenever it loads. */
+  protected readonly draftTitle = linkedSignal(() => this.summary()?.title ?? '');
+  protected readonly draftInput = linkedSignal<ProgressReportInput | null>(() => {
+    const progress = this.progress();
+    return progress ? { ...progress.input } : null;
+  });
+  protected readonly draftChanged = computed(() => {
+    const input = this.draftInput();
+    const saved = this.progress()?.input;
+    return (
+      this.draftTitle() !== this.summary()?.title ||
+      (!!input && !!saved && (Object.keys(input) as (keyof ProgressReportInput)[]).some((key) => input[key] !== saved[key]))
+    );
+  });
+  /** Both measures of the pace on one plot, each scaled to its own total, as in the project's overview chart. */
+  protected readonly paceChart = computed(() => {
+    const points = this.progress()?.pace ?? [];
+    if (!points.length) return null;
+    const x = (index: number) => (points.length < 2 ? PACE_WIDTH : (index / (points.length - 1)) * PACE_WIDTH);
+    const line = (values: number[]) => {
+      const total = values.at(-1) || 0;
+      const y = (value: number) => PACE_HEIGHT - (total > 0 ? value / total : 0) * (PACE_HEIGHT - 8);
+      return values.map((value, index) => `${index ? 'L' : 'M'}${x(index).toFixed(1)},${y(value).toFixed(1)}`).join(' ');
+    };
+    return {
+      width: PACE_WIDTH,
+      height: PACE_HEIGHT,
+      tasks: line(points.map((point) => point.tasksCompleted)),
+      hours: line(points.map((point) => point.hours)),
+      first: points[0].date,
+      last: points.at(-1)!.date,
+    };
+  });
   protected readonly paymentStatuses = PAYMENT_STATUSES;
   protected readonly paymentLabel = computed(
     () => PAYMENT_STATUSES.find((status) => status.value === this.invoice()?.paymentStatus)?.label ?? '',
@@ -108,6 +156,10 @@ export class DocumentPage {
 
   /** Freezes the draft as it is now; it can then be shared, and never changes again. */
   protected finalize(): void {
+    if (this.draftChanged()) {
+      this.message.set('Save your changes to the draft first.');
+      return;
+    }
     const summary = this.summary();
     const what = summary?.type === 'invoice' ? 'invoice' : 'document';
     if (!summary || !confirm(`Finalize this ${what}? It will no longer change with new hours or settings, and can then be shared.`)) return;
@@ -126,7 +178,7 @@ export class DocumentPage {
     if (!summary) return;
     this.run(
       this.api.reviseDocument(this.projectId(), summary.id),
-      (draft) => void this.router.navigate(['/projects', this.projectId(), 'documents', draft.id]),
+      (draft) => this.openDocument(draft.id),
       'Could not start a revision.',
     );
   }
@@ -177,6 +229,35 @@ export class DocumentPage {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 1500);
     });
+  }
+
+  protected editInput<K extends keyof ProgressReportInput>(key: K, value: ProgressReportInput[K]): void {
+    this.draftInput.update((input) => (input ? { ...input, [key]: value } : input));
+  }
+
+  /** Saves the draft's title and text; the figures are worked out again for the period. */
+  protected saveDraft(): void {
+    const summary = this.summary();
+    const input = this.draftInput();
+    if (!summary || !this.draftTitle().trim()) return;
+    if (input && input.to < input.from) {
+      this.message.set('The period must end on or after its first day.');
+      return;
+    }
+    this.run(
+      this.api.updateDocument(this.projectId(), summary.id, { title: this.draftTitle().trim(), progressReport: input ?? undefined }),
+      () => this.loaded.reload(),
+      'Could not save the draft.',
+    );
+  }
+
+  /** A date-only "yyyy-MM-dd" as a moment the date pipe shows as that same day. */
+  protected day(date: string): string {
+    return `${date}T00:00:00Z`;
+  }
+
+  protected openDocument(documentId: number): void {
+    void this.router.navigate(['/projects', this.projectId(), 'documents', documentId]);
   }
 
   protected backToList(): void {

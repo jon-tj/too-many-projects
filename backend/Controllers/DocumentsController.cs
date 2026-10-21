@@ -19,7 +19,7 @@ using Plans;
 [Authorize]
 [Route("api/projects/{projectId:long}/documents")]
 [RequiresProject(ProjectFeature.Full)]
-public sealed class DocumentsController(AppDbContext db, BillingReports reports) : ControllerBase
+public sealed class DocumentsController(AppDbContext db, BillingReports reports, ProgressReports progress) : ControllerBase
 {
     private static readonly Dictionary<long, string> NoTokens = [];
     private static readonly string[] PaymentStatuses = ["due", "paid", "partiallyPaid", "unpaid", "canceled"];
@@ -40,7 +40,7 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports)
 
     /// <summary>
     /// Starts a draft. An invoice is for a month with billing enabled; a month has at most one draft (which is returned
-    /// if it exists) and one invoice that is not canceled.
+    /// if it exists) and one invoice that is not canceled. A progress report covers the days From to To.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<DocumentSummary>> Create(
@@ -73,9 +73,59 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports)
                 db.Invoices.Add(invoice);
                 await db.SaveChangesAsync(cancellationToken);
                 return Ok(ToSummary(invoice, NoTokens, []));
+            case "progressReport":
+                if (request.From is not { } from || request.To is not { } to)
+                    return BadRequest(new { error = "Choose the period the report covers." });
+                if (CheckPeriod(from, to) is { } periodError) return BadRequest(new { error = periodError });
+                var report = new ProgressReport
+                {
+                    ProjectId = projectId,
+                    Type = "progressReport",
+                    Title = PeriodTitle(from, to),
+                    CreatedByUserId = userId,
+                    ContentJson = JsonSerializer.Serialize(new ProgressReportInput { From = from, To = to }, JsonSerializerOptions.Web),
+                };
+                db.ProgressReports.Add(report);
+                await db.SaveChangesAsync(cancellationToken);
+                return Ok(ToSummary(report, NoTokens, []));
             default:
                 return BadRequest(new { error = "Unknown document type." });
         }
+    }
+
+    /// <summary>Changes a draft: its title, and for a progress report the period and what the author wrote.</summary>
+    [HttpPut("{documentId:long}")]
+    public async Task<ActionResult<DocumentSummary>> Update(
+        long projectId, long documentId, UpdateDocumentRequest request, CancellationToken cancellationToken)
+    {
+        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
+        var document = await db.Documents.SingleOrDefaultAsync(
+            document => document.Id == documentId && document.ProjectId == projectId, cancellationToken);
+        if (document is null) return NotFound();
+        if (document.IsFinal) return BadRequest(new { error = "Finalized documents never change. Revise it instead." });
+        if (document is ProgressReport)
+        {
+            if (request.ProgressReport is not { } input) return BadRequest(new { error = "Send the report's period and text." });
+            if (CheckPeriod(input.From, input.To) is { } periodError) return BadRequest(new { error = periodError });
+            document.ContentJson = JsonSerializer.Serialize(input, JsonSerializerOptions.Web);
+        }
+        document.Title = request.Title.Trim();
+        document.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(ToSummary(document, NoTokens, []));
+    }
+
+    private static string? CheckPeriod(DateOnly from, DateOnly to) =>
+        to < from ? "The period must end on or after its first day."
+        : to.DayNumber - from.DayNumber + 1 > ProgressReports.MaxDays ? $"A report covers at most {ProgressReports.MaxDays} days."
+        : null;
+
+    /// <summary>"Progress report 1 Oct – 31 Oct 2026", or with both years when they differ.</summary>
+    private static string PeriodTitle(DateOnly from, DateOnly to)
+    {
+        var culture = CultureInfo.InvariantCulture;
+        var first = from.Year == to.Year ? from.ToString("d MMM", culture) : from.ToString("d MMM yyyy", culture);
+        return $"Progress report {first} – {to.ToString("d MMM yyyy", culture)}";
     }
 
     [HttpGet("{documentId:long}")]
@@ -135,6 +185,11 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports)
             invoice.Amount = report.AmountWithVat ?? report.Amount;
             invoice.ContentJson = JsonSerializer.Serialize(report, JsonSerializerOptions.Web);
         }
+        else if (document is ProgressReport)
+        {
+            var input = JsonSerializer.Deserialize<ProgressReportInput>(document.ContentJson, JsonSerializerOptions.Web)!;
+            document.ContentJson = JsonSerializer.Serialize(await progress.Build(project, input, cancellationToken), JsonSerializerOptions.Web);
+        }
 
         var now = DateTimeOffset.UtcNow;
         document.BrandingJson = JsonSerializer.Serialize(Branding(project), JsonSerializerOptions.Web);
@@ -162,7 +217,27 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports)
         var draft = await db.Documents.AsNoTracking().FirstOrDefaultAsync(
             other => other.RevisionOfId == documentId && other.Status == Document.Draft, cancellationToken);
         if (draft is not null) return Ok(ToSummary(draft, NoTokens, []));
-        return BadRequest(new { error = "This document type cannot be revised yet." });
+
+        // The revision starts from what the author wrote; its figures are worked out again.
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        Document revision = document switch
+        {
+            ProgressReport => new ProgressReport
+            {
+                Type = "progressReport",
+                ContentJson = JsonSerializer.Serialize(
+                    JsonSerializer.Deserialize<ProgressReportContent>(document.ContentJson, JsonSerializerOptions.Web)!.Input,
+                    JsonSerializerOptions.Web),
+            },
+            _ => throw new InvalidOperationException($"No revisions for {document.Type}."),
+        };
+        revision.ProjectId = projectId;
+        revision.Title = document.Title;
+        revision.CreatedByUserId = userId;
+        revision.RevisionOfId = document.Id;
+        db.Documents.Add(revision);
+        await db.SaveChangesAsync(cancellationToken);
+        return Ok(ToSummary(revision, NoTokens, []));
     }
 
     /// <summary>Records what the client paid on a finalized invoice; canceling one frees its hours for a new invoice.</summary>
@@ -301,6 +376,9 @@ public sealed class DocumentsController(AppDbContext db, BillingReports reports)
             { IsFinal: true } => JsonSerializer.Deserialize<JsonElement>(document.ContentJson),
             Invoice invoice when project.BillingEnabled => await reports.Build(project, invoice.Month, cancellationToken),
             Invoice => new { error = "Billing is turned off for this project." },
+            ProgressReport => await progress.Build(
+                project, JsonSerializer.Deserialize<ProgressReportInput>(document.ContentJson, JsonSerializerOptions.Web)!,
+                cancellationToken),
             _ => JsonSerializer.Deserialize<JsonElement>(document.ContentJson),
         };
         return new DocumentResponse(summary, JsonSerializer.SerializeToElement(content, JsonSerializerOptions.Web), branding);
@@ -343,12 +421,23 @@ public sealed record DocumentSummary(
 /// <param name="Overdue">What is still owed (unpaid or partially paid), otherwise 0.</param>
 public sealed record InvoiceInfo(long? Number, string Month, string PaymentStatus, decimal Amount, decimal AmountPaid, decimal Overdue);
 
-/// <param name="Content">The type's content: for an invoice, its billing report.</param>
+/// <param name="Content">The type's content: for an invoice, its billing report; for a progress report, its figures and text.</param>
 public sealed record DocumentResponse(DocumentSummary Document, JsonElement Content, DocumentBranding Branding);
 
-/// <param name="Type">"invoice".</param>
+/// <param name="Type">"invoice" or "progressReport".</param>
 /// <param name="Month">For an invoice: "yyyy-MM".</param>
-public sealed record CreateDocumentRequest(string Type, string? Month);
+/// <param name="From">For a progress report: the period's first day.</param>
+/// <param name="To">For a progress report: the period's last day.</param>
+public sealed record CreateDocumentRequest(string Type, string? Month, DateOnly? From = null, DateOnly? To = null);
+
+/// <param name="ProgressReport">For a progress report: its period and text.</param>
+public sealed record UpdateDocumentRequest
+{
+    [Required, StringLength(200, MinimumLength = 1)]
+    public required string Title { get; init; }
+
+    public ProgressReportInput? ProgressReport { get; init; }
+}
 
 public sealed record SetPaymentRequest(string Status, decimal? AmountPaid);
 

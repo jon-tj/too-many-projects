@@ -16,6 +16,13 @@ function lastMonth(): string {
   return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** "yyyy-MM-dd" of a day, counted back from today. */
+function daysAgo(days: number): string {
+  const day = new Date();
+  day.setDate(day.getDate() - days);
+  return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+}
+
 /** The project's documents for its client, newest first, and starting new ones. For the project's owners. */
 @Component({
   selector: 'app-document-list',
@@ -42,6 +49,8 @@ export class DocumentList {
   protected readonly types = DOCUMENT_TYPES;
   protected readonly newType = signal<DocumentType>('invoice');
   protected readonly newMonth = signal(lastMonth());
+  protected readonly newFrom = signal(daysAgo(13));
+  protected readonly newTo = signal(daysAgo(0));
   protected readonly message = signal('');
   protected readonly busy = signal(false);
 
@@ -64,7 +73,8 @@ export class DocumentList {
     this.busy.set(true);
     this.message.set('');
     const type = this.newType();
-    this.api.createDocument(projectId, { type, month: type === 'invoice' ? this.newMonth() : undefined }).subscribe({
+    const request = type === 'invoice' ? { type, month: this.newMonth() } : { type, from: this.newFrom(), to: this.newTo() };
+    this.api.createDocument(projectId, request).subscribe({
       next: (document) => void this.router.navigate(['/projects', projectId, 'documents', document.id]),
       error: (error: HttpErrorResponse) => {
         this.busy.set(false);

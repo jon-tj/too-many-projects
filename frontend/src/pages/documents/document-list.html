@@ -18,8 +18,17 @@
             Month
             <input type="month" required [value]="newMonth()" (input)="newMonth.set($any($event.target).value)" />
           </label>
+        } @else {
+          <label>
+            From
+            <input type="date" required [value]="newFrom()" (input)="newFrom.set($any($event.target).value)" />
+          </label>
+          <label>
+            To
+            <input type="date" required [value]="newTo()" (input)="newTo.set($any($event.target).value)" />
+          </label>
         }
-        <button class="primary" type="submit" [disabled]="busy() || (newType() === 'invoice' && (!current.billingEnabled || !newMonth()))">
+        <button class="primary" type="submit" [disabled]="busy() || (newType() === 'invoice' ? !current.billingEnabled || !newMonth() : !newFrom() || !newTo() || newTo() < newFrom())">
           Start draft
         </button>
       </form>

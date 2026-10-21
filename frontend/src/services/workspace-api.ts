@@ -23,6 +23,7 @@ import {
   DocumentSummary,
   DocumentType,
   PaymentStatus,
+  ProgressReportInput,
   BillingSettings,
   ProjectMember,
   ProjectOverview,
@@ -184,12 +185,24 @@ export class WorkspaceApi {
   }
 
   /** Starts a draft; for a month that already has an invoice draft, returns that draft. */
-  createDocument(projectId: number, request: { type: DocumentType; month?: string }): Observable<DocumentSummary> {
+  createDocument(
+    projectId: number,
+    request: { type: DocumentType; month?: string; from?: string; to?: string },
+  ): Observable<DocumentSummary> {
     return this.http.post<DocumentSummary>(`/api/projects/${projectId}/documents`, request);
   }
 
   document(projectId: number, documentId: number): Observable<DocumentDetail> {
     return this.http.get<DocumentDetail>(`/api/projects/${projectId}/documents/${documentId}`);
+  }
+
+  /** Drafts only: its title, and for a progress report its period and text. */
+  updateDocument(
+    projectId: number,
+    documentId: number,
+    request: { title: string; progressReport?: ProgressReportInput },
+  ): Observable<DocumentSummary> {
+    return this.http.put<DocumentSummary>(`/api/projects/${projectId}/documents/${documentId}`, request);
   }
 
   /** Drafts only: finalized documents are kept. */
