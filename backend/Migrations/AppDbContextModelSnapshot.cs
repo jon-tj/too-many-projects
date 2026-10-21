@@ -342,43 +342,6 @@ namespace backend.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Model.Bill", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Month")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("ProjectId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ReportJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("Bills");
-                });
-
             modelBuilder.Entity("Model.Canvas", b =>
                 {
                     b.Property<int>("Id")
@@ -456,6 +419,64 @@ namespace backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("CanvasPermissions");
+                });
+
+            modelBuilder.Entity("Model.Document", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BrandingJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("FinalizedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("RevisionOfId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("Documents");
+
+                    b.HasDiscriminator<string>("Type").HasValue("Document");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Model.FeatureRequest", b =>
@@ -612,6 +633,14 @@ namespace backend.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("BillingVatRate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BrandColor")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BrandLogo")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -790,20 +819,19 @@ namespace backend.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
-                    b.Property<long?>("BillId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Month")
-                        .HasMaxLength(7)
-                        .HasColumnType("TEXT");
+                    b.Property<long>("DocumentId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Token");
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
 
                     b.HasIndex("ProjectId");
 
@@ -879,6 +907,39 @@ namespace backend.Migrations
                     b.ToTable("WorkSessions");
                 });
 
+            modelBuilder.Entity("Model.Invoice", b =>
+                {
+                    b.HasBaseType("Model.Document");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("AmountPaid")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Month")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("Number")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasDiscriminator().HasValue("invoice");
+                });
+
+            modelBuilder.Entity("Model.ProgressReport", b =>
+                {
+                    b.HasBaseType("Model.Document");
+
+                    b.HasDiscriminator().HasValue("progressReport");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -941,17 +1002,6 @@ namespace backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Model.Bill", b =>
-                {
-                    b.HasOne("Model.Project", "Project")
-                        .WithMany()
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("Model.Canvas", b =>
                 {
                     b.HasOne("Model.Project", "Project")
@@ -991,6 +1041,17 @@ namespace backend.Migrations
                     b.Navigation("Canvas");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Model.Document", b =>
+                {
+                    b.HasOne("Model.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("Model.FeatureRequest", b =>
@@ -1089,11 +1150,19 @@ namespace backend.Migrations
 
             modelBuilder.Entity("Model.ShareLink", b =>
                 {
+                    b.HasOne("Model.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Model.Project", "Project")
                         .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Document");
 
                     b.Navigation("Project");
                 });

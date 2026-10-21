@@ -25,6 +25,9 @@
                 <a [routerLink]="['/projects', project.id, 'roadmap']" routerLinkActive="is-active"><app-icon name="view_timeline" /><span>Roadmap</span></a>
                 <a [routerLink]="['/projects', project.id, 'canvas']" routerLinkActive="is-active"><app-icon name="account_tree" /><span>Canvas</span></a>
                 <a [routerLink]="['/projects', project.id, 'members']" routerLinkActive="is-active"><app-icon name="person" /><span>Members</span><span class="badge">{{ project.memberCount }}</span></a>
+                @if (project.myRole === 'Owner') {
+                  <a [routerLink]="['/projects', project.id, 'documents']" routerLinkActive="is-active"><app-icon name="description" /><span>Documents</span></a>
+                }
               }
               <a [routerLink]="['/projects', project.id, 'settings']" routerLinkActive="is-active"><app-icon name="settings" /><span>Settings</span></a>
             </nav>

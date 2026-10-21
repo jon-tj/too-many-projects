@@ -68,3 +68,47 @@ nav {
 .pair select {
   height: 40px;
 }
+
+.hint {
+  margin: -4px 0 12px;
+  color: var(--secondary-surface);
+  font-size: 12px;
+}
+/* The logo as documents show it, framed in the accent colour. */
+.logo-field,
+.color-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.logo-preview {
+  display: grid;
+  place-items: center;
+  min-width: 160px;
+  height: 64px;
+  padding: 6px 10px;
+  color: #5f6b63;
+  background: #fff;
+  border: 1px solid;
+  border-left-width: 4px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.logo-preview img {
+  max-width: 220px;
+  max-height: 52px;
+  object-fit: contain;
+}
+.logo-field label.button input {
+  display: none;
+}
+.color-field label {
+  flex-direction: row;
+  align-items: center;
+}
+.color-field input[type='color'] {
+  width: 44px;
+  height: 32px;
+  padding: 2px;
+}

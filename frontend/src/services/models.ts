@@ -384,8 +384,8 @@ export type BillableFraction = (typeof BILLABLE_FRACTIONS)[number];
 export interface BillingSettings {
   enabled: boolean;
   clientName: string;
-  /** Who does the work for the client. */
-  contractorName: string;
+  /** Who does the work for the client; set with the branding, and kept in invoices' reports. */
+  contractorName?: string;
   costPerHour: number;
   minHoursPerDay: number;
   maxHoursPerDay: number;
@@ -417,50 +417,89 @@ export interface BillingMemberTotal {
   amount: number;
 }
 
-/** An earlier bill still owed: unpaid, or the rest of a partial payment. */
+/** An earlier invoice still owed: unpaid, or the rest of a partial payment. */
 export interface OverdueBill {
+  /** The invoice's number. */
   billId: number;
   month: string;
   amount: number;
 }
 
-/** "due" = open; the others close the bill. */
-export const BILL_STATUSES = [
+/** An invoice's payment status once finalized: "due" = open; the others close it. */
+export const PAYMENT_STATUSES = [
   { value: 'due', label: 'Due' },
   { value: 'paid', label: 'Paid' },
   { value: 'partiallyPaid', label: 'Partially paid' },
   { value: 'unpaid', label: 'Unpaid' },
   { value: 'canceled', label: 'Canceled' },
 ] as const;
-export type BillStatus = (typeof BILL_STATUSES)[number]['value'];
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]['value'];
 
-export interface BillSummary {
-  id: number;
+export const DOCUMENT_TYPES = [{ value: 'invoice', label: 'Invoice', icon: 'receipt_long' }] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number]['value'];
+
+/** What an invoice adds to a document. */
+export interface InvoiceInfo {
+  /** Null while a draft. */
+  number: number | null;
+  /** "yyyy-MM". */
   month: string;
-  createdAt: string;
-  status: BillStatus;
+  paymentStatus: PaymentStatus;
   amount: number;
   amountPaid: number;
-  /** Still owed on this bill when unpaid or partially paid, otherwise 0. */
+  /** Still owed when unpaid or partially paid, otherwise 0. */
   overdue: number;
 }
 
-export interface BillDetail {
-  bill: BillSummary;
-  report: BillingReport;
+/**
+ * Something a project sends its client. Drafts are only seen by the project's owners; finalized documents never change
+ * and can be shared by secret link.
+ */
+export interface DocumentSummary {
+  id: number;
+  type: DocumentType;
+  title: string;
+  status: 'draft' | 'final';
+  createdAt: string;
+  updatedAt: string;
+  finalizedAt: string | null;
+  /** The finalized document this one revises. */
+  revisionOfId: number | null;
+  /** A later revision of this one. */
+  revisedById: number | null;
+  /** The secret of its share link; null when not shared. */
+  shareToken: string | null;
+  invoice: InvoiceInfo | null;
 }
 
-/** A secret link to a bill, or to a month's live report ("yyyy-MM"). */
-export interface ShareLink {
-  token: string;
-  billId: number | null;
-  month: string | null;
+/** Who a document is from, as printed on it. */
+export interface DocumentBranding {
+  projectName: string;
+  senderName: string;
+  senderAddress: string;
+  orgNumber: string;
+  /** "#rrggbb"; empty uses the default. */
+  color: string;
+  /** The contractor's logo as a data URL; null shows the project's icon. */
+  logo: string | null;
+  projectIcon: string | null;
+  projectIconImage: string | null;
 }
 
-/** What a share link shows: a bill, or a live report (bill is null). */
-export interface SharedBilling {
-  bill: BillSummary | null;
-  report: BillingReport;
+/** A document with its content: for an invoice, its billing report. */
+export interface DocumentDetail<Content = unknown> {
+  document: DocumentSummary;
+  content: Content;
+  branding: DocumentBranding;
+}
+
+/** A project's branding settings, printed on documents when they are finalized. */
+export interface BrandingSettings {
+  senderName: string;
+  senderAddress: string;
+  orgNumber: string;
+  color: string;
+  logo: string | null;
 }
 
 export interface BillingDay {

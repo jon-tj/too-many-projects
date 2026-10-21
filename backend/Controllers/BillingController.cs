@@ -1,47 +1,35 @@
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Documents;
 using Plans;
 using Model;
 
 /// <summary>
-/// Project billing, for project owners only: settings, member fractions and monthly reports.
-/// Billable hours per member per day = worked hours raised to the daily minimum (on days with work) and capped at
-/// the daily maximum, times the member's billable fraction. A maximum of 0 or 24+ means no cap; a minimum of 0 means
-/// no minimum. Days start at midnight in the project's billing time zone.
-/// Every hour is billed exactly once: a report covers all recorded work up to the end of its month, minus what earlier
-/// (not canceled) bills already billed for each member-day. Earlier days left unbilled are marked CarriedOver.
+/// Project billing, for project owners only: settings, member fractions and the live preview of a month's billing
+/// (see <see cref="BillingReports"/>). Invoices made from it are documents (see DocumentsController).
 /// </summary>
 [ApiController]
 [Authorize]
 [Route("api/projects/{projectId:long}/billing")]
 [RequiresProject(ProjectFeature.Full)]
-public sealed class BillingController(AppDbContext db) : ControllerBase
+public sealed class BillingController(AppDbContext db, BillingReports reports) : ControllerBase
 {
-    private static readonly Dictionary<string, decimal> Fractions = new()
-    {
-        ["1/1"] = 1m, ["3/4"] = 0.75m, ["2/3"] = 2m / 3m, ["1/2"] = 0.5m,
-    };
-
-    /// <summary>A daily maximum of 0 or 24 hours and above means the day is not capped.</summary>
-    public static bool IsCapped(decimal maxHoursPerDay) => maxHoursPerDay > 0 && maxHoursPerDay < 24;
-
     [HttpGet]
     public async Task<ActionResult<BillingSettings>> Get(long projectId, CancellationToken cancellationToken)
     {
         var project = await GetOwnedProject(projectId, cancellationToken);
-        return project is null ? NotFound() : Ok(ToSettings(project));
+        return project is null ? NotFound() : Ok(BillingReports.ToSettings(project));
     }
 
+    /// <summary>Saves the billing settings. Who the work is from (contractor name, address, org. number) is set with the
+    /// document branding instead, so those fields are ignored here.</summary>
     [HttpPut]
     public async Task<IActionResult> Save(long projectId, BillingSettings request, CancellationToken cancellationToken)
     {
-        if (IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
+        if (BillingReports.IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
         var timeZone = request.TimeZone.Trim();
         if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
@@ -51,15 +39,12 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
 
         project.BillingEnabled = request.Enabled;
         project.BillingClientName = request.ClientName.Trim();
-        project.BillingContractorName = request.ContractorName.Trim();
         project.BillingCostPerHour = request.CostPerHour;
         project.BillingMinHoursPerDay = request.MinHoursPerDay;
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
         project.BillingTimeZone = timeZone;
         project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
         project.BillingVatRate = request.VatRate;
-        project.BillingContractorAddress = request.ContractorAddress.Trim();
-        project.BillingOrgNumber = request.OrgNumber.Trim();
         project.BillingPaymentDetails = request.PaymentDetails.Trim();
         project.BillingPaymentTermsDays = request.PaymentTermsDays;
         await db.SaveChangesAsync(cancellationToken);
@@ -70,7 +55,7 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> SetFraction(
         long projectId, string userId, SetFractionRequest request, CancellationToken cancellationToken)
     {
-        if (!Fractions.ContainsKey(request.Fraction))
+        if (!BillingReports.Fractions.ContainsKey(request.Fraction))
             return BadRequest(new { error = "The fraction must be 1/1, 3/4, 2/3 or 1/2." });
         if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
 
@@ -82,298 +67,15 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
-    private static readonly string[] BillStatuses = ["due", "paid", "partiallyPaid", "unpaid", "canceled"];
-
-    /// <summary>Preview of the month's billing, per member and per day, with overdue earlier bills. month is "yyyy-MM".</summary>
+    /// <summary>The month's billing as it stands now, per member and per day, with overdue earlier invoices. month is "yyyy-MM".</summary>
     [HttpGet("report")]
     public async Task<ActionResult<BillingReport>> Report(long projectId, [FromQuery] string month, CancellationToken cancellationToken)
     {
-        if (!TryParseMonth(month, out var parsed)) return BadRequest(new { error = "The month must look like 2026-10." });
+        if (!BillingReports.TryParseMonth(month, out _)) return BadRequest(new { error = "The month must look like 2026-10." });
         var project = await GetOwnedProject(projectId, cancellationToken);
         if (project is null) return NotFound();
         if (!project.BillingEnabled) return BadRequest(new { error = "Billing is not enabled for this project." });
-        return Ok(await BuildReport(project, month, parsed, cancellationToken));
-    }
-
-    /// <summary>Finalizes the month's report as a bill (status "due"). One open bill per month.</summary>
-    [HttpPost("bills")]
-    public async Task<ActionResult<BillSummary>> Finalize(long projectId, FinalizeBillRequest request, CancellationToken cancellationToken)
-    {
-        if (!TryParseMonth(request.Month, out var parsed)) return BadRequest(new { error = "The month must look like 2026-10." });
-        var project = await GetOwnedProject(projectId, cancellationToken);
-        if (project is null) return NotFound();
-        if (!project.BillingEnabled) return BadRequest(new { error = "Billing is not enabled for this project." });
-        if (await db.Bills.AnyAsync(bill => bill.ProjectId == projectId && bill.Month == request.Month && bill.Status != "canceled", cancellationToken))
-            return Conflict(new { error = "This month already has a bill. Cancel it first to finalize again." });
-
-        var report = await BuildReport(project, request.Month, parsed, cancellationToken);
-        var bill = new Bill
-        {
-            ProjectId = projectId,
-            Month = request.Month,
-            // What the client owes: VAT included.
-            Amount = report.AmountWithVat ?? report.Amount,
-            ReportJson = JsonSerializer.Serialize(report, JsonSerializerOptions.Web),
-        };
-        db.Bills.Add(bill);
-        await db.SaveChangesAsync(cancellationToken);
-        return Ok(ToSummary(bill));
-    }
-
-    [HttpGet("bills")]
-    public async Task<ActionResult<IReadOnlyList<BillSummary>>> Bills(long projectId, CancellationToken cancellationToken)
-    {
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        var bills = await db.Bills.AsNoTracking().Where(bill => bill.ProjectId == projectId).ToListAsync(cancellationToken);
-        return Ok(bills.OrderByDescending(bill => bill.Month).ThenByDescending(bill => bill.Id).Select(ToSummary).ToList());
-    }
-
-    /// <summary>The project's share links, so the owner sees what is shared and can turn it off.</summary>
-    [HttpGet("shares")]
-    public async Task<ActionResult<IReadOnlyList<ShareLinkResponse>>> Shares(long projectId, CancellationToken cancellationToken)
-    {
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        return Ok(await db.ShareLinks.AsNoTracking()
-            .Where(link => link.ProjectId == projectId)
-            .Select(link => new ShareLinkResponse(link.Token, link.BillId, link.Month))
-            .ToListAsync(cancellationToken));
-    }
-
-    /// <summary>
-    /// Shares a bill, or a month's live report, by secret link; returns the existing link if it is shared already.
-    /// </summary>
-    [HttpPost("shares")]
-    public async Task<ActionResult<ShareLinkResponse>> Share(long projectId, CreateShareRequest request, CancellationToken cancellationToken)
-    {
-        if ((request.BillId is null) == (request.Month is null))
-            return BadRequest(new { error = "Share either a bill or a month's report." });
-        if (request.Month is not null && !TryParseMonth(request.Month, out _))
-            return BadRequest(new { error = "The month must look like 2026-10." });
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        if (request.BillId is { } billId
-            && !await db.Bills.AnyAsync(bill => bill.Id == billId && bill.ProjectId == projectId, cancellationToken))
-            return NotFound();
-
-        var existing = await db.ShareLinks.AsNoTracking().FirstOrDefaultAsync(link => link.ProjectId == projectId
-            && link.BillId == request.BillId && link.Month == request.Month, cancellationToken);
-        if (existing is not null) return Ok(new ShareLinkResponse(existing.Token, existing.BillId, existing.Month));
-
-        var token = Base64Url(RandomNumberGenerator.GetBytes(16));
-        db.ShareLinks.Add(new ShareLink { Token = token, ProjectId = projectId, BillId = request.BillId, Month = request.Month });
-        await db.SaveChangesAsync(cancellationToken);
-        return Ok(new ShareLinkResponse(token, request.BillId, request.Month));
-    }
-
-    /// <summary>Turns a share link off: it stops working at once.</summary>
-    [HttpDelete("shares/{token}")]
-    public async Task<IActionResult> Unshare(long projectId, string token, CancellationToken cancellationToken)
-    {
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        var deleted = await db.ShareLinks
-            .Where(link => link.Token == token && link.ProjectId == projectId)
-            .ExecuteDeleteAsync(cancellationToken);
-        return deleted == 0 ? NotFound() : NoContent();
-    }
-
-    /// <summary>
-    /// What a share link shows, for anyone holding it: the bill as finalized, or the month's live report. Read only;
-    /// 404 once the link is turned off.
-    /// </summary>
-    [AllowAnonymous]
-    [HttpGet("/api/public/shared/{token}")]
-    public async Task<ActionResult<SharedBillingResponse>> Shared(string token, CancellationToken cancellationToken)
-    {
-        var link = await db.ShareLinks.AsNoTracking().Include(link => link.Project)
-            .SingleOrDefaultAsync(link => link.Token == token, cancellationToken);
-        if (link is null) return NotFound();
-        if (link.BillId is { } billId)
-        {
-            var bill = await db.Bills.AsNoTracking().SingleOrDefaultAsync(bill => bill.Id == billId, cancellationToken);
-            if (bill is null) return NotFound();
-            var report = JsonSerializer.Deserialize<BillingReport>(bill.ReportJson, JsonSerializerOptions.Web)!;
-            return Ok(new SharedBillingResponse(ToSummary(bill), report));
-        }
-        if (!TryParseMonth(link.Month!, out var parsed)) return NotFound();
-        return Ok(new SharedBillingResponse(null, await BuildReport(link.Project, link.Month!, parsed, cancellationToken)));
-    }
-
-    private static string Base64Url(byte[] bytes) =>
-        Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-
-    /// <summary>A bill with its report as it was when finalized.</summary>
-    [HttpGet("bills/{billId:long}")]
-    public async Task<ActionResult<BillDetail>> GetBill(long projectId, long billId, CancellationToken cancellationToken)
-    {
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        var bill = await db.Bills.AsNoTracking()
-            .SingleOrDefaultAsync(bill => bill.Id == billId && bill.ProjectId == projectId, cancellationToken);
-        if (bill is null) return NotFound();
-        var report = JsonSerializer.Deserialize<BillingReport>(bill.ReportJson, JsonSerializerOptions.Web)!;
-        return Ok(new BillDetail(ToSummary(bill), report));
-    }
-
-    [HttpPut("bills/{billId:long}/status")]
-    public async Task<ActionResult<BillSummary>> SetBillStatus(
-        long projectId, long billId, SetBillStatusRequest request, CancellationToken cancellationToken)
-    {
-        if (!BillStatuses.Contains(request.Status))
-            return BadRequest(new { error = "The status must be due, paid, partiallyPaid, unpaid or canceled." });
-        if (await GetOwnedProject(projectId, cancellationToken) is null) return NotFound();
-        var bill = await db.Bills.SingleOrDefaultAsync(bill => bill.Id == billId && bill.ProjectId == projectId, cancellationToken);
-        if (bill is null) return NotFound();
-        if (request.Status == "partiallyPaid" && (request.AmountPaid is not { } paid || paid <= 0 || paid >= bill.Amount))
-            return BadRequest(new { error = "A partial payment must be more than 0 and less than the bill amount." });
-
-        bill.Status = request.Status;
-        bill.AmountPaid = request.Status switch
-        {
-            "partiallyPaid" => request.AmountPaid!.Value,
-            "paid" => bill.Amount,
-            _ => 0,
-        };
-        await db.SaveChangesAsync(cancellationToken);
-        return Ok(ToSummary(bill));
-    }
-
-    private static bool TryParseMonth(string month, out DateTime parsed) =>
-        DateTime.TryParseExact(month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed);
-
-    private static BillSummary ToSummary(Bill bill) =>
-        new(bill.Id, bill.Month, bill.CreatedAt, bill.Status, bill.Amount, bill.AmountPaid, bill.Overdue);
-
-    /// <summary>The project's billing time zone; UTC when none is set or it is not known on this server.</summary>
-    private static TimeZoneInfo BillingZone(Project project) =>
-        project.BillingTimeZone != "" && TimeZoneInfo.TryFindSystemTimeZoneById(project.BillingTimeZone, out var zone)
-            ? zone
-            : TimeZoneInfo.Utc;
-
-    /// <summary>
-    /// The moment the given day starts in the zone: local midnight, or the first moment after it on the rare days
-    /// clocks jump forward at midnight, when midnight itself never happens.
-    /// </summary>
-    private static DateTimeOffset MidnightIn(TimeZoneInfo zone, DateTime day)
-    {
-        var local = DateTime.SpecifyKind(day.Date, DateTimeKind.Unspecified);
-        while (zone.IsInvalidTime(local)) local = local.AddMinutes(30);
-        return new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(local, zone), TimeSpan.Zero);
-    }
-
-    private async Task<BillingReport> BuildReport(Project project, string month, DateTime parsed, CancellationToken cancellationToken)
-    {
-        var projectId = project.Id;
-        // Days and months start at midnight in the project's billing time zone, as the people working there count them.
-        var zone = BillingZone(project);
-        var start = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1));
-        var nextMonth = MidnightIn(zone, new DateTime(parsed.Year, parsed.Month, 1).AddMonths(1));
-        var now = DateTimeOffset.UtcNow;
-
-        // Filtered in memory: SQLite cannot compare DateTimeOffset values in queries.
-        var sessions = await db.WorkSessions.AsNoTracking()
-            .Where(session => session.ProjectId == projectId)
-            .Select(session => new { session.UserId, session.StartedAt, session.EndedAt })
-            .ToListAsync(cancellationToken);
-
-        // Hours per member per day for all work up to the end of the month, splitting sessions that cross midnight.
-        var hours = new Dictionary<(string UserId, DateOnly Day), decimal>();
-        foreach (var session in sessions)
-        {
-            var from = session.StartedAt;
-            // Finished sessions count in full, even ones entered ahead of time; running ones up to now. Nothing counts
-            // past the end of the month.
-            var sessionEnd = session.EndedAt ?? now;
-            var to = sessionEnd < nextMonth ? sessionEnd : nextMonth;
-            while (from < to)
-            {
-                var localDay = TimeZoneInfo.ConvertTime(from, zone).Date;
-                var dayEnd = MidnightIn(zone, localDay.AddDays(1));
-                var end = dayEnd < to ? dayEnd : to;
-                var key = (session.UserId, DateOnly.FromDateTime(localDay));
-                hours[key] = hours.GetValueOrDefault(key) + (decimal)(end - from).TotalHours;
-                from = end;
-            }
-        }
-
-        var userIds = hours.Keys.Select(key => key.UserId).Distinct().ToList();
-        var people = await db.Users.AsNoTracking()
-            .Where(user => userIds.Contains(user.Id))
-            .Select(user => new { user.Id, Name = user.DisplayName != "" ? user.DisplayName : user.UserName ?? "" })
-            .ToDictionaryAsync(user => user.Id, user => user.Name, cancellationToken);
-        // People removed from the project since keep their hours, billed at 1/1.
-        var fractions = await db.ProjectMembers.AsNoTracking()
-            .Where(member => member.ProjectId == projectId)
-            .ToDictionaryAsync(member => member.UserId, member => member.BillableFraction, cancellationToken);
-
-        // What earlier bills already billed per member-day (canceled bills free their hours again).
-        var billed = new Dictionary<(string UserId, DateOnly Day), (decimal Hours, decimal Billable)>();
-        var earlierBills = await db.Bills.AsNoTracking()
-            .Where(bill => bill.ProjectId == projectId && bill.Status != "canceled")
-            .Select(bill => bill.ReportJson)
-            .ToListAsync(cancellationToken);
-        foreach (var json in earlierBills)
-        {
-            foreach (var day in JsonSerializer.Deserialize<BillingReport>(json, JsonSerializerOptions.Web)!.Days)
-            {
-                var key = (day.UserId, day.Date);
-                var (billedHours, billedBillable) = billed.GetValueOrDefault(key);
-                billed[key] = (billedHours + day.HoursWorked, billedBillable + day.BillableHours);
-            }
-        }
-
-        // Daily limits apply to the day's full total; what was billed before is then subtracted,
-        // so a day never gets the minimum twice nor more than the maximum in total.
-        var monthStart = new DateOnly(parsed.Year, parsed.Month, 1);
-        var days = hours
-            .Select(entry =>
-            {
-                var fraction = fractions.GetValueOrDefault(entry.Key.UserId, "1/1");
-                var clamped = Math.Max(entry.Value, project.BillingMinHoursPerDay);
-                if (IsCapped(project.BillingMaxHoursPerDay)) clamped = Math.Min(clamped, project.BillingMaxHoursPerDay);
-                var (billedHours, billedBillable) = billed.GetValueOrDefault(entry.Key);
-                return new BillingDay(
-                    entry.Key.Day, entry.Key.UserId, people.GetValueOrDefault(entry.Key.UserId, "Former member"), fraction,
-                    Math.Round(entry.Value - billedHours, 2),
-                    Math.Max(0, Math.Round(clamped * Fractions[fraction] - billedBillable, 2)),
-                    entry.Key.Day < monthStart);
-            })
-            // Keep days with anything to bill: a few seconds of work still bills the daily minimum. Days with nothing
-            // billable and under 0.01 h (36 s) left are rounding leftovers from earlier bills.
-            .Where(day => day.BillableHours > 0 || day.HoursWorked >= 0.01m)
-            .OrderBy(day => day.Date).ThenBy(day => day.Name)
-            .ToList();
-
-        var members = days
-            .GroupBy(day => day.UserId)
-            .Select(group =>
-            {
-                var billable = group.Sum(day => day.BillableHours);
-                return new BillingMemberTotal(
-                    group.First().Name, group.First().Fraction, group.Count(), group.Sum(day => day.HoursWorked),
-                    billable, Math.Round(billable * project.BillingCostPerHour, 2));
-            })
-            .OrderBy(member => member.Name)
-            .ToList();
-
-        // Earlier bills still owed, by month; stored with the bill when it is finalized.
-        var overdue = (await db.Bills.AsNoTracking()
-                .Where(bill => bill.ProjectId == projectId && bill.Month != month
-                    && (bill.Status == "unpaid" || bill.Status == "partiallyPaid"))
-                .ToListAsync(cancellationToken))
-            .Where(bill => string.CompareOrdinal(bill.Month, month) < 0)
-            .OrderBy(bill => bill.Month)
-            .Select(bill => new OverdueBill(bill.Id, bill.Month, bill.Overdue))
-            .ToList();
-
-        var amount = members.Sum(member => member.Amount);
-        // VAT is added to this month's work only: overdue bills already include their own.
-        var vat = Math.Round(amount * project.BillingVatRate / 100, 2);
-        var overdueTotal = overdue.Sum(bill => bill.Amount);
-        var carriedOverBillable = days.Where(day => day.CarriedOver).Sum(day => day.BillableHours);
-        return new BillingReport(
-            project.Name, month, ToSettings(project), members, days,
-            members.Sum(member => member.HoursWorked), members.Sum(member => member.BillableHours), amount,
-            overdue, overdueTotal, amount + vat + overdueTotal,
-            carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2), vat, amount + vat,
-            project.Icon, project.IconImage);
+        return Ok(await reports.Build(project, month, cancellationToken));
     }
 
     private Task<Project?> GetOwnedProject(long projectId, CancellationToken cancellationToken)
@@ -384,23 +86,6 @@ public sealed class BillingController(AppDbContext db) : ControllerBase
                 && project.Members.Any(member => member.UserId == userId && member.Role == "Owner"),
             cancellationToken);
     }
-
-    private static BillingSettings ToSettings(Project project) => new()
-    {
-        Enabled = project.BillingEnabled,
-        ClientName = project.BillingClientName,
-        ContractorName = project.BillingContractorName,
-        CostPerHour = project.BillingCostPerHour,
-        MinHoursPerDay = project.BillingMinHoursPerDay,
-        MaxHoursPerDay = project.BillingMaxHoursPerDay,
-        TimeZone = project.BillingTimeZone,
-        Currency = project.BillingCurrency,
-        VatRate = project.BillingVatRate,
-        ContractorAddress = project.BillingContractorAddress,
-        OrgNumber = project.BillingOrgNumber,
-        PaymentDetails = project.BillingPaymentDetails,
-        PaymentTermsDays = project.BillingPaymentTermsDays,
-    };
 }
 
 /// <summary>A project's billing settings.</summary>
@@ -433,7 +118,7 @@ public sealed record BillingSettings
     [RegularExpression("^[A-Za-z]{3}$", ErrorMessage = "The currency must be a three-letter code such as USD or NOK.")]
     public string Currency { get; init; } = "USD";
 
-    /// <summary>VAT added on top of each bill, in percent; 0 adds none.</summary>
+    /// <summary>VAT added on top of each invoice, in percent; 0 adds none.</summary>
     [Range(0, 100)]
     public decimal VatRate { get; init; }
 
@@ -447,7 +132,7 @@ public sealed record BillingSettings
     [StringLength(500)]
     public string PaymentDetails { get; init; } = string.Empty;
 
-    /// <summary>Days after a bill is issued that it is due.</summary>
+    /// <summary>Days after an invoice is issued that it is due.</summary>
     [Range(0, 365)]
     public int PaymentTermsDays { get; init; } = 14;
 }
@@ -463,7 +148,8 @@ public sealed record BillingDay(
 public sealed record BillingMemberTotal(
     string Name, string Fraction, int DaysWorked, decimal HoursWorked, decimal BillableHours, decimal Amount);
 
-/// <summary>An earlier bill still owed (unpaid, or the rest of a partial payment).</summary>
+/// <summary>An earlier invoice still owed (unpaid, or the rest of a partial payment).</summary>
+/// <param name="BillId">The invoice's number (named from when invoices were bills, as stored in finalized invoices).</param>
 public sealed record OverdueBill(long BillId, string Month, decimal Amount);
 
 /// <param name="Amount">This month's work, before VAT.</param>
@@ -478,22 +164,3 @@ public sealed record BillingReport(
     IReadOnlyList<OverdueBill> Overdue, decimal OverdueTotal, decimal TotalWithOverdue,
     decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0, decimal Vat = 0, decimal? AmountWithVat = null,
     string? ProjectIcon = null, string? ProjectIconImage = null);
-
-public sealed record FinalizeBillRequest(string Month);
-
-/// <param name="Overdue">What is still owed on this bill (unpaid or partially paid), otherwise 0.</param>
-public sealed record BillSummary(
-    long Id, string Month, DateTimeOffset CreatedAt, string Status, decimal Amount, decimal AmountPaid, decimal Overdue);
-
-public sealed record BillDetail(BillSummary Bill, BillingReport Report);
-
-/// <summary>A share link: to a bill, or to a month's live report.</summary>
-public sealed record ShareLinkResponse(string Token, long? BillId, string? Month);
-
-/// <summary>Share a bill (BillId) or a month's live report (Month, "yyyy-MM"); exactly one of them.</summary>
-public sealed record CreateShareRequest(long? BillId, string? Month);
-
-/// <summary>What a share link shows: a bill (with its summary) or a live report (Bill is null).</summary>
-public sealed record SharedBillingResponse(BillSummary? Bill, BillingReport Report);
-
-public sealed record SetBillStatusRequest(string Status, decimal? AmountPaid);

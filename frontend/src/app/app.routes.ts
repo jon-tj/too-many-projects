@@ -19,15 +19,17 @@ import { ProjectSettings } from '../pages/project/settings/project-settings';
 import { TaskDetail } from '../pages/project/task/task-detail';
 import { SettingsPage } from '../pages/settings/settings-page';
 import { PlansPage } from '../pages/plans/plans-page';
-import { BillingReportPage } from '../pages/report/billing-report';
+import { DocumentPage } from '../pages/documents/document-page';
+import { DocumentList } from '../pages/documents/document-list';
 import { AdminPage } from '../pages/admin/admin-page';
 import { CliPage } from '../pages/cli/cli-page';
 
 export const routes: Routes = [
-	{ path: 'report/:projectId/:month', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
-	{ path: 'bill/:projectId/:billId', component: BillingReportPage, canActivate: [authGuard, passwordChangeGuard] },
-	// A bill or report shared by secret link: anyone with the link, no account needed.
-	{ path: 'shared/:token', component: BillingReportPage },
+	// A document on its own page, outside the workspace layout, so it prints as just the document.
+	{ path: 'projects/:projectId/documents/:documentId', component: DocumentPage, canActivate: [authGuard, passwordChangeGuard] },
+	// A document shared by secret link: anyone with the link, no account needed. /shared/ links were made for bills.
+	{ path: 'd/:token', component: DocumentPage },
+	{ path: 'shared/:token', component: DocumentPage },
 	// Signed-in visitors skip the landing page and go straight to the dashboard.
 	{ path: '', pathMatch: 'full', component: LandingPage, canActivate: [landingGuard] },
 	// How to install and use the command-line tool; public, like the tool itself.
@@ -55,6 +57,7 @@ export const routes: Routes = [
 					{ path: 'canvas/:canvasId', component: ProjectCanvas },
 					{ path: 'canvas/:canvasId/settings', component: CanvasSettings },
 					{ path: 'members', component: ProjectMembers },
+					{ path: 'documents', component: DocumentList },
 					{ path: 'settings', component: ProjectSettings },
 					{ path: 'tasks/:taskId', component: TaskDetail },
 				],

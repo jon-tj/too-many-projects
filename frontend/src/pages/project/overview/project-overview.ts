@@ -12,15 +12,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProjectPage } from '../project-page';
 import { ProjectHours } from './project-hours/project-hours';
 import { WorkReflection } from '../../../components/work-reflection/work-reflection';
 import {
-  BILL_STATUSES,
-  BillStatus,
-  BillSummary,
   WorkReflectionValues,
   OverviewPoint,
   OverviewRange,
@@ -53,7 +50,7 @@ const COMPACT_WIDTH = 520;
 
 @Component({
   selector: 'app-project-overview',
-  imports: [DatePipe, DecimalPipe, MoneyPipe, ProjectHours, WorkReflection],
+  imports: [DatePipe, DecimalPipe, MoneyPipe, ProjectHours, RouterLink, WorkReflection],
   templateUrl: './project-overview.html',
   styleUrl: './project-overview.css',
 })
@@ -160,46 +157,29 @@ export class ProjectOverview implements OnDestroy {
     this.resize.disconnect();
   }
 
-  protected readonly billStatuses = BILL_STATUSES;
-  protected readonly bills = rxResource({
-    params: () => {
-      const project = this.project.value();
-      return project?.billingEnabled && project.myRole === 'Owner' ? project.id : undefined;
-    },
-    stream: ({ params }) => this.api.bills(params),
-    defaultValue: [],
-  });
-  protected readonly billError = signal('');
+  protected readonly invoiceError = signal('');
 
-  /** Opens the live report preview in a new tab; it can be finalized as a bill there. */
-  protected openReport(month: string): void {
-    this.openTab(['/report', this.projectId(), month]);
-  }
-
-  protected openBill(bill: BillSummary): void {
-    this.openTab(['/bill', this.projectId(), bill.id]);
-  }
-
-  /** Partially paid asks for the amount received; overdue amounts on the previews update afterwards. */
-  protected setBillStatus(bill: BillSummary, status: BillStatus, select: HTMLSelectElement): void {
-    let amountPaid: number | undefined;
-    if (status === 'partiallyPaid') {
-      const answer = prompt(`How much of ${bill.amount.toFixed(2)} was paid?`, bill.amountPaid ? String(bill.amountPaid) : '');
-      amountPaid = answer ? Number(answer.replace(',', '.')) : NaN;
-      if (!Number.isFinite(amountPaid)) {
-        select.value = bill.status;
-        return;
-      }
-    }
-    this.api.setBillStatus(this.projectId(), bill.id, status, amountPaid).subscribe({
-      next: () => {
-        this.billError.set('');
-        this.bills.reload();
-        this.billing.reload();
-      },
+  /**
+   * Opens the month's invoice in a new tab: its draft, made now if there is none, or the finalized invoice when the
+   * month is invoiced already.
+   */
+  protected openInvoice(month: string): void {
+    // Opened before the request, so the browser treats it as opened by the click and does not block it.
+    const tab = window.open('', '_blank');
+    const open = (documentId: number) => {
+      const url = this.router.serializeUrl(this.router.createUrlTree(['/projects', this.projectId(), 'documents', documentId]));
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+    };
+    this.api.createDocument(this.projectId(), { type: 'invoice', month }).subscribe({
+      next: (document) => open(document.id),
       error: (error) => {
-        select.value = bill.status;
-        this.billError.set(error.error?.error ?? 'Could not change the bill status.');
+        if (error.status === 409 && error.error?.documentId) {
+          open(error.error.documentId);
+          return;
+        }
+        tab?.close();
+        this.invoiceError.set(error.error?.error ?? 'Could not open the invoice.');
       },
     });
   }

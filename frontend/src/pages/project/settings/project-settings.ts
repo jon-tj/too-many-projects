@@ -10,7 +10,7 @@ import { WorkspaceShell } from '../../../components/workspace-shell/workspace-sh
 import { ProjectPage } from '../project-page';
 import { BILLING_CURRENCIES } from '../../../services/models';
 import { findRevolutLink } from '../../../services/revolut';
-import { squareImageDataUrl } from '../../../services/square-image';
+import { fittedImageDataUrl, squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
 
 const PROJECT_ICONS = [
@@ -43,7 +43,6 @@ export class ProjectSettings {
   protected readonly billingForm = inject(FormBuilder).nonNullable.group({
     enabled: [false],
     clientName: ['', Validators.maxLength(200)],
-    contractorName: ['', Validators.maxLength(200)],
     costPerHour: [0, [Validators.required, Validators.min(0)]],
     minHoursPerDay: [0, [Validators.required, Validators.min(0), Validators.max(24)]],
     /** 0 or 24+ means no cap. */
@@ -51,11 +50,29 @@ export class ProjectSettings {
     timeZone: ['', Validators.maxLength(64)],
     currency: ['USD', Validators.required],
     vatRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
-    contractorAddress: ['', Validators.maxLength(500)],
-    orgNumber: ['', Validators.maxLength(64)],
     paymentDetails: ['', Validators.maxLength(500)],
     paymentTermsDays: [14, [Validators.required, Validators.min(0), Validators.max(365)]],
   });
+  /** Who documents are from, printed on each when it is finalized; owner-only, like billing. */
+  private readonly branding = rxResource({
+    params: () => (this.canBill() ? this.project.value()!.id : undefined),
+    stream: ({ params }) => this.api.branding(params),
+  });
+  protected readonly brandingForm = inject(FormBuilder).nonNullable.group({
+    senderName: ['', Validators.maxLength(200)],
+    senderAddress: ['', Validators.maxLength(500)],
+    orgNumber: ['', Validators.maxLength(64)],
+    /** "#rrggbb"; empty uses the default green. */
+    color: [''],
+    logo: [null as string | null],
+  });
+  protected readonly brandingValues = toSignal(
+    this.brandingForm.valueChanges.pipe(map(() => this.brandingForm.getRawValue())),
+    { initialValue: this.brandingForm.getRawValue() },
+  );
+  protected readonly brandingMessage = signal('');
+  /** The documents' accent when no colour is chosen. */
+  protected readonly defaultBrandColor = '#334931';
   /** The offered currencies, plus the project's own if it is not among them. */
   protected readonly currencies = computed(() => {
     const current = this.billing.value()?.currency;
@@ -101,6 +118,10 @@ export class ProjectSettings {
         this.billingForm.controls.timeZone.setValue(this.browserTimeZone);
         this.billingForm.controls.timeZone.markAsDirty();
       }
+    });
+    effect(() => {
+      const branding = this.branding.value();
+      if (branding) this.brandingForm.reset(branding);
     });
     effect(() => {
       const project = this.project.value();
@@ -150,6 +171,43 @@ export class ProjectSettings {
       },
       error: () => this.billingMessage.set('Could not save the billing settings. Please try again.'),
     });
+  }
+
+  protected saveBranding(): void {
+    const project = this.project.value();
+    if (!project || this.brandingForm.invalid) return;
+    const settings = this.brandingForm.getRawValue();
+    this.api.saveBranding(project.id, settings).subscribe({
+      next: () => {
+        this.brandingForm.reset(settings);
+        this.brandingMessage.set('Branding saved. Documents finalized from now on use it; finalized ones keep theirs.');
+      },
+      error: () => this.brandingMessage.set('Could not save the branding. Please try again.'),
+    });
+  }
+
+  protected setBrandColor(color: string): void {
+    this.brandingForm.patchValue({ color });
+    this.brandingForm.markAsDirty();
+  }
+
+  /** A logo keeps its shape: scaled to fit 480 × 160 pixels, which prints sharply at the size documents show it. */
+  protected async uploadLogo(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    try {
+      this.brandingForm.patchValue({ logo: await fittedImageDataUrl(file, 480, 160) });
+      this.brandingForm.markAsDirty();
+    } catch {
+      this.brandingMessage.set('That file could not be read as an image.');
+    }
+  }
+
+  protected removeLogo(): void {
+    this.brandingForm.patchValue({ logo: null });
+    this.brandingForm.markAsDirty();
   }
 
   protected deleteProject(): void {

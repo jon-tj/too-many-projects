@@ -14,7 +14,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 	public DbSet<CanvasPermission> CanvasPermissions => Set<CanvasPermission>();
 	public DbSet<CanvasImage> CanvasImages => Set<CanvasImage>();
 	public DbSet<WorkSession> WorkSessions => Set<WorkSession>();
-	public DbSet<Bill> Bills => Set<Bill>();
+	public DbSet<Document> Documents => Set<Document>();
+	public DbSet<Invoice> Invoices => Set<Invoice>();
+	public DbSet<ProgressReport> ProgressReports => Set<ProgressReport>();
 	public DbSet<PlanExemption> PlanExemptions => Set<PlanExemption>();
 	public DbSet<Review> Reviews => Set<Review>();
 	public DbSet<FeatureRequest> FeatureRequests => Set<FeatureRequest>();
@@ -84,7 +86,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 		builder.Entity<ApiToken>().Property(token => token.Prefix).HasMaxLength(16);
 		builder.Entity<ShareLink>().HasKey(link => link.Token);
 		builder.Entity<ShareLink>().Property(link => link.Token).HasMaxLength(32);
-		builder.Entity<ShareLink>().Property(link => link.Month).HasMaxLength(7);
+		builder.Entity<ShareLink>()
+			.HasOne(link => link.Document)
+			.WithMany()
+			.HasForeignKey(link => link.DocumentId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<ShareLink>().HasIndex(link => link.DocumentId).IsUnique();
+		// Every document type shares one table, told apart by Type.
+		builder.Entity<Document>()
+			.HasDiscriminator(document => document.Type)
+			.HasValue<Invoice>("invoice")
+			.HasValue<ProgressReport>("progressReport");
+		builder.Entity<Document>().Property(document => document.Type).HasMaxLength(32);
+		builder.Entity<Document>().Property(document => document.Title).HasMaxLength(200);
+		builder.Entity<Document>().Property(document => document.Status).HasMaxLength(16);
+		builder.Entity<Document>()
+			.HasOne(document => document.Project)
+			.WithMany()
+			.HasForeignKey(document => document.ProjectId)
+			.OnDelete(DeleteBehavior.Cascade);
+		builder.Entity<Document>().HasIndex(document => document.ProjectId);
+		builder.Entity<Invoice>().Property(invoice => invoice.Month).HasMaxLength(7);
+		builder.Entity<Invoice>().Property(invoice => invoice.PaymentStatus).HasMaxLength(16);
+		builder.Entity<Project>().Property(project => project.BrandColor).HasMaxLength(7);
 		builder.Entity<ShareLink>()
 			.HasOne(link => link.Project)
 			.WithMany()

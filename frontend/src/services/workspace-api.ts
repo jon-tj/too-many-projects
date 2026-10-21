@@ -17,12 +17,12 @@ import {
   CanvasSummary,
   Project,
   BillableFraction,
-  BillDetail,
-  SharedBilling,
-  ShareLink,
-  BillStatus,
-  BillSummary,
   BillingReport,
+  BrandingSettings,
+  DocumentDetail,
+  DocumentSummary,
+  DocumentType,
+  PaymentStatus,
   BillingSettings,
   ProjectMember,
   ProjectOverview,
@@ -179,41 +179,60 @@ export class WorkspaceApi {
     return this.http.get<BillingReport>(`/api/projects/${projectId}/billing/report`, { params: { month } });
   }
 
-  /** Saves the month's report as a bill with status "due". */
-  finalizeBill(projectId: number, month: string): Observable<BillSummary> {
-    return this.http.post<BillSummary>(`/api/projects/${projectId}/billing/bills`, { month });
+  documents(projectId: number): Observable<DocumentSummary[]> {
+    return this.http.get<DocumentSummary[]>(`/api/projects/${projectId}/documents`);
   }
 
-  bills(projectId: number): Observable<BillSummary[]> {
-    return this.http.get<BillSummary[]>(`/api/projects/${projectId}/billing/bills`);
+  /** Starts a draft; for a month that already has an invoice draft, returns that draft. */
+  createDocument(projectId: number, request: { type: DocumentType; month?: string }): Observable<DocumentSummary> {
+    return this.http.post<DocumentSummary>(`/api/projects/${projectId}/documents`, request);
   }
 
-  bill(projectId: number, billId: number): Observable<BillDetail> {
-    return this.http.get<BillDetail>(`/api/projects/${projectId}/billing/bills/${billId}`);
+  document(projectId: number, documentId: number): Observable<DocumentDetail> {
+    return this.http.get<DocumentDetail>(`/api/projects/${projectId}/documents/${documentId}`);
   }
 
-  shareLinks(projectId: number): Observable<ShareLink[]> {
-    return this.http.get<ShareLink[]>(`/api/projects/${projectId}/billing/shares`);
+  /** Drafts only: finalized documents are kept. */
+  deleteDocument(projectId: number, documentId: number): Observable<void> {
+    return this.http.delete<void>(`/api/projects/${projectId}/documents/${documentId}`);
   }
 
-  /** Shares a bill or a month's live report by secret link; returns the existing link when already shared. */
-  share(projectId: number, target: { billId: number } | { month: string }): Observable<ShareLink> {
-    return this.http.post<ShareLink>(`/api/projects/${projectId}/billing/shares`, target);
+  /** Freezes a draft as it is now, so it can be shared. */
+  finalizeDocument(projectId: number, documentId: number): Observable<DocumentSummary> {
+    return this.http.post<DocumentSummary>(`/api/projects/${projectId}/documents/${documentId}/finalize`, {});
   }
 
-  /** Turns a share link off; it stops working at once. */
-  unshare(projectId: number, token: string): Observable<void> {
-    return this.http.delete<void>(`/api/projects/${projectId}/billing/shares/${token}`);
+  /** Opens a draft revising a finalized document (or the existing one); not for invoices. */
+  reviseDocument(projectId: number, documentId: number): Observable<DocumentSummary> {
+    return this.http.post<DocumentSummary>(`/api/projects/${projectId}/documents/${documentId}/revise`, {});
+  }
+
+  /** amountPaid is only used for partially paid invoices. */
+  setPayment(projectId: number, documentId: number, status: PaymentStatus, amountPaid?: number): Observable<DocumentSummary> {
+    return this.http.put<DocumentSummary>(`/api/projects/${projectId}/documents/${documentId}/payment`, { status, amountPaid });
+  }
+
+  /** Shares a finalized document by secret link; returns the existing link when already shared. */
+  shareDocument(projectId: number, documentId: number): Observable<{ token: string }> {
+    return this.http.post<{ token: string }>(`/api/projects/${projectId}/documents/${documentId}/share`, {});
+  }
+
+  /** Turns the document's link off; it stops working at once. */
+  unshareDocument(projectId: number, documentId: number): Observable<void> {
+    return this.http.delete<void>(`/api/projects/${projectId}/documents/${documentId}/share`);
   }
 
   /** What a share link shows; needs no sign-in. */
-  sharedBilling(token: string): Observable<SharedBilling> {
-    return this.http.get<SharedBilling>(`/api/public/shared/${token}`);
+  sharedDocument(token: string): Observable<DocumentDetail> {
+    return this.http.get<DocumentDetail>(`/api/public/documents/${token}`);
   }
 
-  /** amountPaid is only used for partially paid bills. */
-  setBillStatus(projectId: number, billId: number, status: BillStatus, amountPaid?: number): Observable<BillSummary> {
-    return this.http.put<BillSummary>(`/api/projects/${projectId}/billing/bills/${billId}/status`, { status, amountPaid });
+  branding(projectId: number): Observable<BrandingSettings> {
+    return this.http.get<BrandingSettings>(`/api/projects/${projectId}/branding`);
+  }
+
+  saveBranding(projectId: number, settings: BrandingSettings): Observable<void> {
+    return this.http.put<void>(`/api/projects/${projectId}/branding`, settings);
   }
 
   deleteProject(id: number): Observable<void> {

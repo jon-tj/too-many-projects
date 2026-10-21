@@ -1,0 +1,82 @@
+@if (project.value(); as current) {
+  @if (!isOwner()) {
+    <p>Only the project's owners see its documents.</p>
+  } @else {
+    <section class="new">
+      <h2>New document</h2>
+      <form (submit)="$event.preventDefault(); create()">
+        <label>
+          Type
+          <select [value]="newType()" (change)="newType.set($any($event.target).value)">
+            @for (type of types; track type.value) {
+              <option [value]="type.value">{{ type.label }}</option>
+            }
+          </select>
+        </label>
+        @if (newType() === 'invoice') {
+          <label>
+            Month
+            <input type="month" required [value]="newMonth()" (input)="newMonth.set($any($event.target).value)" />
+          </label>
+        }
+        <button class="primary" type="submit" [disabled]="busy() || (newType() === 'invoice' && (!current.billingEnabled || !newMonth()))">
+          Start draft
+        </button>
+      </form>
+      @if (newType() === 'invoice' && !current.billingEnabled) {
+        <p class="hint">Invoices need billing: turn it on in the project's <a [routerLink]="['/projects', current.id, 'settings']">settings</a>.</p>
+      }
+      @if (message()) {
+        <p class="error" role="alert">{{ message() }}</p>
+      }
+    </section>
+
+    <section>
+      <h2>Documents</h2>
+      @if (documents.error()) {
+        <p role="alert">The documents could not be loaded.</p>
+      }
+      <ul class="documents">
+        @for (document of documents.value(); track document.id) {
+          <li>
+            <a [routerLink]="['/projects', current.id, 'documents', document.id]">
+              <app-icon [name]="typeIcon(document.type)" />
+              <span class="name">
+                <strong>{{ document.title }}</strong>
+                <small>
+                  {{ typeLabel(document.type) }}
+                  @if (document.invoice?.number; as number) {
+                    no. {{ number }}
+                  }
+                  · {{ document.status === 'draft' ? 'started ' + (document.createdAt | date: 'mediumDate') : 'finalized ' + (document.finalizedAt | date: 'mediumDate') }}
+                  @if (document.revisedById) {
+                    · revised
+                  }
+                </small>
+              </span>
+              @if (document.invoice; as invoice) {
+                @if (document.status === 'final') {
+                  <span class="amount">{{ invoice.amount | money: currency() }}</span>
+                }
+              }
+              <span class="badges">
+                @if (document.status === 'draft') {
+                  <span class="badge draft">Draft</span>
+                } @else {
+                  @if (document.invoice) {
+                    <span class="badge" [attr.data-payment]="document.invoice.paymentStatus">{{ paymentLabel(document) }}</span>
+                  }
+                  @if (document.shareToken) {
+                    <span class="badge" title="Shared with the client by link"><app-icon name="link" [size]="14" /> Shared</span>
+                  }
+                }
+              </span>
+            </a>
+          </li>
+        } @empty {
+          <li class="empty">{{ documents.isLoading() ? 'Loading…' : 'No documents yet. Start one above.' }}</li>
+        }
+      </ul>
+    </section>
+  }
+}

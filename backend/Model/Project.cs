@@ -19,7 +19,7 @@ public sealed class Project
     public bool Frozen { get; set; }
     public bool BillingEnabled { get; set; }
     public string BillingClientName { get; set; } = string.Empty;
-    /// <summary>Who does the work for the client, shown on reports and bills.</summary>
+    /// <summary>Who does the work for the client: the sender on every document.</summary>
     public string BillingContractorName { get; set; } = string.Empty;
     /// <summary>
     /// The IANA time zone (e.g. Europe/Oslo) whose midnights start each billed day and month; empty counts in UTC.
@@ -29,9 +29,9 @@ public sealed class Project
     public string BillingCurrency { get; set; } = "USD";
     /// <summary>VAT added on top of each bill, in percent (e.g. 25); 0 adds none.</summary>
     public decimal BillingVatRate { get; set; }
-    /// <summary>The contractor's postal address, one line per line, shown under their name on bills.</summary>
+    /// <summary>The contractor's postal address, one line per line, shown under their name on documents.</summary>
     public string BillingContractorAddress { get; set; } = string.Empty;
-    /// <summary>The contractor's organisation or VAT number, shown on bills.</summary>
+    /// <summary>The contractor's organisation or VAT number, shown on documents.</summary>
     public string BillingOrgNumber { get; set; } = string.Empty;
     /// <summary>How to pay (bank account, IBAN, reference), shown on bills.</summary>
     public string BillingPaymentDetails { get; set; } = string.Empty;
@@ -42,6 +42,10 @@ public sealed class Project
     public decimal BillingMinHoursPerDay { get; set; }
     /// <summary>Days bill at most this many hours per member.</summary>
     public decimal BillingMaxHoursPerDay { get; set; } = 8;
+    /// <summary>The accent colour on documents, "#rrggbb"; empty uses the default.</summary>
+    public string BrandColor { get; set; } = string.Empty;
+    /// <summary>The contractor's logo on documents, as a data URL; null shows the project's icon instead.</summary>
+    public string? BrandLogo { get; set; }
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     public ICollection<ProjectTask> Tasks { get; set; } = new List<ProjectTask>();
     public ICollection<Canvas> Canvases { get; set; } = new List<Canvas>();

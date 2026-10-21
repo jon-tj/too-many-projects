@@ -1,0 +1,310 @@
+@if (loaded.isLoading() && !loaded.value()) {
+  <p class="state">Loading…</p>
+} @else if (loaded.error()) {
+  <p class="state" role="alert">
+    @if (isShared()) {
+      This link does not work any more. Ask whoever sent it for a new one.
+    } @else {
+      This document could not be loaded. Only the project's owners can see its documents.
+    }
+  </p>
+} @else if (summary(); as d) {
+  @let b = branding()!;
+
+  <!-- On screen only: what the owner can do with the document. -->
+  @if (!isShared()) {
+    <div class="toolbar">
+      <span class="where">
+        <button class="transparent" type="button" (click)="backToList()"><span>← Documents</span></button>
+        @if (isDraft()) {
+          <span class="badge draft">Draft</span> Only you see drafts. It shows what finalizing would store now.
+        } @else {
+          <span class="badge">Finalized {{ d.finalizedAt | date: 'mediumDate' }}</span>
+        }
+      </span>
+      <div class="actions">
+        @if (isDraft()) {
+          <button class="transparent" type="button" [disabled]="busy()" (click)="deleteDraft()"><span>Delete draft</span></button>
+          <button class="primary" type="button" [disabled]="busy() || !!contentError()" (click)="finalize()"><span>Finalize</span></button>
+        } @else {
+          @if (invoice(); as inv) {
+            <label class="payment">
+              Payment
+              <select #paymentSelect aria-label="Payment status" (change)="setPayment($any(paymentSelect.value), paymentSelect)">
+                @for (status of paymentStatuses; track status.value) {
+                  <option [value]="status.value" [selected]="status.value === inv.paymentStatus">{{ status.label }}</option>
+                }
+              </select>
+            </label>
+          } @else if (d.revisedById === null) {
+            <button class="transparent" type="button" [disabled]="busy()" (click)="revise()"><span>Revise</span></button>
+          }
+        }
+        <button class="transparent" type="button" (click)="print()"><span>Print or save as PDF</span></button>
+      </div>
+    </div>
+    @if (!isDraft()) {
+      <!-- Only finalized documents are shared: what the client sees never changes. -->
+      <div class="share">
+        @if (d.shareToken) {
+          <span>Shared by link: anyone with it can view this document.</span>
+          <input readonly aria-label="Share link" [value]="shareUrl()" (focus)="$any($event.target).select()" />
+          <button class="transparent" type="button" (click)="copyShareUrl()"><span>{{ copied() ? 'Copied' : 'Copy link' }}</span></button>
+          <button class="transparent" type="button" (click)="unshare()"><span>Turn off link</span></button>
+        } @else {
+          <span>Send your client a link to this document; they need no account.</span>
+          <button class="transparent" type="button" [disabled]="busy()" (click)="share()"><span>Share with client</span></button>
+        }
+      </div>
+    }
+  }
+  @if (message()) {
+    <p class="state" role="alert">{{ message() }}</p>
+  }
+  @if (contentError(); as error) {
+    <p class="state" role="alert">{{ error }}</p>
+  }
+
+  <!-- The sender's colour, if set, replaces the default accent throughout the sheet. -->
+  <article class="sheet" [class.is-draft]="isDraft()" [style.--accent]="b.color || null">
+    <header class="masthead">
+      <!-- The sender's logo, or the project's icon; who it is from follows below, next to who it is for. -->
+      <div class="brand">
+        @if (b.logo) {
+          <img class="logo" [src]="b.logo" alt="" />
+        } @else {
+          <app-project-icon class="project-logo" [project]="{ icon: b.projectIcon, iconImage: b.projectIconImage }" />
+        }
+        <strong>{{ b.projectName }}</strong>
+      </div>
+      <div class="title">
+        <h1>{{ d.type === 'invoice' ? 'Invoice' : d.title }}</h1>
+        @if (isDraft()) {
+          <p class="draft-mark">Draft</p>
+        }
+        <dl>
+          @if (invoice(); as inv) {
+            @if (inv.number) {
+              <dt>Invoice no.</dt>
+              <dd>{{ inv.number }}</dd>
+            }
+            <dt>Period</dt>
+            <dd>{{ monthStart(inv.month) | date: 'MMMM y' : 'UTC' }}</dd>
+            <dt>Issued</dt>
+            <dd>{{ issuedAt() | date: 'mediumDate' }}</dd>
+            <dt>Due</dt>
+            <dd>{{ dueAt() | date: 'mediumDate' }}</dd>
+            @if (isShared() || !isDraft()) {
+              @if (inv.paymentStatus !== 'due') {
+                <dt>Status</dt>
+                <dd>{{ paymentLabel() }}</dd>
+              }
+            }
+          } @else {
+            <dt>{{ isDraft() ? 'Drafted' : 'Issued' }}</dt>
+            <dd>{{ issuedAt() | date: 'mediumDate' }}</dd>
+          }
+        </dl>
+      </div>
+    </header>
+
+    @if (report(); as r) {
+      @let cur = r.settings.currency || 'USD';
+      @let total = r.amountWithVat ?? r.amount + (r.vat ?? 0);
+      <section class="parties">
+        <div>
+          <h2>From</h2>
+          <strong>{{ b.senderName || '—' }}</strong>
+          @if (b.senderAddress) {
+            <span class="lines">{{ b.senderAddress }}</span>
+          }
+          @if (b.orgNumber) {
+            <span>Org. no. {{ b.orgNumber }}</span>
+          }
+        </div>
+        <div>
+          <h2>Invoice to</h2>
+          <strong>{{ r.settings.clientName || '—' }}</strong>
+        </div>
+      </section>
+
+      <table class="lines-table">
+        <thead>
+          <tr>
+            <th scope="col">Member</th>
+            @if (!plainHours()) {
+              <th scope="col">Share</th>
+            }
+            <th scope="col" class="number">Days</th>
+            <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+            @if (!plainHours()) {
+              <th scope="col" class="number">Billable hours</th>
+            }
+            <th scope="col" class="number">Rate</th>
+            <th scope="col" class="number">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (member of r.members; track member.name) {
+            <tr>
+              <td>{{ member.name }}</td>
+              @if (!plainHours()) {
+                <td>{{ member.fraction }}</td>
+              }
+              <td class="number">{{ member.daysWorked }}</td>
+              <td class="number">{{ member.hoursWorked | number: '1.2-2' }}</td>
+              @if (!plainHours()) {
+                <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
+              }
+              <td class="number">{{ r.settings.costPerHour | money: cur }}</td>
+              <td class="number">{{ member.amount | money: cur }}</td>
+            </tr>
+          } @empty {
+            <tr><td [attr.colspan]="plainHours() ? 5 : 7" class="empty">No work recorded this month.</td></tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <dl>
+          <dt>{{ plainHours() ? 'Hours' : 'Billable hours' }}</dt>
+          <dd>{{ r.billableHours | number: '1.2-2' }}</dd>
+          @if (r.vat) {
+            <dt>Subtotal (excl. VAT)</dt>
+            <dd>{{ r.amount | money: cur }}</dd>
+            <dt>VAT {{ r.settings.vatRate | number: '1.0-2' }}%</dt>
+            <dd>{{ r.vat | money: cur }}</dd>
+          }
+          <dt class="grand">Total</dt>
+          <dd class="grand">{{ total | money: cur }}</dd>
+          @if (r.overdue.length) {
+            <dt>Overdue from earlier invoices</dt>
+            <dd>{{ r.overdueTotal | money: cur }}</dd>
+          }
+        </dl>
+      </div>
+
+      <section class="due">
+        <div>
+          <span class="label">Amount due</span>
+          <strong>{{ r.totalWithOverdue | money: cur }}</strong>
+          <span>by {{ dueAt() | date: 'longDate' }}</span>
+        </div>
+        @if (r.settings.paymentDetails) {
+          <div class="pay">
+            <span class="label">Payment details</span>
+            <span class="lines">{{ r.settings.paymentDetails }}</span>
+            @if (invoice()?.number; as number) {
+              <span>Reference: invoice {{ number }}</span>
+            }
+          </div>
+        }
+        @if (revolut(); as link) {
+          <a class="revolut" [href]="link.url" target="_blank" rel="noopener">
+            @if (revolutQr(); as qr) {
+              <img [src]="qr" alt="QR code to pay with Revolut" />
+            }
+            <span>Scan to pay with Revolut<br /><strong>revolut.me/{{ link.handle }}</strong></span>
+          </a>
+        }
+      </section>
+
+      @if (r.overdue.length) {
+        <section class="appendix">
+          <h2>Overdue invoices</h2>
+          <table>
+            <tbody>
+              @for (bill of r.overdue; track bill.billId) {
+                <tr>
+                  <td>Invoice {{ bill.billId }} · {{ monthStart(bill.month) | date: 'MMMM y' : 'UTC' }}</td>
+                  <td class="number">{{ bill.amount | money: cur }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      @if (carriedOver(r.days); as earlier) {
+        @if (earlier.length) {
+          <!-- Every hour is billed once: work from earlier months that no earlier invoice covered is billed here. -->
+          <section class="appendix">
+            <h2>Worked earlier, not billed before</h2>
+            <p class="note">
+              This work was done before {{ monthStart(r.month) | date: 'MMMM' : 'UTC' }} but was not on an earlier invoice.
+              It is included above: {{ r.carriedOverBillableHours | number: '1.2-2' }}
+              {{ plainHours() ? 'hours' : 'billable hours' }}, {{ r.carriedOverAmount | money: cur }}.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Member</th>
+                  <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+                  @if (!plainHours()) {
+                    <th scope="col" class="number">Billable hours</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (day of earlier; track day.date + day.userId) {
+                  <tr>
+                    <td>{{ day.date | date: 'MMM d, y' }}</td>
+                    <td>{{ day.name }}</td>
+                    <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+                    @if (!plainHours()) {
+                      <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+        }
+      }
+
+      @if (thisMonth(r.days).length) {
+        <section class="appendix">
+          <h2>Time details</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Member</th>
+                <th scope="col" class="number">{{ plainHours() ? 'Hours' : 'Hours worked' }}</th>
+                @if (!plainHours()) {
+                  <th scope="col" class="number">Billable hours</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (day of thisMonth(r.days); track day.date + day.userId) {
+                <tr>
+                  <td>{{ day.date | date: 'EEE MMM d' }}</td>
+                  <td>{{ day.name }}</td>
+                  <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+                  @if (!plainHours()) {
+                    <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
+      <footer class="terms">
+        <span>{{ r.settings.costPerHour | money: cur }} per hour</span>
+        @if (hoursPerDay(r.settings); as limits) {
+          <span>Hours per day: {{ limits }}</span>
+        }
+        <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
+      </footer>
+    }
+
+    <!-- Clients see this on every document; tagged so sign-ups from it show under utm_source=bill. -->
+    <a class="made-with" [href]="madeWithUrl" target="_blank" rel="noopener">
+      Made with <strong>TooManyProjects</strong> · {{ host }}
+    </a>
+  </article>
+}

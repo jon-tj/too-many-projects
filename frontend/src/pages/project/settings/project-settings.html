@@ -75,18 +75,6 @@
           Client name
           <input formControlName="clientName" />
         </label>
-        <label>
-          Contractor
-          <input formControlName="contractorName" placeholder="Who does the work, e.g. your company or name" />
-        </label>
-        <label>
-          Contractor address
-          <textarea formControlName="contractorAddress" rows="3" placeholder="Street, postcode and city, country"></textarea>
-        </label>
-        <label>
-          Organisation or VAT number
-          <input formControlName="orgNumber" placeholder="Optional" />
-        </label>
         <div class="pair">
           <label>
             Currency
@@ -111,7 +99,7 @@
           @if (revolut(); as link) {
             <span class="detected">
               <app-icon name="qr_code_2" [size]="16" />
-              Revolut link for &#64;{{ link.handle }}: bills will show a QR code your client can scan to pay you.
+              Revolut link for &#64;{{ link.handle }}: invoices will show a QR code your client can scan to pay you.
             </span>
           }
         </label>
@@ -155,6 +143,59 @@
         <button class="primary" type="submit" [disabled]="billingForm.invalid || billingForm.pristine">
           Save billing
         </button>
+      </footer>
+    </form>
+  </section>
+
+  <section>
+    <h2>Document branding</h2>
+    <p class="hint">
+      Who invoices and other documents for the client are from. It is printed on each document when it is finalized,
+      so changing it here does not change documents already finalized.
+    </p>
+    <form [formGroup]="brandingForm" (ngSubmit)="saveBranding()">
+      <div class="logo-field">
+        <span class="logo-preview" [style.border-color]="brandingValues().color || defaultBrandColor">
+          @if (brandingValues().logo; as logo) {
+            <img [src]="logo" alt="Your logo" />
+          } @else {
+            <span>No logo: documents show the project's icon</span>
+          }
+        </span>
+        <label class="button transparent">
+          <span>{{ brandingValues().logo ? 'Change logo' : 'Upload logo' }}</span>
+          <input type="file" accept="image/*" (change)="uploadLogo($event)" />
+        </label>
+        @if (brandingValues().logo) {
+          <button class="transparent" type="button" (click)="removeLogo()"><span>Remove</span></button>
+        }
+      </div>
+      <label>
+        From
+        <input formControlName="senderName" placeholder="Your company or name" />
+      </label>
+      <label>
+        Address
+        <textarea formControlName="senderAddress" rows="3" placeholder="Street, postcode and city, country"></textarea>
+      </label>
+      <label>
+        Organisation or VAT number
+        <input formControlName="orgNumber" placeholder="Optional" />
+      </label>
+      <div class="color-field">
+        <label>
+          Accent colour
+          <input type="color" [value]="brandingValues().color || defaultBrandColor" (input)="setBrandColor($any($event.target).value)" />
+        </label>
+        @if (brandingValues().color) {
+          <button class="transparent" type="button" (click)="setBrandColor('')"><span>Use the default</span></button>
+        }
+      </div>
+      @if (brandingMessage()) {
+        <p role="status">{{ brandingMessage() }}</p>
+      }
+      <footer>
+        <button class="primary" type="submit" [disabled]="brandingForm.invalid || brandingForm.pristine">Save branding</button>
       </footer>
     </form>
   </section>
