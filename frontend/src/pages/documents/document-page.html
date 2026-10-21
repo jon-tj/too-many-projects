@@ -237,12 +237,12 @@
             }
           </div>
         }
-        @if (revolut(); as link) {
-          <a class="revolut" [href]="link.url" target="_blank" rel="noopener">
-            @if (revolutQr(); as qr) {
-              <img [src]="qr" alt="QR code to pay with Revolut" />
+        @for (link of paymentLinks(); track link.url; let first = $first) {
+          <a class="pay-link" [class.first]="first" [href]="link.url" target="_blank" rel="noopener">
+            @if (paymentQrs()[link.url]; as qr) {
+              <img [src]="qr" [alt]="'QR code to pay with ' + link.service" />
             }
-            <span>Scan to pay with Revolut<br /><strong>revolut.me/{{ link.handle }}</strong></span>
+            <span>Scan to pay with {{ link.service }}<br /><strong>{{ link.label }}</strong></span>
           </a>
         }
       </section>

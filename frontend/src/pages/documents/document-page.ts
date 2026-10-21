@@ -13,7 +13,7 @@ import {
 } from '../../services/models';
 import { MoneyPipe } from '../../services/money.pipe';
 import { ProjectIcon } from '../../components/project-icon/project-icon';
-import { findRevolutLink } from '../../services/revolut';
+import { PaymentLink, findPaymentLinks } from '../../services/payment-links';
 import { WorkspaceApi } from '../../services/workspace-api';
 
 const optionalNumber = (value: string | undefined) => (value ? Number(value) : null);
@@ -120,10 +120,12 @@ export class DocumentPage {
       report.days.every((day) => day.billableHours === day.hoursWorked)
     );
   });
-  /** A revolut.me link in the payment details, shown as a QR code the client can scan to pay. */
-  protected readonly revolut = computed(() => findRevolutLink(this.report()?.settings.paymentDetails));
-  /** The QR code as a PNG data URL; drawn by a library that is only loaded for invoices with a Revolut link. */
-  protected readonly revolutQr = signal<string | null>(null);
+  /** revolut.me and paypal.me links in the payment details, each shown as a QR code the client can scan to pay. */
+  protected readonly paymentLinks = computed(() => findPaymentLinks(this.report()?.settings.paymentDetails));
+  /**
+   * The QR codes as PNG data URLs, by link; drawn by a library that is only loaded for invoices with a payment link.
+   */
+  protected readonly paymentQrs = signal<Record<string, string>>({});
   /** The site's address, written out so the link still says where to go on paper. */
   protected readonly host = location.host;
   protected readonly madeWithUrl = `${location.origin}/?utm_source=bill&utm_medium=referral&utm_campaign=made-with`;
@@ -138,15 +140,21 @@ export class DocumentPage {
 
   constructor() {
     effect(() => {
-      const link = this.revolut();
-      this.revolutQr.set(null);
-      if (!link) return;
-      void import('qrcode')
+      const links = this.paymentLinks();
+      this.paymentQrs.set({});
+      if (!links.length) return;
+      void import('qrcode').then(({ default: qr }) =>
         // An old-style (CommonJS) package: its functions sit on the default export.
-        .then(({ default: qr }) => qr.toDataURL(link.url, { width: 360, margin: 1, color: { dark: '#1f2722', light: '#ffffff' } }))
-        .then((image) => {
-          if (this.revolut()?.url === link.url) this.revolutQr.set(image);
-        });
+        Promise.all(
+          links.map((link: PaymentLink) =>
+            qr.toDataURL(link.url, { width: 360, margin: 1, color: { dark: '#1f2722', light: '#ffffff' } }).then(
+              (image) => [link.url, image] as const,
+            ),
+          ),
+        ).then((images) => {
+          if (this.paymentLinks() === links) this.paymentQrs.set(Object.fromEntries(images));
+        }),
+      );
     });
   }
 

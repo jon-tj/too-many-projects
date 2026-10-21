@@ -266,26 +266,28 @@ thead th {
   font-size: 26px;
   letter-spacing: -0.01em;
 }
-/* Pushed to the right of the payment box; on paper the QR code is what the client scans. */
-.due .revolut {
+/* Pushed to the right of the payment box; on paper the QR codes are what the client scans. */
+.due .pay-link {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 12px;
-  margin-left: auto;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.4;
   text-decoration: none;
 }
-.revolut img {
+.due .pay-link.first {
+  margin-left: auto;
+}
+.pay-link img {
   width: 96px;
   height: 96px;
   padding: 4px;
   background: #fff;
   border-radius: 4px;
 }
-.due .revolut strong {
+.due .pay-link strong {
   color: var(--ink);
   font-size: 12px;
   letter-spacing: 0;

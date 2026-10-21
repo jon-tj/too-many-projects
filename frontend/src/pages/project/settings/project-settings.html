@@ -95,11 +95,11 @@
         </label>
         <label>
           Payment details
-          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, IBAN and BIC, or https://revolut.me/yourname"></textarea>
-          @if (revolut(); as link) {
+          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, IBAN and BIC, or https://revolut.me/yourname or paypal.me/yourname"></textarea>
+          @for (link of paymentLinks(); track link.url) {
             <span class="detected">
               <app-icon name="qr_code_2" [size]="16" />
-              Revolut link for &#64;{{ link.handle }}: invoices will show a QR code your client can scan to pay you.
+              {{ link.service }} link {{ link.label }}: invoices will show a QR code your client can scan to pay you.
             </span>
           }
         </label>
