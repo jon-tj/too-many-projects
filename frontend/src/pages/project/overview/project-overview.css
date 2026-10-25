@@ -75,10 +75,15 @@ svg {
   stroke-width: 1;
 }
 
-.center {
+.steady {
   stroke: var(--primary-text);
   stroke-width: 1.5;
+  stroke-dasharray: 4 4;
   opacity: 0.45;
+}
+.key.steady {
+  stroke-dasharray: 3 3;
+  stroke-linecap: butt;
 }
 
 .crosshair {

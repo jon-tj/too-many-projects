@@ -365,11 +365,14 @@
           <h2>Pace</h2>
           <p class="note">
             Tasks completed and hours worked, added up {{ p.paceStep === 'week' ? 'week by week' : 'day by day' }}, each as a
-            share of its total for the period. A line rising steadily means steady progress.
+            share of its total for the period. The dashed line is a steady pace: above it, more was done early on; below it, more
+            late in the period.
           </p>
           <svg class="pace" [attr.viewBox]="'-4 -4 ' + (chart.width + 8) + ' ' + (chart.height + 8)" preserveAspectRatio="none" role="img"
             [attr.aria-label]="p.tasksCompleted + ' tasks completed and ' + p.hours + ' hours worked over the period'">
             <line class="baseline" x1="0" [attr.x2]="chart.width" [attr.y1]="chart.height" [attr.y2]="chart.height" />
+            <!-- Steady pace: a line above it did more early on, below it more late. -->
+            <line class="steady" x1="0" [attr.y1]="chart.height" [attr.x2]="chart.width" y2="8" />
             <path class="pace-line hours" [attr.d]="chart.hours" />
             <path class="pace-line tasks" [attr.d]="chart.tasks" />
           </svg>
@@ -378,6 +381,7 @@
             <span class="pace-key">
               <span><i class="tasks"></i>Tasks completed</span>
               <span><i class="hours"></i>Hours worked</span>
+              <span><i class="steady"></i>Steady pace</span>
             </span>
             <span>{{ day(chart.last) | date: 'MMM d' : 'UTC' }}</span>
           </div>

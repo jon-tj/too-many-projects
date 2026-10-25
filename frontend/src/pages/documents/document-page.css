@@ -419,6 +419,17 @@ thead th {
   stroke: #c9822b;
   background: #c9822b;
 }
+.pace .steady {
+  stroke: var(--muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+.pace-key .steady {
+  height: 0;
+  border-top: 2px dashed var(--muted);
+  border-radius: 0;
+}
 .pace-axis {
   display: flex;
   justify-content: space-between;

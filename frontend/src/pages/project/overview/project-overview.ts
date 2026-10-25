@@ -106,10 +106,15 @@ export class ProjectOverview implements OnDestroy {
   );
   private readonly points = computed(() => this.shown()?.points ?? []);
   protected readonly lines = computed(() => SERIES.map((series) => this.line(series.key, series.title)));
-  /** Halfway through the period at half the total: a curve above it is slowing down, below it speeding up. */
-  protected readonly center = computed(() => ({
-    x: this.pad().left + this.innerWidth() / 2,
-    y: PAD.top + (HEIGHT - PAD.top - PAD.bottom) / 2,
+  /**
+   * Steady pace: the same amount every day, from nothing at the start to the whole total at the end. A curve above it
+   * did more early on (slowing down); below it, more late (speeding up).
+   */
+  protected readonly steadyPace = computed(() => ({
+    x1: this.pad().left,
+    y1: HEIGHT - PAD.bottom,
+    x2: this.pad().left + this.innerWidth(),
+    y2: PAD.top,
   }));
   protected readonly xLabels = computed(() => {
     const points = this.points();
