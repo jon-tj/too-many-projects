@@ -8,7 +8,6 @@ import {
   BillingReport,
   PAYMENT_STATUSES,
   PaymentStatus,
-  ROUNDING_OPTIONS,
   hoursFormat,
   ProgressReportContent,
   ProgressReportInput,
@@ -124,11 +123,6 @@ export class DocumentPage {
   });
   /** Hours are written with as many decimals as the rounding step needs. */
   protected readonly hoursFormat = computed(() => hoursFormat(this.report()));
-  /** The rounding step, e.g. "15 minutes"; null without rounding. */
-  protected readonly rounding = computed(() => {
-    const minutes = this.report()?.settings.roundingMinutes;
-    return minutes ? (ROUNDING_OPTIONS.find((option) => option.value === minutes)?.label ?? `${minutes} minutes`) : null;
-  });
   /** revolut.me and paypal.me links in the payment details, each shown as a QR code the client can scan to pay. */
   protected readonly paymentLinks = computed(() => findPaymentLinks(this.report()?.settings.paymentDetails));
   /**

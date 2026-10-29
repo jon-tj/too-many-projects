@@ -361,16 +361,12 @@
         </section>
       }
 
-      <footer class="terms">
-        <span>{{ r.settings.costPerHour | money: cur }} per hour</span>
-        @if (hoursPerDay(r.settings); as limits) {
+      <!-- Only the daily limits, when there are any: the rate is in the members table, and rounding is not shown. -->
+      @if (hoursPerDay(r.settings); as limits) {
+        <footer class="terms">
           <span>Hours per day: {{ limits }}</span>
-        }
-        <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
-        @if (rounding(); as step) {
-          <span>Hours rounded up to {{ step }} per day</span>
-        }
-      </footer>
+        </footer>
+      }
     }
 
     @if (progress(); as p) {
