@@ -190,7 +190,7 @@
                 <td>{{ member.fraction }}</td>
               }
               <td class="number">{{ member.daysWorked }}</td>
-              <td class="number">{{ member.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
+              <td class="number">{{ member.hoursWorked | number: hoursFormat() }}</td>
               @if (!plainHours()) {
                 <td class="number">{{ member.billableHours | number: hoursFormat() }}</td>
               }
@@ -289,7 +289,7 @@
                   <tr>
                     <td>{{ day.date | date: 'MMM d, y' }}</td>
                     <td>{{ day.name }}</td>
-                    <td class="number">{{ day.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
+                    <td class="number">{{ day.hoursWorked | number: hoursFormat() }}</td>
                     @if (!plainHours()) {
                       <td class="number">{{ day.billableHours | number: hoursFormat() }}</td>
                     }
@@ -320,7 +320,7 @@
                 <tr>
                   <td>{{ day.date | date: 'EEE MMM d' }}</td>
                   <td>{{ day.name }}</td>
-                  <td class="number">{{ day.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
+                  <td class="number">{{ day.hoursWorked | number: hoursFormat() }}</td>
                   @if (!plainHours()) {
                     <td class="number">{{ day.billableHours | number: hoursFormat() }}</td>
                   }
@@ -338,7 +338,7 @@
         }
         <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
         @if (rounding(); as step) {
-          <span>Billable hours rounded up to {{ step }} per day</span>
+          <span>Hours rounded up to {{ step }} per day</span>
         }
       </footer>
     }

@@ -9,7 +9,7 @@ import {
   PAYMENT_STATUSES,
   PaymentStatus,
   ROUNDING_OPTIONS,
-  billableHoursFormat,
+  hoursFormat,
   ProgressReportContent,
   ProgressReportInput,
 } from '../../services/models';
@@ -122,8 +122,8 @@ export class DocumentPage {
       report.days.every((day) => day.billableHours === day.hoursWorked)
     );
   });
-  /** Billable hours are written with as many decimals as the rounding step needs. */
-  protected readonly hoursFormat = computed(() => billableHoursFormat(this.report()?.settings.roundingMinutes));
+  /** Hours are written with as many decimals as the rounding step needs. */
+  protected readonly hoursFormat = computed(() => hoursFormat(this.report()));
   /** The rounding step, e.g. "15 minutes"; null without rounding. */
   protected readonly rounding = computed(() => {
     const minutes = this.report()?.settings.roundingMinutes;

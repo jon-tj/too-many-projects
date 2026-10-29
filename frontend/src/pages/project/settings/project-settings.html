@@ -136,8 +136,9 @@
         </label>
         <p>
           Each member's billable hours per day: hours worked, raised to the minimum on days with work and capped at
-          the maximum, times their billable share (set on the Members tab), then rounded up to the rounding step. A
-          minimum of 0 means no minimum; a maximum of 0 or 24 and above means no cap. Days and months start at midnight in the time zone, so work after
+          the maximum, times their billable share (set on the Members tab), then rounded up to the rounding step, but never
+          past the maximum. Hours worked per day are rounded up the same way. A minimum of 0 means no minimum; a
+          maximum of 0 or 24 and above means no cap. Days and months start at midnight in the time zone, so work after
           midnight counts on the day it was done there.
           @if (billingForm.controls.timeZone.dirty && billingForm.controls.timeZone.value === browserTimeZone) {
             <strong>Your time zone ({{ browserTimeZone }}) was filled in: save to use it.</strong>

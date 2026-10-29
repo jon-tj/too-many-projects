@@ -109,9 +109,9 @@
           <h3>{{ monthStart(report.month) | date: 'MMMM y' : 'UTC' }}</h3>
           <dl>
             <dt>Hours worked</dt>
-            <dd>{{ report.hoursWorked | number: '1.1-2' }}</dd>
+            <dd>{{ report.hoursWorked | number: hoursFormat(report) }}</dd>
             <dt>Billable hours</dt>
-            <dd>{{ report.billableHours | number: hoursFormat(report.settings.roundingMinutes) }}</dd>
+            <dd>{{ report.billableHours | number: hoursFormat(report) }}</dd>
             <dt>Amount</dt>
             <dd>
               <strong>{{ report.amountWithVat ?? report.amount | money: cur }}</strong>

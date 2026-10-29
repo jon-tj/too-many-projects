@@ -415,11 +415,21 @@ export const ROUNDING_OPTIONS = [
 ] as const;
 
 /**
- * How billable hours are written for a rounding step, as a number pipe format: hours on whole 30 minutes need one
- * decimal and whole hours none; otherwise two.
+ * How a billing report's hours are written, as a number pipe format: on whole 30 minutes one decimal is enough, on
+ * whole hours none; otherwise two. Falls back to two when any figure is off the step, e.g. capped at 7.75 hours.
  */
-export function billableHoursFormat(roundingMinutes: number | undefined): string {
-  return roundingMinutes === 60 ? '1.0-0' : roundingMinutes === 30 ? '1.1-1' : '1.2-2';
+export function hoursFormat(report: BillingReport | null | undefined): string {
+  const step = report?.settings.roundingMinutes;
+  if (!report || (step !== 30 && step !== 60)) return '1.2-2';
+  const figures = [
+    report.hoursWorked,
+    report.billableHours,
+    report.carriedOverBillableHours ?? 0,
+    ...report.members.flatMap((member) => [member.hoursWorked, member.billableHours]),
+    ...report.days.flatMap((day) => [day.hoursWorked, day.billableHours]),
+  ];
+  const onStep = figures.every((hours) => Math.abs(hours * (60 / step) - Math.round(hours * (60 / step))) < 1e-6);
+  return !onStep ? '1.2-2' : step === 60 ? '1.0-0' : '1.1-1';
 }
 
 /** Currencies offered in billing settings; any other three-letter code is kept if a project already has it. */

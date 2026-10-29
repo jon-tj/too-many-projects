@@ -9,7 +9,8 @@ namespace Documents;
 /// Works out a month's billing: what the live preview shows, and what an invoice freezes when it is finalized.
 /// Billable hours per member per day = worked hours raised to the daily minimum (on days with work) and capped at
 /// the daily maximum, times the member's billable fraction, then rounded up to the project's rounding step (15, 30 or
-/// 60 minutes), if any. A maximum of 0 or 24+ means no cap; a minimum of 0 means no minimum. Days start at midnight in
+/// 60 minutes), if any, but never past the maximum (times the fraction). Hours worked per day are rounded up the same
+/// way. A maximum of 0 or 24+ means no cap; a minimum of 0 means no minimum. Days start at midnight in
 /// the project's billing time zone.
 /// Every hour is billed exactly once: a report covers all recorded work up to the end of its month, minus what earlier
 /// finalized (not canceled) invoices already billed for each member-day. Earlier days left unbilled are marked CarriedOver.
@@ -129,14 +130,19 @@ public sealed class BillingReports(AppDbContext db)
             .Select(entry =>
             {
                 var fraction = fractions.GetValueOrDefault(entry.Key.UserId, "1/1");
+                var step = project.BillingRoundingMinutes;
+                var capped = IsCapped(project.BillingMaxHoursPerDay);
                 var clamped = Math.Max(entry.Value, project.BillingMinHoursPerDay);
-                if (IsCapped(project.BillingMaxHoursPerDay)) clamped = Math.Min(clamped, project.BillingMaxHoursPerDay);
+                if (capped) clamped = Math.Min(clamped, project.BillingMaxHoursPerDay);
+                // Rounding up never goes past the cap: the cap (times the share) always wins.
+                var billable = RoundUp(clamped * Fractions[fraction], step);
+                if (capped) billable = Math.Min(billable, project.BillingMaxHoursPerDay * Fractions[fraction]);
                 var (billedHours, billedBillable) = billed.GetValueOrDefault(entry.Key);
                 return new BillingDay(
                     entry.Key.Day, entry.Key.UserId, people.GetValueOrDefault(entry.Key.UserId, "Former member"), fraction,
-                    Math.Round(entry.Value - billedHours, 2),
-                    // Rounded on the day's full total, so the part earlier invoices billed stays on whole steps too.
-                    Math.Max(0, Math.Round(RoundUp(clamped * Fractions[fraction], project.BillingRoundingMinutes) - billedBillable, 2)),
+                    // Both rounded on the day's full total, so the part earlier invoices billed stays on whole steps too.
+                    Math.Round(RoundUp(entry.Value, step) - billedHours, 2),
+                    Math.Max(0, Math.Round(billable - billedBillable, 2)),
                     entry.Key.Day < monthStart);
             })
             // Keep days with anything to bill: a few seconds of work still bills the daily minimum. Days with nothing
