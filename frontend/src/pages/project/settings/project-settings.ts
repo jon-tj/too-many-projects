@@ -2,13 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Icon } from '../../../components/icon/icon';
 import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
-import { BILLING_CURRENCIES, ROUNDING_OPTIONS } from '../../../services/models';
+import { BILLING_CURRENCIES, BillingSplitShare, ROUNDING_OPTIONS } from '../../../services/models';
 import { findPaymentLinks } from '../../../services/payment-links';
 import { squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
@@ -53,6 +53,8 @@ export class ProjectSettings {
     vatRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
     paymentDetails: ['', Validators.maxLength(500)],
     paymentTermsDays: [14, [Validators.required, Validators.min(0), Validators.max(365)]],
+    /** Payers and their shares; empty when one client pays it all. */
+    split: new FormArray<FormGroup<{ name: FormControl<string>; percent: FormControl<number> }>>([]),
   });
   /** Who documents are from, printed on each when it is finalized; owner-only, like billing. */
   private readonly branding = rxResource({
@@ -109,10 +111,55 @@ export class ProjectSettings {
     { initialValue: [] },
   );
 
+  /** The payers as a signal, for the template: whether splitting is on, and what the shares add up to. */
+  protected readonly splitRows = toSignal(
+    this.billingForm.controls.split.valueChanges.pipe(map(() => this.billingForm.controls.split.getRawValue())),
+    { initialValue: [] as BillingSplitShare[] },
+  );
+  protected readonly splitTotal = computed(() =>
+    Math.round(this.splitRows().reduce((sum, share) => sum + (Number(share.percent) || 0), 0) * 100) / 100,
+  );
+  /** Splitting is on but cannot be saved: the shares must add up to 100% and every payer needs a name. */
+  protected readonly splitInvalid = computed(
+    () => this.splitRows().length > 0 && (this.splitTotal() !== 100 || this.splitRows().some((share) => !share.name.trim())),
+  );
+
+  private splitRow(share: BillingSplitShare): FormGroup<{ name: FormControl<string>; percent: FormControl<number> }> {
+    return new FormGroup({
+      name: new FormControl(share.name, { nonNullable: true, validators: [Validators.required, Validators.maxLength(200)] }),
+      percent: new FormControl(share.percent, { nonNullable: true, validators: [Validators.required, Validators.min(0.01), Validators.max(100)] }),
+    });
+  }
+
+  /** The form's payer rows, rebuilt to match the shares (a form reset does not add or remove rows). */
+  private setSplit(shares: BillingSplitShare[]): void {
+    const rows = this.billingForm.controls.split;
+    rows.clear({ emitEvent: false });
+    for (const share of shares) rows.push(this.splitRow(share), { emitEvent: false });
+    rows.updateValueAndValidity();
+  }
+
+  /** Turning splitting on starts with two payers at 50% each, the first being the client. */
+  protected toggleSplit(on: boolean): void {
+    this.setSplit(on ? [{ name: this.billingForm.controls.clientName.value, percent: 50 }, { name: '', percent: 50 }] : []);
+    this.billingForm.markAsDirty();
+  }
+
+  protected addPayer(): void {
+    this.billingForm.controls.split.push(this.splitRow({ name: '', percent: 0 }));
+    this.billingForm.markAsDirty();
+  }
+
+  protected removePayer(index: number): void {
+    this.billingForm.controls.split.removeAt(index);
+    this.billingForm.markAsDirty();
+  }
+
   constructor() {
     effect(() => {
       const billing = this.billing.value();
       if (!billing) return;
+      this.setSplit(billing.split ?? []);
       this.billingForm.reset(billing);
       // Projects from before billing had a time zone count in UTC: suggest yours, saved with the next save.
       if (!billing.timeZone && this.browserTimeZone) {
@@ -156,7 +203,7 @@ export class ProjectSettings {
 
   protected saveBilling(): void {
     const project = this.project.value();
-    if (!project || this.billingForm.invalid) return;
+    if (!project || this.billingForm.invalid || this.splitInvalid()) return;
     const settings = this.billingForm.getRawValue();
     const capped = settings.maxHoursPerDay > 0 && settings.maxHoursPerDay < 24;
     if (capped && settings.maxHoursPerDay < settings.minHoursPerDay) {
@@ -170,7 +217,8 @@ export class ProjectSettings {
         // The overview and members tab show billing once it is enabled.
         this.project.reload();
       },
-      error: () => this.billingMessage.set('Could not save the billing settings. Please try again.'),
+      error: (error: HttpErrorResponse) =>
+        this.billingMessage.set(error.error?.error ?? 'Could not save the billing settings. Please try again.'),
     });
   }
 

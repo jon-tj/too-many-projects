@@ -37,6 +37,11 @@ public sealed class Project
     public string BillingPaymentDetails { get; set; } = string.Empty;
     /// <summary>Days after a bill is issued that it is due.</summary>
     public int BillingPaymentTermsDays { get; set; } = 14;
+    /// <summary>
+    /// When several clients pay the invoices together: who pays which share of each invoice's amount due, as JSON
+    /// (a list of BillingSplitShare). Empty when one client pays it all.
+    /// </summary>
+    public string BillingSplitJson { get; set; } = string.Empty;
     public decimal BillingCostPerHour { get; set; }
     /// <summary>Days with recorded work bill at least this many hours per member.</summary>
     public decimal BillingMinHoursPerDay { get; set; }

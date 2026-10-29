@@ -107,6 +107,42 @@
           Payment terms (days)
           <input type="number" min="0" max="365" step="1" formControlName="paymentTermsDays" />
         </label>
+        <!-- Several clients paying one invoice together, e.g. 45% and 55%. -->
+        <fieldset class="split" formArrayName="split">
+          <label class="toggle">
+            <input type="checkbox" [checked]="splitRows().length > 0" (change)="toggleSplit($any($event.target).checked)" />
+            Split invoices between payers
+          </label>
+          <p class="hint">
+            For projects that several clients pay for together. Each invoice then ends with a table showing every payer's
+            share in percent and the amount they pay, so each knows what to pay. The amounts are their shares of the
+            invoice's amount due (VAT and overdue amounts included) and always add up to it exactly. Splitting changes
+            nothing else: hours, rates and the total stay the same, and it is still one invoice.
+          </p>
+          @if (splitRows().length) {
+            @for (row of billingForm.controls.split.controls; track row; let i = $index) {
+              <div class="payer" [formGroupName]="i">
+                <label>
+                  Payer
+                  <input formControlName="name" placeholder="e.g. the client's name" />
+                </label>
+                <label class="percent">
+                  Share (%)
+                  <input type="number" min="0.01" max="100" step="0.01" formControlName="percent" />
+                </label>
+                <button class="transparent" type="button" [disabled]="splitRows().length <= 2" title="Remove payer" (click)="removePayer(i)">
+                  <app-icon name="close" [size]="16" />
+                </button>
+              </div>
+            }
+            <div class="split-footer">
+              @if (splitRows().length < 10) {
+                <button class="transparent" type="button" (click)="addPayer()"><app-icon name="add" [size]="16" /><span>Add payer</span></button>
+              }
+              <span [class.off]="splitTotal() !== 100">Total {{ splitTotal() }}%{{ splitTotal() !== 100 ? ': the shares must add up to 100%' : '' }}</span>
+            </div>
+          }
+        </fieldset>
         <div class="pair">
           <label>
             Minimum hours per day
@@ -149,7 +185,7 @@
         <p role="status">{{ billingMessage() }}</p>
       }
       <footer>
-        <button class="primary" type="submit" [disabled]="billingForm.invalid || billingForm.pristine">
+        <button class="primary" type="submit" [disabled]="billingForm.invalid || billingForm.pristine || splitInvalid()">
           Save billing
         </button>
       </footer>

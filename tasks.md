@@ -155,3 +155,10 @@ Billing setting to round each member's billable hours per day up to a step: no r
 
 - **Decision:** rounding is the last step of each member-day's billable hours (after the daily minimum, the cap and the billable share), but never past the cap: the cap (times the share) always wins. Hours worked per day are rounded up the same way. All hours on the invoice follow the step's decimals, or 2 decimals when the cap puts a day off the step (e.g. a 7.75 h cap at 30 min).
 - **Status:** done: "Round up billable hours per day" in the project's billing settings. Invoices store the step with their report, list "Hours rounded up to … per day" in the terms, and the overview's month cards follow it. Invoices already finalized keep their hours.
+
+## Split invoices between payers
+
+A project paid for by two clients, 45% and 55%: each invoice should show who pays what.
+
+- **Decision:** "Split invoices between payers" in the project's billing settings: 2 to 10 payers, each with a name and a share in percent, adding up to 100%. It divides the invoice's amount due (VAT and overdue amounts included) and changes nothing else; it is still one invoice.
+- **Status:** done: invoices show a "Split between payers" table with each payer's share and amount, adding up exactly to the amount due (the last payer gets the rounding cent). Invoices store the split when finalized. The settings explain what splitting does and show the shares' total while editing.

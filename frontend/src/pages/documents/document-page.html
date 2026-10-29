@@ -247,6 +247,38 @@
         }
       </section>
 
+      @if (r.split?.length) {
+        <!-- Several clients pay this invoice together: what each pays of the amount due. -->
+        <section class="split">
+          <h2>Split between payers</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Payer</th>
+                <th scope="col" class="number">Share</th>
+                <th scope="col" class="number">To pay</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (part of r.split; track part.name + $index) {
+                <tr>
+                  <td>{{ part.name }}</td>
+                  <td class="number">{{ part.percent | number: '1.0-2' }}%</td>
+                  <td class="number"><strong>{{ part.amount | money: cur }}</strong></td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Amount due</td>
+                <td class="number">100%</td>
+                <td class="number">{{ r.totalWithOverdue | money: cur }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </section>
+      }
+
       @if (r.overdue.length) {
         <section class="appendix">
           <h2>Overdue invoices</h2>

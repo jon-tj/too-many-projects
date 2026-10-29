@@ -178,12 +178,25 @@ public sealed class BillingReports(AppDbContext db)
         var vat = Math.Round(amount * project.BillingVatRate / 100, 2);
         var overdueTotal = overdue.Sum(invoice => invoice.Amount);
         var carriedOverBillable = days.Where(day => day.CarriedOver).Sum(day => day.BillableHours);
+        var settings = ToSettings(project);
         return new BillingReport(
-            project.Name, month, ToSettings(project), members, days,
+            project.Name, month, settings, members, days,
             members.Sum(member => member.HoursWorked), members.Sum(member => member.BillableHours), amount,
             overdue, overdueTotal, amount + vat + overdueTotal,
             carriedOverBillable, Math.Round(carriedOverBillable * project.BillingCostPerHour, 2), vat, amount + vat,
-            project.Icon, project.IconImage);
+            project.Icon, project.IconImage, Split(settings.Split, amount + vat + overdueTotal));
+    }
+
+    /// <summary>
+    /// What each payer owes of the amount due, rounded to the cent; the last payer gets what rounding leaves, so the
+    /// parts always add up to the amount due. Null when the invoice is not split.
+    /// </summary>
+    public static IReadOnlyList<SplitAmount>? Split(IReadOnlyList<BillingSplitShare> shares, decimal amountDue)
+    {
+        if (shares.Count == 0) return null;
+        var parts = shares.Select(share => new SplitAmount(share.Name, share.Percent, Math.Round(amountDue * share.Percent / 100, 2))).ToList();
+        parts[^1] = parts[^1] with { Amount = amountDue - parts.Take(parts.Count - 1).Sum(part => part.Amount) };
+        return parts;
     }
 
     public static BillingSettings ToSettings(Project project) => new()
@@ -202,5 +215,8 @@ public sealed class BillingReports(AppDbContext db)
         OrgNumber = project.BillingOrgNumber,
         PaymentDetails = project.BillingPaymentDetails,
         PaymentTermsDays = project.BillingPaymentTermsDays,
+        Split = project.BillingSplitJson == ""
+            ? []
+            : JsonSerializer.Deserialize<List<BillingSplitShare>>(project.BillingSplitJson, JsonSerializerOptions.Web)!,
     };
 }

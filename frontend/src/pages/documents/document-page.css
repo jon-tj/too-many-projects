@@ -301,6 +301,11 @@ thead th {
   text-transform: uppercase;
 }
 
+.split tfoot td {
+  color: var(--muted);
+  border-bottom: 0;
+}
+
 .appendix {
   font-size: 12px;
 }

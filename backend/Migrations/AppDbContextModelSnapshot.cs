@@ -631,6 +631,10 @@ namespace backend.Migrations
                     b.Property<int>("BillingRoundingMinutes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("BillingSplitJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("BillingTimeZone")
                         .IsRequired()
                         .HasColumnType("TEXT");

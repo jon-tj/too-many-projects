@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,7 @@ public sealed class BillingController(AppDbContext db, BillingReports reports) :
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
         if (!BillingReports.RoundingSteps.Contains(request.RoundingMinutes))
             return BadRequest(new { error = "Round up to 15, 30 or 60 minutes, or not at all." });
+        if (CheckSplit(request.Split) is { } splitError) return BadRequest(new { error = splitError });
         var timeZone = request.TimeZone.Trim();
         if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
             return BadRequest(new { error = $"Unknown time zone: {timeZone}. Use a name such as Europe/Oslo." });
@@ -50,6 +52,10 @@ public sealed class BillingController(AppDbContext db, BillingReports reports) :
         project.BillingVatRate = request.VatRate;
         project.BillingPaymentDetails = request.PaymentDetails.Trim();
         project.BillingPaymentTermsDays = request.PaymentTermsDays;
+        project.BillingSplitJson = request.Split.Count == 0
+            ? string.Empty
+            : JsonSerializer.Serialize(
+                request.Split.Select(share => share with { Name = share.Name.Trim() }), JsonSerializerOptions.Web);
         await db.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
@@ -79,6 +85,17 @@ public sealed class BillingController(AppDbContext db, BillingReports reports) :
         if (project is null) return NotFound();
         if (!project.BillingEnabled) return BadRequest(new { error = "Billing is not enabled for this project." });
         return Ok(await reports.Build(project, month, cancellationToken));
+    }
+
+    /// <summary>Why the split is not allowed, or null: two to ten payers, each named and with a share, adding up to 100%.</summary>
+    private static string? CheckSplit(IReadOnlyList<BillingSplitShare> split)
+    {
+        if (split.Count == 0) return null;
+        if (split.Count is < 2 or > 10) return "Split invoices between 2 to 10 payers, or turn splitting off.";
+        if (split.Any(share => string.IsNullOrWhiteSpace(share.Name))) return "Give every payer a name.";
+        if (split.Any(share => share.Percent <= 0)) return "Every payer's share must be more than 0%.";
+        if (split.Sum(share => share.Percent) != 100) return "The payers' shares must add up to 100%.";
+        return null;
     }
 
     private Task<Project?> GetOwnedProject(long projectId, CancellationToken cancellationToken)
@@ -144,9 +161,29 @@ public sealed record BillingSettings
     /// <summary>Days after an invoice is issued that it is due.</summary>
     [Range(0, 365)]
     public int PaymentTermsDays { get; init; } = 14;
+
+    /// <summary>
+    /// Who pays which share of each invoice's amount due, when several clients pay together; empty when one client pays
+    /// it all. Only divides what is owed: hours, rates and totals stay the same.
+    /// </summary>
+    public IReadOnlyList<BillingSplitShare> Split { get; init; } = [];
 }
 
 public sealed record SetFractionRequest(string Fraction);
+
+/// <summary>One payer of a split invoice.</summary>
+public sealed record BillingSplitShare
+{
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>This payer's share of the amount due, e.g. 45 or 33.33.</summary>
+    [Range(0, 100)]
+    public decimal Percent { get; init; }
+}
+
+/// <summary>What one payer owes of an invoice's amount due.</summary>
+public sealed record SplitAmount(string Name, decimal Percent, decimal Amount);
 
 /// <summary>One member's billing for one day, in the project's billing time zone.</summary>
 /// <param name="CarriedOver">Worked before the bill's month but not billed before.</param>
@@ -167,9 +204,10 @@ public sealed record OverdueBill(long BillId, string Month, decimal Amount);
 /// <param name="TotalWithOverdue">With VAT, plus earlier bills still owed.</param>
 /// <param name="ProjectIcon">The project's icon at the time, shown at the top of the bill; null on older bills.</param>
 /// <param name="ProjectIconImage">The project's uploaded image, which takes precedence over the icon.</param>
+/// <param name="Split">What each payer owes of the amount due (TotalWithOverdue), when it is split; null otherwise.</param>
 public sealed record BillingReport(
     string ProjectName, string Month, BillingSettings Settings, IReadOnlyList<BillingMemberTotal> Members,
     IReadOnlyList<BillingDay> Days, decimal HoursWorked, decimal BillableHours, decimal Amount,
     IReadOnlyList<OverdueBill> Overdue, decimal OverdueTotal, decimal TotalWithOverdue,
     decimal CarriedOverBillableHours = 0, decimal CarriedOverAmount = 0, decimal Vat = 0, decimal? AmountWithVat = null,
-    string? ProjectIcon = null, string? ProjectIconImage = null);
+    string? ProjectIcon = null, string? ProjectIconImage = null, IReadOnlyList<SplitAmount>? Split = null);

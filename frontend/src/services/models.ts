@@ -405,6 +405,16 @@ export interface BillingSettings {
   paymentDetails?: string;
   /** Days after a bill is issued that it is due. */
   paymentTermsDays?: number;
+  /**
+   * Who pays which share (percent) of each invoice's amount due, when several clients pay together; empty when one
+   * client pays it all. Missing on older invoices.
+   */
+  split?: BillingSplitShare[];
+}
+
+export interface BillingSplitShare {
+  name: string;
+  percent: number;
 }
 
 export const ROUNDING_OPTIONS = [
@@ -609,6 +619,8 @@ export interface BillingReport {
   /** Work from earlier months that no earlier bill covered; included in the totals above. */
   carriedOverBillableHours: number;
   carriedOverAmount: number;
+  /** What each payer owes of the amount due (totalWithOverdue) when it is split; the parts add up to it exactly. */
+  split?: { name: string; percent: number; amount: number }[] | null;
 }
 
 export const CANVAS_COLORS = ['white', 'yellow', 'rose', 'blue', 'green', 'lavender'] as const;

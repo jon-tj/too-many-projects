@@ -89,3 +89,38 @@ nav {
   height: 32px;
   padding: 2px;
 }
+
+/* Payers sharing each invoice. */
+.split {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.split .hint {
+  margin: 0;
+}
+.payer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.payer label {
+  flex: 1;
+}
+.payer .percent {
+  flex: 0 0 110px;
+}
+.split-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.split-footer .off {
+  color: var(--danger, #b3261e);
+  font-weight: 600;
+}
