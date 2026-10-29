@@ -111,7 +111,7 @@
             <dt>Hours worked</dt>
             <dd>{{ report.hoursWorked | number: '1.1-2' }}</dd>
             <dt>Billable hours</dt>
-            <dd>{{ report.billableHours | number: '1.1-2' }}</dd>
+            <dd>{{ report.billableHours | number: hoursFormat(report.settings.roundingMinutes) }}</dd>
             <dt>Amount</dt>
             <dd>
               <strong>{{ report.amountWithVat ?? report.amount | money: cur }}</strong>

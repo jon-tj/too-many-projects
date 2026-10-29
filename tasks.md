@@ -148,3 +148,10 @@ What we call a bill is an invoice. It becomes one of several document types a pr
     - The report shows the key figures (tasks completed, hours, in progress, open), a pace chart (cumulative tasks and hours per day, or per week for periods over two months), and the tasks completed, in progress and up next. Finalizing freezes all of it.
     - Revise opens a new draft with the same text, linked to the original; the original stays as it was, and shared, until you share the new one.
   - Next: SWOT, then tender responses (see the decisions above).
+
+## Round up billable hours per day
+
+Billing setting to round each member's billable hours per day up to a step: no rounding, 15 min, 30 min or 1 hour. Hours show 2 decimals without rounding or at 15 min, 1 decimal at 30 min and none at 1 hour.
+
+- **Decision:** rounding is the last step of each member-day's billable hours (after the daily minimum, the cap and the billable share), so every figure on the invoice lands on a whole step. Billable hours follow the step's decimals; hours worked are not rounded, so they keep 2 decimals.
+- **Status:** done: "Round up billable hours per day" in the project's billing settings. Invoices store the step with their report, list "Billable hours rounded up to … per day" in the terms, and the overview's month cards follow it. Invoices already finalized keep their hours.

@@ -389,6 +389,8 @@ export interface BillingSettings {
   costPerHour: number;
   minHoursPerDay: number;
   maxHoursPerDay: number;
+  /** Billable hours per member per day are rounded up to this many minutes: 0 (none), 15, 30 or 60. Missing on older invoices. */
+  roundingMinutes?: number;
   /** IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC. */
   timeZone: string;
   /** ISO 4217 code (e.g. USD, NOK); missing on bills finalized before currencies, which were in USD. */
@@ -403,6 +405,21 @@ export interface BillingSettings {
   paymentDetails?: string;
   /** Days after a bill is issued that it is due. */
   paymentTermsDays?: number;
+}
+
+export const ROUNDING_OPTIONS = [
+  { value: 0, label: 'No rounding' },
+  { value: 15, label: '15 minutes' },
+  { value: 30, label: '30 minutes' },
+  { value: 60, label: '1 hour' },
+] as const;
+
+/**
+ * How billable hours are written for a rounding step, as a number pipe format: hours on whole 30 minutes need one
+ * decimal and whole hours none; otherwise two.
+ */
+export function billableHoursFormat(roundingMinutes: number | undefined): string {
+  return roundingMinutes === 60 ? '1.0-0' : roundingMinutes === 30 ? '1.1-1' : '1.2-2';
 }
 
 /** Currencies offered in billing settings; any other three-letter code is kept if a project already has it. */

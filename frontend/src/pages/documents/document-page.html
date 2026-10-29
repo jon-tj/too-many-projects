@@ -190,9 +190,9 @@
                 <td>{{ member.fraction }}</td>
               }
               <td class="number">{{ member.daysWorked }}</td>
-              <td class="number">{{ member.hoursWorked | number: '1.2-2' }}</td>
+              <td class="number">{{ member.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
               @if (!plainHours()) {
-                <td class="number">{{ member.billableHours | number: '1.2-2' }}</td>
+                <td class="number">{{ member.billableHours | number: hoursFormat() }}</td>
               }
               <td class="number">{{ r.settings.costPerHour | money: cur }}</td>
               <td class="number">{{ member.amount | money: cur }}</td>
@@ -206,7 +206,7 @@
       <div class="totals">
         <dl>
           <dt>{{ plainHours() ? 'Hours' : 'Billable hours' }}</dt>
-          <dd>{{ r.billableHours | number: '1.2-2' }}</dd>
+          <dd>{{ r.billableHours | number: hoursFormat() }}</dd>
           @if (r.vat) {
             <dt>Subtotal (excl. VAT)</dt>
             <dd>{{ r.amount | money: cur }}</dd>
@@ -270,7 +270,7 @@
             <h2>Worked earlier, not billed before</h2>
             <p class="note">
               This work was done before {{ monthStart(r.month) | date: 'MMMM' : 'UTC' }} but was not on an earlier invoice.
-              It is included above: {{ r.carriedOverBillableHours | number: '1.2-2' }}
+              It is included above: {{ r.carriedOverBillableHours | number: hoursFormat() }}
               {{ plainHours() ? 'hours' : 'billable hours' }}, {{ r.carriedOverAmount | money: cur }}.
             </p>
             <table>
@@ -289,9 +289,9 @@
                   <tr>
                     <td>{{ day.date | date: 'MMM d, y' }}</td>
                     <td>{{ day.name }}</td>
-                    <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+                    <td class="number">{{ day.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
                     @if (!plainHours()) {
-                      <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                      <td class="number">{{ day.billableHours | number: hoursFormat() }}</td>
                     }
                   </tr>
                 }
@@ -320,9 +320,9 @@
                 <tr>
                   <td>{{ day.date | date: 'EEE MMM d' }}</td>
                   <td>{{ day.name }}</td>
-                  <td class="number">{{ day.hoursWorked | number: '1.2-2' }}</td>
+                  <td class="number">{{ day.hoursWorked | number: (plainHours() ? hoursFormat() : '1.2-2') }}</td>
                   @if (!plainHours()) {
-                    <td class="number">{{ day.billableHours | number: '1.2-2' }}</td>
+                    <td class="number">{{ day.billableHours | number: hoursFormat() }}</td>
                   }
                 </tr>
               }
@@ -337,6 +337,9 @@
           <span>Hours per day: {{ limits }}</span>
         }
         <span>Days counted in {{ r.settings.timeZone || 'UTC' }}</span>
+        @if (rounding(); as step) {
+          <span>Billable hours rounded up to {{ step }} per day</span>
+        }
       </footer>
     }
 

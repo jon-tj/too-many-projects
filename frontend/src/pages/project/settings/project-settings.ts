@@ -8,7 +8,7 @@ import { Icon } from '../../../components/icon/icon';
 import { ProjectIcon } from '../../../components/project-icon/project-icon';
 import { WorkspaceShell } from '../../../components/workspace-shell/workspace-shell';
 import { ProjectPage } from '../project-page';
-import { BILLING_CURRENCIES } from '../../../services/models';
+import { BILLING_CURRENCIES, ROUNDING_OPTIONS } from '../../../services/models';
 import { findPaymentLinks } from '../../../services/payment-links';
 import { squareImageDataUrl } from '../../../services/square-image';
 import { WorkspaceApi } from '../../../services/workspace-api';
@@ -47,6 +47,7 @@ export class ProjectSettings {
     minHoursPerDay: [0, [Validators.required, Validators.min(0), Validators.max(24)]],
     /** 0 or 24+ means no cap. */
     maxHoursPerDay: [8, [Validators.required, Validators.min(0)]],
+    roundingMinutes: [0],
     timeZone: ['', Validators.maxLength(64)],
     currency: ['USD', Validators.required],
     vatRate: [0, [Validators.required, Validators.min(0), Validators.max(100)]],
@@ -82,6 +83,7 @@ export class ProjectSettings {
   /** Every time zone the browser knows, for picking another. */
   protected readonly timeZones: string[] = Intl.supportedValuesOf?.('timeZone') ?? [];
   protected readonly icons = PROJECT_ICONS;
+  protected readonly roundingOptions = ROUNDING_OPTIONS;
   protected readonly busy = signal(false);
   protected readonly message = signal('');
   protected readonly form = inject(FormBuilder).nonNullable.group({

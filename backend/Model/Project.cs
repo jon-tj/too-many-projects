@@ -42,6 +42,8 @@ public sealed class Project
     public decimal BillingMinHoursPerDay { get; set; }
     /// <summary>Days bill at most this many hours per member.</summary>
     public decimal BillingMaxHoursPerDay { get; set; } = 8;
+    /// <summary>Each member's billable hours per day are rounded up to this many minutes: 0 (no rounding), 15, 30 or 60.</summary>
+    public int BillingRoundingMinutes { get; set; }
     /// <summary>The accent colour on documents, "#rrggbb"; empty uses the default.</summary>
     public string BrandColor { get; set; } = string.Empty;
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();

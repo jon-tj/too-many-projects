@@ -8,8 +8,9 @@ namespace Documents;
 /// <summary>
 /// Works out a month's billing: what the live preview shows, and what an invoice freezes when it is finalized.
 /// Billable hours per member per day = worked hours raised to the daily minimum (on days with work) and capped at
-/// the daily maximum, times the member's billable fraction. A maximum of 0 or 24+ means no cap; a minimum of 0 means
-/// no minimum. Days start at midnight in the project's billing time zone.
+/// the daily maximum, times the member's billable fraction, then rounded up to the project's rounding step (15, 30 or
+/// 60 minutes), if any. A maximum of 0 or 24+ means no cap; a minimum of 0 means no minimum. Days start at midnight in
+/// the project's billing time zone.
 /// Every hour is billed exactly once: a report covers all recorded work up to the end of its month, minus what earlier
 /// finalized (not canceled) invoices already billed for each member-day. Earlier days left unbilled are marked CarriedOver.
 /// </summary>
@@ -19,6 +20,20 @@ public sealed class BillingReports(AppDbContext db)
     {
         ["1/1"] = 1m, ["3/4"] = 0.75m, ["2/3"] = 2m / 3m, ["1/2"] = 0.5m,
     };
+
+    /// <summary>The rounding steps offered, in minutes; 0 is no rounding.</summary>
+    public static readonly int[] RoundingSteps = [0, 15, 30, 60];
+
+    /// <summary>
+    /// Hours rounded up to a whole number of steps; unchanged without a step. Rounded to the second first, so time that
+    /// is exactly on a step (2 h from timestamps) is not pushed to the next one.
+    /// </summary>
+    public static decimal RoundUp(decimal hours, int stepMinutes)
+    {
+        if (stepMinutes <= 0) return hours;
+        var step = stepMinutes / 60m;
+        return Math.Ceiling(Math.Round(hours * 3600) / 3600 / step) * step;
+    }
 
     /// <summary>A daily maximum of 0 or 24 hours and above means the day is not capped.</summary>
     public static bool IsCapped(decimal maxHoursPerDay) => maxHoursPerDay > 0 && maxHoursPerDay < 24;
@@ -120,7 +135,8 @@ public sealed class BillingReports(AppDbContext db)
                 return new BillingDay(
                     entry.Key.Day, entry.Key.UserId, people.GetValueOrDefault(entry.Key.UserId, "Former member"), fraction,
                     Math.Round(entry.Value - billedHours, 2),
-                    Math.Max(0, Math.Round(clamped * Fractions[fraction] - billedBillable, 2)),
+                    // Rounded on the day's full total, so the part earlier invoices billed stays on whole steps too.
+                    Math.Max(0, Math.Round(RoundUp(clamped * Fractions[fraction], project.BillingRoundingMinutes) - billedBillable, 2)),
                     entry.Key.Day < monthStart);
             })
             // Keep days with anything to bill: a few seconds of work still bills the daily minimum. Days with nothing
@@ -172,6 +188,7 @@ public sealed class BillingReports(AppDbContext db)
         CostPerHour = project.BillingCostPerHour,
         MinHoursPerDay = project.BillingMinHoursPerDay,
         MaxHoursPerDay = project.BillingMaxHoursPerDay,
+        RoundingMinutes = project.BillingRoundingMinutes,
         TimeZone = project.BillingTimeZone,
         Currency = project.BillingCurrency,
         VatRate = project.BillingVatRate,

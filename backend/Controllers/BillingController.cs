@@ -31,6 +31,8 @@ public sealed class BillingController(AppDbContext db, BillingReports reports) :
     {
         if (BillingReports.IsCapped(request.MaxHoursPerDay) && request.MaxHoursPerDay < request.MinHoursPerDay)
             return BadRequest(new { error = "The maximum hours per day cannot be below the minimum." });
+        if (!BillingReports.RoundingSteps.Contains(request.RoundingMinutes))
+            return BadRequest(new { error = "Round up to 15, 30 or 60 minutes, or not at all." });
         var timeZone = request.TimeZone.Trim();
         if (timeZone != "" && !TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out _))
             return BadRequest(new { error = $"Unknown time zone: {timeZone}. Use a name such as Europe/Oslo." });
@@ -42,6 +44,7 @@ public sealed class BillingController(AppDbContext db, BillingReports reports) :
         project.BillingCostPerHour = request.CostPerHour;
         project.BillingMinHoursPerDay = request.MinHoursPerDay;
         project.BillingMaxHoursPerDay = request.MaxHoursPerDay;
+        project.BillingRoundingMinutes = request.RoundingMinutes;
         project.BillingTimeZone = timeZone;
         project.BillingCurrency = request.Currency.Trim().ToUpperInvariant();
         project.BillingVatRate = request.VatRate;
@@ -109,6 +112,12 @@ public sealed record BillingSettings
     /// <summary>0 or 24+ means no cap.</summary>
     [Range(0, 1000)]
     public decimal MaxHoursPerDay { get; init; } = 8;
+
+    /// <summary>
+    /// Billable hours per member per day are rounded up to this many minutes: 0 (none), 15, 30 or 60. Missing (0) on
+    /// invoices from before rounding.
+    /// </summary>
+    public int RoundingMinutes { get; init; }
 
     /// <summary>IANA name (e.g. Europe/Oslo) whose midnights start each billed day and month; empty means UTC.</summary>
     [StringLength(64)]

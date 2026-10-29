@@ -628,6 +628,9 @@ namespace backend.Migrations
                     b.Property<int>("BillingPaymentTermsDays")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("BillingRoundingMinutes")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("BillingTimeZone")
                         .IsRequired()
                         .HasColumnType("TEXT");

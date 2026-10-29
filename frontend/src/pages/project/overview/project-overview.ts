@@ -22,6 +22,7 @@ import {
   OverviewPoint,
   OverviewRange,
   ProjectOverview as Overview,
+  billableHoursFormat,
 } from '../../../services/models';
 import { MoneyPipe } from '../../../services/money.pipe';
 import { WorkspaceApi } from '../../../services/workspace-api';
@@ -192,6 +193,8 @@ export class ProjectOverview implements OnDestroy {
   private openTab(commands: unknown[]): void {
     window.open(this.router.serializeUrl(this.router.createUrlTree(commands)), '_blank');
   }
+
+  protected readonly hoursFormat = billableHoursFormat;
 
   protected monthStart(month: string): string {
     return `${month}-01T00:00:00Z`;
