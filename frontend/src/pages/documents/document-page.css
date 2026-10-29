@@ -216,34 +216,31 @@ thead th {
   text-align: center;
 }
 
-/* The sums, lined up under the amount column. */
-.totals {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: -16px;
+/* The month's sums, as a highlighted row under the members. */
+.lines-table tfoot th,
+.lines-table tfoot td {
+  border-bottom: 0;
 }
-.totals dl {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 6px 0;
-  min-width: 280px;
-  margin: 0;
-}
-.totals dt {
-  color: var(--muted);
-}
-.totals dd {
-  margin: 0;
-  padding-left: 32px;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.totals .grand {
-  padding-top: 8px;
-  color: var(--ink);
-  font-size: 16px;
+.subtotal th,
+.subtotal td {
+  padding-top: 10px;
+  padding-bottom: 10px;
   font-weight: 700;
+  text-align: left;
+  background: var(--accent-soft);
   border-top: 1px solid var(--ink);
+}
+.subtotal th {
+  padding-left: 8px;
+}
+.subtotal .number {
+  text-align: right;
+}
+.subtotal td:last-child {
+  padding-right: 8px;
+}
+.extra td {
+  color: var(--muted);
 }
 
 /* What to pay, by when, and how. */
@@ -299,11 +296,6 @@ thead th {
     monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.split tfoot td {
-  color: var(--muted);
-  border-bottom: 0;
 }
 
 .appendix {
@@ -503,11 +495,12 @@ thead th {
     box-shadow: none;
   }
   .due,
-  .totals,
+  .subtotal,
   tr {
     break-inside: avoid;
   }
-  .due {
+  .due,
+  .subtotal {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

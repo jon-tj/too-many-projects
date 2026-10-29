@@ -148,7 +148,6 @@
 
     @if (report(); as r) {
       @let cur = r.settings.currency || 'USD';
-      @let total = r.amountWithVat ?? r.amount + (r.vat ?? 0);
       <section class="parties">
         <div>
           <h2>From</h2>
@@ -201,26 +200,57 @@
             <tr><td [attr.colspan]="plainHours() ? 5 : 7" class="empty">No work recorded this month.</td></tr>
           }
         </tbody>
+        <!-- The month's sums; the amount due below adds VAT and anything overdue. -->
+        <tfoot>
+          <tr class="subtotal">
+            <th scope="row" [attr.colspan]="plainHours() ? 2 : 3">Subtotal{{ r.vat ? ' (excl. VAT)' : '' }}</th>
+            <td class="number">{{ r.hoursWorked | number: hoursFormat() }}</td>
+            @if (!plainHours()) {
+              <td class="number">{{ r.billableHours | number: hoursFormat() }}</td>
+            }
+            <td></td>
+            <td class="number">{{ r.amount | money: cur }}</td>
+          </tr>
+          @if (r.vat) {
+            <tr class="extra">
+              <td [attr.colspan]="plainHours() ? 4 : 6">VAT {{ r.settings.vatRate | number: '1.0-2' }}%</td>
+              <td class="number">{{ r.vat | money: cur }}</td>
+            </tr>
+          }
+          @if (r.overdue.length) {
+            <tr class="extra">
+              <td [attr.colspan]="plainHours() ? 4 : 6">Overdue from earlier invoices</td>
+              <td class="number">{{ r.overdueTotal | money: cur }}</td>
+            </tr>
+          }
+        </tfoot>
       </table>
 
-      <div class="totals">
-        <dl>
-          <dt>{{ plainHours() ? 'Hours' : 'Billable hours' }}</dt>
-          <dd>{{ r.billableHours | number: hoursFormat() }}</dd>
-          @if (r.vat) {
-            <dt>Subtotal (excl. VAT)</dt>
-            <dd>{{ r.amount | money: cur }}</dd>
-            <dt>VAT {{ r.settings.vatRate | number: '1.0-2' }}%</dt>
-            <dd>{{ r.vat | money: cur }}</dd>
-          }
-          <dt class="grand">Total</dt>
-          <dd class="grand">{{ total | money: cur }}</dd>
-          @if (r.overdue.length) {
-            <dt>Overdue from earlier invoices</dt>
-            <dd>{{ r.overdueTotal | money: cur }}</dd>
-          }
-        </dl>
-      </div>
+      @if (r.split?.length) {
+        <!-- Several clients pay this invoice together: what each pays of the amount due. -->
+        <section class="split">
+          <h2>Split between payers</h2>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Payer</th>
+                <th scope="col" class="number">Share</th>
+                <th scope="col" class="number">To pay</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (part of r.split; track part.name + $index) {
+                <tr>
+                  <td>{{ part.name }}</td>
+                  <td class="number">{{ part.percent | number: '1.0-2' }}%</td>
+                  <td class="number"><strong>{{ part.amount | money: cur }}</strong></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+
 
       <section class="due">
         <div>
@@ -246,38 +276,6 @@
           </a>
         }
       </section>
-
-      @if (r.split?.length) {
-        <!-- Several clients pay this invoice together: what each pays of the amount due. -->
-        <section class="split">
-          <h2>Split between payers</h2>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Payer</th>
-                <th scope="col" class="number">Share</th>
-                <th scope="col" class="number">To pay</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (part of r.split; track part.name + $index) {
-                <tr>
-                  <td>{{ part.name }}</td>
-                  <td class="number">{{ part.percent | number: '1.0-2' }}%</td>
-                  <td class="number"><strong>{{ part.amount | money: cur }}</strong></td>
-                </tr>
-              }
-            </tbody>
-            <tfoot>
-              <tr>
-                <td>Amount due</td>
-                <td class="number">100%</td>
-                <td class="number">{{ r.totalWithOverdue | money: cur }}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </section>
-      }
 
       @if (r.overdue.length) {
         <section class="appendix">
