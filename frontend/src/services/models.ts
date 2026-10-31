@@ -347,6 +347,13 @@ export interface OverviewPoint {
   date: string;
   tasksCompleted: number;
   hours: number;
+  /**
+   * The members' average mood (0–10) over the five days up to the end of this point or now (on weekly points, seven),
+   * each member counting once; null when no one gave one.
+   */
+  mood: number | null;
+  /** The same for resistance. */
+  resistance: number | null;
 }
 
 export interface ProjectOverview {

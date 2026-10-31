@@ -48,6 +48,14 @@ svg {
   --series: var(--chart-hours);
 }
 
+.mood {
+  --series: var(--chart-mood);
+}
+
+.resistance {
+  --series: var(--chart-resistance);
+}
+
 .line {
   fill: none;
   stroke: var(--series);
@@ -73,6 +81,12 @@ svg {
 .baseline {
   stroke: var(--border);
   stroke-width: 1;
+}
+
+.grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
 }
 
 .steady {
@@ -105,6 +119,27 @@ svg {
 
 .total .value {
   font-weight: 700;
+}
+
+/* The mood chart sits right under the tasks chart; the range buttons follow both. */
+.feelings {
+  margin-top: 12px;
+}
+
+.total.note {
+  opacity: 0.6;
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0 24px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0.7;
 }
 
 .tooltip {

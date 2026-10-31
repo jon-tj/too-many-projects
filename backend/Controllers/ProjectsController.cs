@@ -318,7 +318,7 @@ public sealed class ProjectsController(
 
     /// <summary>
     /// Tasks completed and hours worked, cumulative from the start of the range (7d / 30d daily, 1y weekly, in UTC),
-    /// plus whether the caller is currently working.
+    /// the members' average mood and resistance, plus whether the caller is currently working.
     /// </summary>
     [RequiresProject(ProjectFeature.Full, ProjectKey.Id)]
     [HttpGet("{id:long}/overview")]
@@ -342,7 +342,7 @@ public sealed class ProjectsController(
             .ToList();
         var sessions = await db.WorkSessions.AsNoTracking()
             .Where(session => session.ProjectId == id)
-            .Select(session => new { session.StartedAt, session.EndedAt })
+            .Select(session => new { session.UserId, session.StartedAt, session.EndedAt, session.Mood, session.Resistance })
             .ToListAsync(cancellationToken);
 
         var points = Enumerable.Range(0, bucketing.Buckets).Select(index =>
@@ -357,7 +357,15 @@ public sealed class ProjectsController(
                 var to = end < bucketEnd ? end : bucketEnd;
                 return to > from ? (to - from).TotalHours : 0;
             });
-            return new OverviewPoint(bucketStart, completed.Count(at => at < bucketEnd), Math.Round(hours, 2));
+            // Mood and resistance over the days up to the end of this point, or up to now for the current one (this week's
+            // point would otherwise be mostly days to come): five days, or a whole week on weekly points.
+            var windowEnd = bucketEnd < now ? bucketEnd : now;
+            var windowStart = windowEnd.AddDays(-Math.Max(MoodWindowDays, bucketing.DaysPerBucket));
+            var rated = sessions.Where(session => session.StartedAt >= windowStart && session.StartedAt < windowEnd).ToList();
+            return new OverviewPoint(
+                bucketStart, completed.Count(at => at < bucketEnd), Math.Round(hours, 2),
+                MemberAverage(rated.Select(session => (session.UserId, session.Mood))),
+                MemberAverage(rated.Select(session => (session.UserId, session.Resistance))));
         }).ToList();
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -366,6 +374,23 @@ public sealed class ProjectsController(
             .Select(session => (DateTimeOffset?)session.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);
         return Ok(new ProjectOverviewResponse(points, open is not null, open));
+    }
+
+    /// <summary>Mood and resistance on the overview are averaged over the last this many days.</summary>
+    private const int MoodWindowDays = 5;
+
+    /// <summary>
+    /// The average among members, each counting once however many sessions they rated: each member's own average,
+    /// then the average of those, to one decimal. Null when no one rated anything.
+    /// </summary>
+    private static double? MemberAverage(IEnumerable<(string UserId, int? Value)> ratings)
+    {
+        var perMember = ratings
+            .Where(rating => rating.Value is not null)
+            .GroupBy(rating => rating.UserId, rating => rating.Value!.Value)
+            .Select(member => member.Average())
+            .ToList();
+        return perMember.Count == 0 ? null : Math.Round(perMember.Average(), 1);
     }
 
     /// <summary>"Working" opens a work session for the caller; "Idle" closes it, with how it went if given.</summary>
@@ -649,7 +674,9 @@ public sealed record UpdateProjectRequest
 public sealed record CancelInviteResponse(bool UserDeleted);
 
 /// <summary>Cumulative values at the end of one day (or week) starting at Date.</summary>
-public sealed record OverviewPoint(DateTimeOffset Date, int TasksCompleted, double Hours);
+/// <param name="Mood">The members' average mood (0–10) over the five days up to the end of this point or now (on weekly points, seven days); null when no one gave one.</param>
+/// <param name="Resistance">The same for resistance.</param>
+public sealed record OverviewPoint(DateTimeOffset Date, int TasksCompleted, double Hours, double? Mood, double? Resistance);
 
 /// <summary>The overview chart data and the caller's working status.</summary>
 public sealed record ProjectOverviewResponse(IReadOnlyList<OverviewPoint> Points, bool Working, DateTimeOffset? WorkingSince);

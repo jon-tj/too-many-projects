@@ -82,7 +82,77 @@
   }
 </div>
 
-<!-- The range scopes the chart above and the hours below. -->
+<!-- How the work felt: the members' mood and resistance, averaged over the last five days, on their own 0–10 scale. -->
+<div
+  class="frame feelings"
+  tabindex="0"
+  aria-label="The members' average mood and resistance over time, from 0 to 10. Use the arrow keys to read values."
+  [style.opacity]="overview.isLoading() ? 0.5 : 1"
+  (pointermove)="onPointerMove($event)"
+  (pointerleave)="hovered.set(null)"
+  (keydown)="onKeydown($event)"
+  (blur)="hovered.set(null)"
+>
+  <svg [attr.width]="width()" [attr.height]="feelingsHeight" aria-hidden="true">
+    @for (tick of feelingTicks(); track tick.value) {
+      <line [class]="tick.value ? 'grid' : 'baseline'" [attr.x1]="pad().left" [attr.x2]="width() - pad().right" [attr.y1]="tick.y" [attr.y2]="tick.y" />
+      <text class="tick" [attr.x]="pad().left" [attr.y]="tick.y - 4">{{ tick.value }}</text>
+    }
+
+    @for (line of feelings(); track line.key) {
+      <path class="line {{ line.key }}" [attr.d]="line.path" />
+      @for (dot of line.lone; track $index) {
+        <circle class="dot {{ line.key }}" [attr.cx]="dot.x" [attr.cy]="dot.y" r="4" />
+      }
+    }
+
+    @if (hovered() !== null) {
+      <line class="crosshair" [attr.x1]="hoveredX()" [attr.x2]="hoveredX()" [attr.y1]="feelingsTop()" [attr.y2]="feelingsHeight - pad().bottom" />
+      @for (line of feelings(); track line.key) {
+        @if (line.hoverY(hovered()!); as y) {
+          <circle class="dot {{ line.key }}" [attr.cx]="hoveredX()" [attr.cy]="y" r="4" />
+        }
+      }
+    }
+
+    <!-- The latest averages at the right (on phones, in a row above the plot), each keyed by a stroke of its line colour. -->
+    @for (line of feelings(); track line.key) {
+      <line class="key {{ line.key }}" [attr.x1]="line.keyAt.x" [attr.x2]="line.keyAt.x + 12" [attr.y1]="line.keyAt.y" [attr.y2]="line.keyAt.y" />
+      <text class="total" [attr.x]="line.keyAt.x + 18" [attr.y]="line.keyAt.y" dominant-baseline="middle">
+        <tspan class="value">{{ line.latest }}</tspan> {{ line.title }}
+      </text>
+    }
+    @if (feelingsNote(); as note) {
+      <text class="total note" [attr.x]="note.x" [attr.y]="note.y" dominant-baseline="middle">
+        {{ range() === '1y' ? 'weekly' : '5-day' }} average
+      </text>
+    }
+
+    @for (label of xLabels(); track label.date) {
+      <text class="tick" [attr.x]="label.x" [attr.y]="feelingsHeight - 6" [attr.text-anchor]="label.anchor">
+        {{ label.date | date: (range() === '7d' ? 'EEE' : 'MMM d') : 'UTC' }}
+      </text>
+    }
+  </svg>
+
+  @if (!anyFeelings() && shown()) {
+    <p class="empty">No one rated their mood or resistance in this period. They are asked when you finish working.</p>
+  }
+
+  @if (hoveredPoint(); as point) {
+    <div class="tooltip" [style.left.px]="hoveredX()">
+      <small>{{ range() === '1y' ? 'Week of' : '5 days to' }} {{ point.date | date: (range() === '1y' ? 'MMM d' : 'EEE MMM d') : 'UTC' }}</small>
+      @if (point.mood === null && point.resistance === null) {
+        <span>No ratings</span>
+      } @else {
+        <span><span class="key-swatch mood"></span><strong>{{ feelingValue(point.mood) }}</strong> mood</span>
+        <span><span class="key-swatch resistance"></span><strong>{{ feelingValue(point.resistance) }}</strong> resistance</span>
+      }
+    </div>
+  }
+</div>
+
+<!-- The range scopes the charts above and the hours below. -->
 <nav aria-label="Time range">
   @for (option of ranges; track option.value) {
     <button class="transparent" type="button" [class.active]="range() === option.value" (click)="range.set(option.value)">

@@ -43,6 +43,16 @@ const SERIES = [
 ] as const;
 type SeriesKey = (typeof SERIES)[number]['key'];
 
+/** Mood and resistance share one 0–10 scale, so unlike the chart above they are plotted as they are. */
+const FEELINGS = [
+  { key: 'mood', title: 'mood' },
+  { key: 'resistance', title: 'resistance' },
+] as const;
+type FeelingKey = (typeof FEELINGS)[number]['key'];
+const FEELINGS_HEIGHT = 160;
+/** On phones the key is a row above the plot, as lines can be anywhere on this scale. */
+const FEELINGS_COMPACT_TOP = 40;
+
 const HEIGHT = 200;
 /** The right gutter holds the totals; the bottom one the dates. */
 const PAD = { left: 12, right: 132, top: 16, bottom: 24 };
@@ -117,6 +127,17 @@ export class ProjectOverview implements OnDestroy {
     x2: this.pad().left + this.innerWidth(),
     y2: PAD.top,
   }));
+  protected readonly feelingsHeight = FEELINGS_HEIGHT;
+  protected readonly feelingsTop = computed(() => (this.compact() ? FEELINGS_COMPACT_TOP : PAD.top));
+  protected readonly feelings = computed(() => FEELINGS.map((feeling, index) => this.feelingLine(feeling.key, feeling.title, index)));
+  /** Whether anyone gave a mood or resistance in the period; otherwise the chart says so instead of staying blank. */
+  protected readonly anyFeelings = computed(() => this.points().some((point) => point.mood !== null || point.resistance !== null));
+  /** Gridlines at 0, 5 and 10, labelled at the left. */
+  protected readonly feelingTicks = computed(() => [10, 5, 0].map((value) => ({ value, y: this.feelingY(value) })));
+  /** Where the key's third row says what the values are. */
+  protected readonly feelingsNote = computed(() =>
+    this.compact() ? null : { x: this.width() - PAD.right + 16, y: PAD.top + 8 + FEELINGS.length * 24 },
+  );
   protected readonly xLabels = computed(() => {
     const points = this.points();
     if (!points.length) return [];
@@ -275,6 +296,10 @@ export class ProjectOverview implements OnDestroy {
     return this.x(this.hovered() ?? 0);
   }
 
+  protected feelingValue(value: number | null): string {
+    return value === null ? '–' : value.toFixed(1);
+  }
+
   protected format(key: SeriesKey, value: number): string {
     return SERIES.find((series) => series.key === key)!.format(value);
   }
@@ -286,6 +311,38 @@ export class ProjectOverview implements OnDestroy {
   private x(index: number): number {
     const count = this.points().length;
     return count < 2 ? this.pad().left + this.innerWidth() : this.pad().left + (index / (count - 1)) * this.innerWidth();
+  }
+
+  private feelingY(value: number): number {
+    const top = this.feelingsTop();
+    return top + (1 - value / 10) * (FEELINGS_HEIGHT - top - PAD.bottom);
+  }
+
+  /**
+   * Mood or resistance on the 0–10 scale. Days without any are gaps: the line breaks there, and a value with gaps on
+   * both sides gets a dot so it still shows. The key gives the latest value.
+   */
+  private feelingLine(key: FeelingKey, title: string, index: number) {
+    const values = this.points().map((point) => point[key]);
+    const at = (i: number) => ({ x: this.x(i), y: this.feelingY(values[i] ?? 0) });
+    const path = values
+      .map((value, i) => (value === null ? '' : `${i && values[i - 1] !== null ? 'L' : 'M'}${at(i).x},${at(i).y}`))
+      .join(' ');
+    const lone = values.flatMap((value, i) =>
+      value !== null && values[i - 1] == null && values[i + 1] == null ? [at(i)] : [],
+    );
+    const latest = [...values].reverse().find((value) => value !== null) ?? null;
+    return {
+      key,
+      title,
+      latest: this.feelingValue(latest),
+      path,
+      lone,
+      keyAt: this.compact()
+        ? { x: PAD.left + 4 + index * 120, y: 14 }
+        : { x: this.width() - PAD.right + 16, y: PAD.top + 8 + index * 24 },
+      hoverY: (i: number) => (values[i] == null ? null : at(i).y),
+    };
   }
 
   /** One series as a share of its period total; flat along the bottom while the total is still 0. */

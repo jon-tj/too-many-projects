@@ -19,6 +19,8 @@
     --priority-critical: #e25d5d;
   --chart-tasks: #3987e5;
   --chart-hours: #d95926;
+  --chart-mood: #199e70;
+  --chart-resistance: #c98500;
   }
 }
 
@@ -39,4 +41,6 @@
   --priority-critical: #e25d5d;
   --chart-tasks: #3987e5;
   --chart-hours: #d95926;
+  --chart-mood: #199e70;
+  --chart-resistance: #c98500;
 }
