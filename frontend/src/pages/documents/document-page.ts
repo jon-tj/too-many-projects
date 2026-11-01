@@ -123,7 +123,7 @@ export class DocumentPage {
   });
   /** Hours are written with as many decimals as the rounding step needs. */
   protected readonly hoursFormat = computed(() => hoursFormat(this.report()));
-  /** revolut.me and paypal.me links in the payment details, each shown as a QR code the client can scan to pay. */
+  /** revolut.me, paypal.me and wise.com/pay/me links in the payment details, each shown as a QR code the client can scan to pay. */
   protected readonly paymentLinks = computed(() => findPaymentLinks(this.report()?.settings.paymentDetails));
   /**
    * The QR codes as PNG data URLs, by link; drawn by a library that is only loaded for invoices with a payment link.

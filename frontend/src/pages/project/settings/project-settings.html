@@ -95,7 +95,7 @@
         </label>
         <label>
           Payment details
-          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, IBAN and BIC, or https://revolut.me/yourname or paypal.me/yourname"></textarea>
+          <textarea formControlName="paymentDetails" rows="3" placeholder="e.g. Bank account 1234.56.78901, IBAN and BIC, or revolut.me/yourname, paypal.me/yourname or wise.com/pay/me/yourname"></textarea>
           @for (link of paymentLinks(); track link.url) {
             <span class="detected">
               <app-icon name="qr_code_2" [size]="16" />

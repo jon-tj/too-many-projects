@@ -169,3 +169,7 @@ A chart under the tasks chart with the members' 5-day average mood and resistanc
 
 - **Decision:** each point averages the five days up to it (on the 1Y range, seven days, as points are weekly), and up to now for the current point. Each member counts once: their own average first, then the average of the members, so someone logging many sessions does not outweigh the rest. Both share one 0–10 scale; days without any ratings in the window are gaps in the lines.
 - **Status:** done: the overview shows the chart under the tasks chart, following the same range buttons, with the latest averages in its key, a tooltip per day (the crosshair moves on both charts together), and a note when no one rated anything in the period. Mood and resistance use the next two chart colours (aqua and amber), checked for colour blindness in every theme.
+
+## Wise payment QR code
+
+- **Status:** done: wise.com/pay/me/<name> links in a project's payment details are recognised like revolut.me and paypal.me ones: the settings confirm it, and invoices show a "Scan to pay with Wise" QR code. A full stop right after a payment link no longer ends up in the link.

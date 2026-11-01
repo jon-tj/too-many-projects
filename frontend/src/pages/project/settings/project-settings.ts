@@ -105,7 +105,7 @@ export class ProjectSettings {
     initialValue: this.form.getRawValue(),
   });
   protected readonly billingEnabled = toSignal(this.billingForm.controls.enabled.valueChanges, { initialValue: false });
-  /** revolut.me and paypal.me links in the payment details, which invoices turn into QR codes. */
+  /** revolut.me, paypal.me and wise.com/pay/me links in the payment details, which invoices turn into QR codes. */
   protected readonly paymentLinks = toSignal(
     this.billingForm.controls.paymentDetails.valueChanges.pipe(map((details) => findPaymentLinks(details))),
     { initialValue: [] },
