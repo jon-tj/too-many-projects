@@ -177,8 +177,9 @@
   color: var(--priority-critical);
   background-color: color-mix(in srgb, var(--priority-critical) 14%, transparent);
 }
-/* At most three lines of description, ending in an ellipsis; the task page shows all of it. */
+/* At most three lines of description, ending in an ellipsis, keeping its line breaks; the task page shows all of it. */
 .task-card p {
+  white-space: pre-line;
   display: -webkit-box;
   margin: 7px 0 0;
   overflow: hidden;

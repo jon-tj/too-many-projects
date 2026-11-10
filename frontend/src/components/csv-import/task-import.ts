@@ -36,6 +36,14 @@ function guessPriority(value: string): TaskPriority {
   return 'low';
 }
 
+/**
+ * Line breaks written as the two characters \n (or \r\n), as agents and scripts often put them in a CSV, made real
+ * line breaks.
+ */
+function lineBreaks(text: string): string {
+  return text.replace(/\\r\\n|\\n|\\r/g, '\n');
+}
+
 /** The calendar day as the board stores due dates: midnight UTC of that day. */
 function dueDay(date: Date): string {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())).toISOString();
@@ -97,7 +105,7 @@ export class TaskImport {
         const completed = date(cell(row, 'completed'));
         return {
           title: cell(row, 'title'),
-          description: cell(row, 'description') || null,
+          description: lineBreaks(cell(row, 'description')) || null,
           status: status ? (this.statusMap()[status] ?? 'todo') : completed ? ('done' as TaskStatus) : ('todo' as TaskStatus),
           priority: priority ? (this.priorityMap()[priority] ?? 'low') : ('low' as TaskPriority),
           // Several people in one cell (Notion, Trello): the first one gets the task.
