@@ -47,6 +47,16 @@ h3 {
   padding: 6px 8px;
   font-size: 12px;
 }
+/* Pasted CSV, kept in its columns. */
+.paste {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre;
+  resize: vertical;
+}
+.read-pasted {
+  align-self: flex-start;
+}
 .preview {
   max-height: 240px;
   overflow: auto;

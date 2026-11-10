@@ -59,7 +59,12 @@ export class TaskImport {
   private readonly api = inject(WorkspaceApi);
   protected readonly FIELDS = FIELDS;
 
+  /** Where the rows came from: the file's name, or "pasted text". */
   protected readonly fileName = signal('');
+  /** CSV pasted or typed instead of choosing a file. */
+  protected readonly pasted = signal('');
+  /** The pasted text last read, so the button shows only once it has been edited since. */
+  protected readonly pastedRead = signal('');
   protected readonly table = signal<CsvTable | null>(null);
   /** The column chosen for each field; -1 for none. */
   protected readonly columns = signal<Record<Field, number>>(this.noColumns());
@@ -113,6 +118,8 @@ export class TaskImport {
       untracked(() => {
         this.table.set(null);
         this.fileName.set('');
+        this.pasted.set('');
+        this.pastedRead.set('');
         this.error.set('');
         this.done.set('');
       });
@@ -127,12 +134,32 @@ export class TaskImport {
       this.error.set('That file is over 5 MB. Export fewer rows and try again.');
       return;
     }
-    const table = parseCsv(await file.text());
+    this.load(await file.text(), file.name);
+  }
+
+  /** Pasting reads the text straight away; typed or edited text is read with the button. */
+  protected onPaste(event: ClipboardEvent): void {
+    const text = event.clipboardData?.getData('text') ?? '';
+    // Pasting over a selection or into existing text: let it land, then read the whole box.
+    setTimeout(() => this.usePasted((event.target as HTMLTextAreaElement).value || text));
+  }
+
+  protected usePasted(text = this.pasted()): void {
+    this.pasted.set(text);
+    this.pastedRead.set(text);
+    this.error.set('');
+    this.done.set('');
+    if (text.trim()) this.load(text, 'pasted text');
+  }
+
+  private load(text: string, source: string): void {
+    const table = parseCsv(text);
     if (!table.headers.length || !table.rows.length) {
-      this.error.set('No rows found. Choose a CSV file with a header line.');
+      this.table.set(null);
+      this.error.set('No rows found. The CSV needs a header line and at least one row.');
       return;
     }
-    this.fileName.set(file.name);
+    this.fileName.set(source);
     this.table.set(table);
     const columns = this.noColumns();
     const taken = new Set<number>();

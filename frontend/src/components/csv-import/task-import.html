@@ -7,13 +7,28 @@
       </footer>
     } @else {
       <p class="intro">
-        Export your tasks as CSV from Notion, Asana, Jira, Linear, Trello or a spreadsheet, and choose the file here.
-        Nothing is created until you confirm.
+        Export your tasks as CSV from Notion, Asana, Jira, Linear, Trello or a spreadsheet, and choose the file here, or
+        paste the CSV below. Nothing is created until you confirm.
       </p>
       <label>
         CSV file
         <input type="file" accept=".csv,text/csv,.tsv,.txt" (change)="choose($any($event.target).files?.[0])" />
       </label>
+      <label>
+        Or paste CSV
+        <textarea
+          class="paste"
+          rows="4"
+          spellcheck="false"
+          placeholder="title,status,priority&#10;Write the intro,todo,high"
+          [value]="pasted()"
+          (input)="pasted.set($any($event.target).value)"
+          (paste)="onPaste($event)"
+        ></textarea>
+      </label>
+      @if (pasted().trim() && pasted() !== pastedRead()) {
+        <button class="transparent read-pasted" type="button" (click)="usePasted()">Read pasted CSV</button>
+      }
 
       @if (table(); as t) {
         <h3>Columns in {{ fileName() }}</h3>
@@ -22,7 +37,7 @@
             <label>
               {{ field.label }}
               <select (change)="setColumn(field.key, +$any($event.target).value)">
-                <option value="-1" [selected]="columns()[field.key] === -1">{{ field.key === 'title' ? 'Choose a column' : 'Not in the file' }}</option>
+                <option value="-1" [selected]="columns()[field.key] === -1">{{ field.key === 'title' ? 'Choose a column' : 'Not in the CSV' }}</option>
                 @for (header of t.headers; track $index) {
                   <option [value]="$index" [selected]="columns()[field.key] === $index">{{ header || 'Column ' + ($index + 1) }}</option>
                 }

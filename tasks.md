@@ -173,3 +173,9 @@ A chart under the tasks chart with the members' 5-day average mood and resistanc
 ## Wise payment QR code
 
 - **Status:** done: wise.com/pay/me/<name> links in a project's payment details are recognised like revolut.me and paypal.me ones: the settings confirm it, and invoices show a "Scan to pay with Wise" QR code. A full stop right after a payment link no longer ends up in the link.
+
+## Paste CSV into the task import
+
+Paste CSV (e.g. written by an agent) straight into the task import, without saving it to a file first.
+
+- **Status:** done: the task import has an "Or paste CSV" box under the file picker. Pasting reads it straight away (columns, statuses, priorities and the preview fill in as for a file); after editing the text, "Read pasted CSV" reads it again.
