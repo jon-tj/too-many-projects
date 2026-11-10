@@ -325,9 +325,48 @@ public sealed class ProjectsController(
     public async Task<ActionResult<ProjectOverviewResponse>> GetOverview(
         long id, [FromQuery] string range, CancellationToken cancellationToken)
     {
-        (int Buckets, int DaysPerBucket)? shape = range switch { "7d" => (7, 1), "30d" => (30, 1), "1y" => (52, 7), _ => null };
-        if (shape is not { } bucketing) return BadRequest(new { error = "Range must be 7d, 30d or 1y." });
         if (await GetMemberProject(id, cancellationToken) is null) return NotFound();
+        if (await OverviewPoints([id], range, cancellationToken) is not { } points)
+            return BadRequest(new { error = "Range must be 7d, 30d or 1y." });
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var open = await db.WorkSessions.AsNoTracking()
+            .Where(session => session.ProjectId == id && session.UserId == userId && session.EndedAt == null)
+            .Select(session => (DateTimeOffset?)session.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        return Ok(new ProjectOverviewResponse(points, open is not null, open));
+    }
+
+    /// <summary>
+    /// The overview chart summed over all the caller's projects that have one: those not frozen, on a plan with full
+    /// features. Tasks and hours add up; mood and resistance average over everyone in them.
+    /// </summary>
+    [HttpGet("overview")]
+    public async Task<ActionResult<CombinedOverviewResponse>> GetCombinedOverview(
+        [FromQuery] string range, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var memberOf = await db.ProjectMembers.AsNoTracking()
+            .Where(member => member.UserId == userId)
+            .Select(member => member.ProjectId)
+            .ToListAsync(cancellationToken);
+        var statuses = await plans.GetStatuses(memberOf, cancellationToken);
+        var included = memberOf
+            .Where(id => statuses.TryGetValue(id, out var status) && status is { Frozen: false, FullFeatures: true })
+            .ToList();
+        if (await OverviewPoints(included, range, cancellationToken) is not { } points)
+            return BadRequest(new { error = "Range must be 7d, 30d or 1y." });
+        return Ok(new CombinedOverviewResponse(points, included.Count));
+    }
+
+    /// <summary>
+    /// The overview's points for these projects together (7d / 30d daily, 1y weekly, in UTC); null for an unknown range.
+    /// </summary>
+    private async Task<List<OverviewPoint>?> OverviewPoints(
+        IReadOnlyCollection<long> projectIds, string range, CancellationToken cancellationToken)
+    {
+        (int Buckets, int DaysPerBucket)? shape = range switch { "7d" => (7, 1), "30d" => (30, 1), "1y" => (52, 7), _ => null };
+        if (shape is not { } bucketing) return null;
 
         var now = DateTimeOffset.UtcNow;
         var today = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
@@ -335,17 +374,17 @@ public sealed class ProjectsController(
 
         // Filtered in memory: SQLite cannot compare DateTimeOffset values in queries.
         var completed = (await db.ProjectTasks.AsNoTracking()
-                .Where(task => task.ProjectId == id && task.CompletedAt != null)
+                .Where(task => projectIds.Contains(task.ProjectId) && task.CompletedAt != null)
                 .Select(task => task.CompletedAt!.Value)
                 .ToListAsync(cancellationToken))
             .Where(at => at >= start)
             .ToList();
         var sessions = await db.WorkSessions.AsNoTracking()
-            .Where(session => session.ProjectId == id)
+            .Where(session => projectIds.Contains(session.ProjectId))
             .Select(session => new { session.UserId, session.StartedAt, session.EndedAt, session.Mood, session.Resistance })
             .ToListAsync(cancellationToken);
 
-        var points = Enumerable.Range(0, bucketing.Buckets).Select(index =>
+        return Enumerable.Range(0, bucketing.Buckets).Select(index =>
         {
             var bucketStart = start.AddDays(index * bucketing.DaysPerBucket);
             var bucketEnd = bucketStart.AddDays(bucketing.DaysPerBucket);
@@ -367,13 +406,6 @@ public sealed class ProjectsController(
                 MemberAverage(rated.Select(session => (session.UserId, session.Mood))),
                 MemberAverage(rated.Select(session => (session.UserId, session.Resistance))));
         }).ToList();
-
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var open = await db.WorkSessions.AsNoTracking()
-            .Where(session => session.ProjectId == id && session.UserId == userId && session.EndedAt == null)
-            .Select(session => (DateTimeOffset?)session.StartedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-        return Ok(new ProjectOverviewResponse(points, open is not null, open));
     }
 
     /// <summary>Mood and resistance on the overview are averaged over the last this many days.</summary>
@@ -677,6 +709,9 @@ public sealed record CancelInviteResponse(bool UserDeleted);
 /// <param name="Mood">The members' average mood (0–10) over the five days up to the end of this point or now (on weekly points, seven days); null when no one gave one.</param>
 /// <param name="Resistance">The same for resistance.</param>
 public sealed record OverviewPoint(DateTimeOffset Date, int TasksCompleted, double Hours, double? Mood, double? Resistance);
+
+/// <summary>The overview chart summed over the caller's projects, and how many projects that is.</summary>
+public sealed record CombinedOverviewResponse(IReadOnlyList<OverviewPoint> Points, int Projects);
 
 /// <summary>The overview chart data and the caller's working status.</summary>
 public sealed record ProjectOverviewResponse(IReadOnlyList<OverviewPoint> Points, bool Working, DateTimeOffset? WorkingSince);

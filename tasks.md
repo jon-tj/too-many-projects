@@ -179,3 +179,10 @@ A chart under the tasks chart with the members' 5-day average mood and resistanc
 Paste CSV (e.g. written by an agent) straight into the task import, without saving it to a file first.
 
 - **Status:** done: the task import has an "Or paste CSV" box under the file picker. Pasting reads it straight away (columns, statuses, priorities and the preview fill in as for a file); after editing the text, "Read pasted CSV" reads it again.
+
+## Velocity across all projects on the dashboard
+
+The project overview's velocity chart (tasks done and hours worked, with the steady pace line) on the dashboard, summed over all your projects.
+
+- **Decision:** it adds up every project you are a member of that has an overview (not frozen, on a plan with full features), with the whole team's tasks and hours, as on each project's overview. Hidden when no project has one.
+- **Status:** done: "Velocity across your N projects" at the top of the dashboard, with the same 7D / 30D / 1Y range buttons. The chart is now one component shared with the project overview, so both stay the same.

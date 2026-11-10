@@ -30,6 +30,23 @@
   </section>
 }
 
+@if (shownVelocity(); as overview) {
+  <!-- Only with projects that have an overview: on the free plan there is none to add up. -->
+  @if (overview.projects) {
+    <section class="velocity">
+      <h2>Velocity <small>across {{ overview.projects === 1 ? 'your project' : 'your ' + overview.projects + ' projects' }}</small></h2>
+      <app-velocity-chart [points]="overview.points" [range]="range()" [loading]="velocity.isLoading()" />
+      <nav aria-label="Time range">
+        @for (option of ranges; track option.value) {
+          <button class="transparent" type="button" [class.active]="range() === option.value" (click)="range.set(option.value)">
+            <span>{{ option.label }}</span>
+          </button>
+        }
+      </nav>
+    </section>
+  }
+}
+
 <section>
   <h2>Your work</h2>
   <app-work-log />

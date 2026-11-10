@@ -27,6 +27,7 @@ import {
   BillingSettings,
   ProjectMember,
   ProjectOverview,
+  CombinedOverview,
   OverviewRange,
   ProjectRole,
   ProjectTask,
@@ -156,6 +157,11 @@ export class WorkspaceApi {
 
   projectOverview(id: number, range: OverviewRange): Observable<ProjectOverview> {
     return this.http.get<ProjectOverview>(`/api/projects/${id}/overview`, { params: { range } });
+  }
+
+  /** The overview chart summed over all your projects that have one. */
+  combinedOverview(range: OverviewRange): Observable<CombinedOverview> {
+    return this.http.get<CombinedOverview>('/api/projects/overview', { params: { range } });
   }
 
   /** Working opens a work session for you in the project; idle closes it. */

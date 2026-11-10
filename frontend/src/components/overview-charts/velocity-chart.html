@@ -1,0 +1,61 @@
+<div
+  #frame
+  class="frame"
+  tabindex="0"
+  aria-label="Tasks done and hours worked over time, each as a share of its total. Use the arrow keys to read values."
+  [style.opacity]="loading() ? 0.5 : 1"
+  (pointermove)="axis.pointerMove($event)"
+  (pointerleave)="hovered.set(null)"
+  (keydown)="axis.keydown($event)"
+  (blur)="hovered.set(null)"
+>
+  @let pad = axis.pad();
+  @let width = axis.width();
+  <svg [attr.width]="width" [attr.height]="height" aria-hidden="true">
+    <line class="baseline" [attr.x1]="pad.left" [attr.x2]="width - pad.right" [attr.y1]="height - pad.bottom" [attr.y2]="height - pad.bottom" />
+
+    <!-- Steady pace: a curve above it is slowing down, below it speeding up. -->
+    @let steady = steadyPace();
+    <line class="steady" [attr.x1]="steady.x1" [attr.y1]="steady.y1" [attr.x2]="steady.x2" [attr.y2]="steady.y2" />
+
+    @for (line of lines(); track line.key) {
+      <path class="line {{ line.key }}" [attr.d]="line.path" />
+      @if (line.end; as end) {
+        <circle class="dot {{ line.key }}" [attr.cx]="end.x" [attr.cy]="end.y" r="4" />
+      }
+    }
+
+    @if (hovered() !== null) {
+      <line class="crosshair" [attr.x1]="axis.hoveredX()" [attr.x2]="axis.hoveredX()" [attr.y1]="pad.top" [attr.y2]="height - pad.bottom" />
+      @for (line of lines(); track line.key) {
+        <circle class="dot {{ line.key }}" [attr.cx]="axis.hoveredX()" [attr.cy]="line.hoverY(hovered()!)" r="4" />
+      }
+    }
+
+    <!-- Totals for the period at the right (on phones, inside the plot at its top left): tasks on top, hours below, each keyed by a stroke of its line colour, then the steady pace line. -->
+    @let key = keyOrigin();
+    @for (line of lines(); track line.key; let i = $index) {
+      <line class="key {{ line.key }}" [attr.x1]="key.x" [attr.x2]="key.x + 12" [attr.y1]="key.y + i * 24" [attr.y2]="key.y + i * 24" />
+      <text class="total" [attr.x]="key.x + 18" [attr.y]="key.y + i * 24" dominant-baseline="middle">
+        <tspan class="value">{{ line.total }}</tspan> {{ line.title }}
+      </text>
+    }
+    <line class="key steady" [attr.x1]="key.x" [attr.x2]="key.x + 12" [attr.y1]="key.y + lines().length * 24" [attr.y2]="key.y + lines().length * 24" />
+    <text class="total" [attr.x]="key.x + 18" [attr.y]="key.y + lines().length * 24" dominant-baseline="middle">steady pace</text>
+
+    @for (label of axis.labels(); track label.date) {
+      <text class="tick" [attr.x]="label.x" [attr.y]="height - 6" [attr.text-anchor]="label.anchor">
+        {{ label.date | date: (range() === '7d' ? 'EEE' : 'MMM d') : 'UTC' }}
+      </text>
+    }
+  </svg>
+
+  @if (hoveredPoint(); as point) {
+    <!-- The real values at this date: values lead, names follow. -->
+    <div class="tooltip" [style.left.px]="axis.hoveredX()">
+      <small>{{ point.date | date: (range() === '1y' ? "'Week of' MMM d" : 'EEE MMM d') : 'UTC' }}</small>
+      <span><span class="key-swatch tasksCompleted"></span><strong>{{ format('tasksCompleted', point.tasksCompleted) }}</strong> tasks done</span>
+      <span><span class="key-swatch hours"></span><strong>{{ format('hours', point.hours) }}</strong> hours worked</span>
+    </div>
+  }
+</div>

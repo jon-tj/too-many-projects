@@ -65,3 +65,21 @@ small {
   font-size: 12px;
   font-weight: 600;
 }
+
+/* The velocity chart across all projects, with the range buttons under it as on a project's overview. */
+.velocity {
+  max-width: 900px;
+  margin-bottom: 28px;
+}
+
+.velocity h2 small {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.velocity nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

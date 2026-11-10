@@ -362,6 +362,13 @@ export interface ProjectOverview {
   workingSince: string | null;
 }
 
+/** The overview chart summed over your projects that have one (not frozen, on a plan with full features). */
+export interface CombinedOverview {
+  points: OverviewPoint[];
+  /** How many projects the points add up. */
+  projects: number;
+}
+
 export type ProjectRole = 'Owner' | 'Developer' | 'External';
 
 export interface UserSummary {
